@@ -173,6 +173,68 @@ def PAA.atNode
   LtsB.label σB = (paa.location node).2 ∧
   paa.invariant node σA σB
 
+namespace PAA
+
+/-- The directed node relation obtained by retaining exactly the PAA edges
+    whose A path performs no transition. -/
+def aEmptyEdge
+    [Ord lA] [DecidableEq lA] [Ord lB]
+    {LtsA : Lts_det A lA} {LtsB : Lts_ndet B lB}
+    (paa : PAA LtsA LtsB) (source target : paa.Node) : Prop :=
+  ∃ P Q, paa.edge source target P Q ∧ P.steps = []
+
+/-- DAG condition for the A-empty-edge graph.  `WellFounded` uses the
+    predecessor-first orientation, hence the reversed arguments below. -/
+def AEmptyDAG
+    [Ord lA] [DecidableEq lA] [Ord lB]
+    {LtsA : Lts_det A lA} {LtsB : Lts_ndet B lB}
+    (paa : PAA LtsA LtsB) : Prop :=
+  WellFounded (fun target source => paa.aEmptyEdge source target)
+
+/-- A natural-valued height for a well-founded relation on a finite type. -/
+noncomputable def finiteWellFoundedRank [Fintype α]
+    (relation : α → α → Prop) (wf : WellFounded relation) : α → Nat := by
+  classical
+  exact wf.fix fun x ranks =>
+    Finset.univ.sup fun y =>
+      if h : relation y x then ranks y h + 1 else 0
+
+lemma finiteWellFoundedRank_lt [Fintype α]
+    (relation : α → α → Prop) (wf : WellFounded relation)
+    (hxy : relation x y) :
+    finiteWellFoundedRank relation wf x < finiteWellFoundedRank relation wf y := by
+  classical
+  unfold finiteWellFoundedRank
+  conv_rhs => rw [wf.fix_eq]
+  apply Nat.lt_of_succ_le
+  have hle := Finset.le_sup
+    (s := Finset.univ)
+    (f := fun z => if h : relation z y then wf.fix
+      (fun x ranks => Finset.univ.sup fun y =>
+        if h : relation y x then ranks y h + 1 else 0) z + 1 else 0)
+    (Finset.mem_univ x)
+  simpa [hxy] using hle
+
+/-- A proof that the A-empty-edge graph is a DAG supplies the rank certificate
+    expected by `validPAA.hyp3A_rank`.  This lets a separate decidable DAG
+    checker prove `hyp3A_rank` without changing the definition of `validPAA`. -/
+theorem hyp3A_rank_of_aEmptyDAG
+    [Ord lA] [DecidableEq lA] [Ord lB]
+    {LtsA : Lts_det A lA} {LtsB : Lts_ndet B lB}
+    (paa : PAA LtsA LtsB) (hdag : paa.AEmptyDAG) :
+    ∃ rank : paa.Node → Nat,
+      ∀ {source target P Q}, paa.edge source target P Q →
+        P.steps = [] → rank target < rank source := by
+  letI : Fintype paa.Node := paa.nodeFintype
+  let relation : paa.Node → paa.Node → Prop :=
+    fun target source => paa.aEmptyEdge source target
+  refine ⟨finiteWellFoundedRank relation hdag, ?_⟩
+  intro source target P Q hedge hempty
+  apply finiteWellFoundedRank_lt relation hdag
+  exact ⟨P, Q, hedge, hempty⟩
+
+end PAA
+
 def pathToList (P : Path A) : List A :=
   P.start :: P.steps
 

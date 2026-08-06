@@ -1,4 +1,5 @@
 import PAA.PAA
+import Solm.SmallStep.Dispatch
 
 /-! Adapters from the executable EVM semantics and a future executable Solm
     semantics to the mathematical transition systems used by the PAA theory. -/
@@ -141,5 +142,125 @@ theorem evm_to_solm_refinement [Ord SolmLabel]
         solmLts.isFinal (solmLts.label solmFinal) ∧
         paa.goal evmFinal solmFinal := by
   exact paa_refinement (evmLts validJumps) solmLts paa hpaa
+
+abbrev EVMLoweredSolmPAA
+    (validJumps : Array Ethereum.UInt256)
+    (cfg : Solm.Config) (contract : Solm.SmallStep.LoweredContract) :=
+  EVMSolmPAA validJumps (Solm.SmallStep.lts cfg contract)
+
+/-- Refinement instantiated with the lowered, interprocedural Solm machine. -/
+theorem evm_to_lowered_solm_refinement
+    (validJumps : Array Ethereum.UInt256)
+    (cfg : Solm.Config)
+    (contract : Solm.SmallStep.LoweredContract)
+    (paa : EVMLoweredSolmPAA validJumps cfg contract)
+    (hpaa : validPAA (evmLts validJumps)
+      (Solm.SmallStep.lts cfg contract) paa) :
+    ∀ (source : paa.Node) evm evmFinal solm,
+      terminate_at (evmLts validJumps) evm evmFinal →
+      paa.atNode (evmLts validJumps) (Solm.SmallStep.lts cfg contract)
+        source evm solm →
+      ∃ solmFinal,
+        steps_ndet (Solm.SmallStep.lts cfg contract) solm solmFinal ∧
+        (Solm.SmallStep.lts cfg contract).isFinal
+          ((Solm.SmallStep.lts cfg contract).label solmFinal) ∧
+        paa.goal evmFinal solmFinal := by
+  exact evm_to_solm_refinement validJumps
+    (Solm.SmallStep.lts cfg contract) paa hpaa
+
+/-- End-to-end transaction adapter.  A PAA goal may rule out lowered fault
+    states and decode the intended Solm result; the certified lowering then
+    reflects the PAA-produced path back into the existing `solmExec`
+    semantics used by refinement proofs. -/
+theorem evm_to_solmExec_refinement
+    (validJumps : Array Ethereum.UInt256)
+    (cfg : Solm.Config) (source : Solm.ContractDecl)
+    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
+    (genesisBlockHeader : Ethereum.BlockHeader)
+    (blocks : Ethereum.ProcessedBlocks)
+    (σ σ₀ : Ethereum.AccountMap) (gas : Ethereum.UInt256)
+    (substate : Ethereum.Substate) (environment : Ethereum.ExecutionEnv)
+    (invocation : Solm.SmallStep.Invocation source)
+    (returnConvention : Solm.ReturnConvention)
+    (dispatched : Solm.SmallStep.Dispatches cfg source createdAccounts
+      genesisBlockHeader blocks σ σ₀ gas substate environment invocation
+      returnConvention)
+    (paa : EVMLoweredSolmPAA validJumps cfg
+      (Solm.SmallStep.lowerContract source))
+    (hpaa : validPAA (evmLts validJumps)
+      (Solm.SmallStep.lts cfg (Solm.SmallStep.lowerContract source)) paa)
+    (goalResult : ∀ evmFinal solmFinal,
+      paa.goal evmFinal solmFinal →
+      ∃ result, solmFinal.execResult? = some result)
+    (node : paa.Node)
+    (termination : terminate_at (evmLts validJumps) evm evmFinal)
+    (atNode : paa.atNode (evmLts validJumps)
+      (Solm.SmallStep.lts cfg (Solm.SmallStep.lowerContract source))
+      node evm invocation.initial) :
+    ∃ solmFinal result,
+      Solm.solmExec cfg source createdAccounts genesisBlockHeader blocks
+        σ σ₀ gas substate environment result returnConvention ∧
+      paa.goal evmFinal solmFinal := by
+  obtain ⟨solmFinal, hsteps, hfinal, hgoal⟩ :=
+    evm_to_lowered_solm_refinement validJumps cfg
+      (Solm.SmallStep.lowerContract source) paa hpaa node evm evmFinal
+      invocation.initial termination atNode
+  obtain ⟨result, hdecoded⟩ := goalResult evmFinal solmFinal hgoal
+  have hinvocation : Solm.SmallStep.InvocationTerminates cfg source invocation result :=
+    ⟨solmFinal, ⟨hsteps, hfinal⟩, hdecoded⟩
+  have hexecution :=
+    (Solm.SmallStep.solmExec_iff_lowered_lts
+      (cfg := cfg) (source := source) (createdAccounts := createdAccounts)
+      (genesisBlockHeader := genesisBlockHeader) (blocks := blocks)
+      (σ := σ) (σ₀ := σ₀) (gas := gas) (substate := substate)
+      (environment := environment) (result := result)
+      (returnConvention := returnConvention)).mpr
+      ⟨invocation, dispatched, hinvocation⟩
+  exact ⟨solmFinal, result, hexecution, hgoal⟩
+
+/-- Constructor analogue of `evm_to_solmExec_refinement`. -/
+theorem evm_to_solmCtorExec_refinement
+    (validJumps : Array Ethereum.UInt256)
+    (cfg : Solm.Config) (source : Solm.ContractDecl) (args : List Solm.Value)
+    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
+    (genesisBlockHeader : Ethereum.BlockHeader)
+    (blocks : Ethereum.ProcessedBlocks)
+    (σ σ₀ : Ethereum.AccountMap) (gas : Ethereum.UInt256)
+    (substate : Ethereum.Substate) (environment : Ethereum.ExecutionEnv)
+    (invocation : Solm.SmallStep.ConstructorInvocation source args createdAccounts
+      genesisBlockHeader blocks σ σ₀ gas substate environment)
+    (paa : EVMLoweredSolmPAA validJumps cfg
+      (Solm.SmallStep.lowerContract source))
+    (hpaa : validPAA (evmLts validJumps)
+      (Solm.SmallStep.lts cfg (Solm.SmallStep.lowerContract source)) paa)
+    (goalResult : ∀ evmFinal solmFinal,
+      paa.goal evmFinal solmFinal →
+      ∃ result, solmFinal.execResult? = some result)
+    (node : paa.Node)
+    (termination : terminate_at (evmLts validJumps) evm evmFinal)
+    (atNode : paa.atNode (evmLts validJumps)
+      (Solm.SmallStep.lts cfg (Solm.SmallStep.lowerContract source))
+      node evm invocation.initial) :
+    ∃ solmFinal result,
+      Solm.solmCtorExec cfg source args createdAccounts genesisBlockHeader blocks
+        σ σ₀ gas substate environment result ∧
+      paa.goal evmFinal solmFinal := by
+  obtain ⟨solmFinal, hsteps, hfinal, hgoal⟩ :=
+    evm_to_lowered_solm_refinement validJumps cfg
+      (Solm.SmallStep.lowerContract source) paa hpaa node evm evmFinal
+      invocation.initial termination atNode
+  obtain ⟨result, hdecoded⟩ := goalResult evmFinal solmFinal hgoal
+  have hinvocation : Solm.SmallStep.ConstructorInvocationTerminates cfg
+      invocation result :=
+    ⟨solmFinal, ⟨hsteps, hfinal⟩, hdecoded⟩
+  have hexecution :=
+    (Solm.SmallStep.solmCtorExec_iff_lowered_lts
+      (cfg := cfg) (source := source) (args := args)
+      (createdAccounts := createdAccounts)
+      (genesisBlockHeader := genesisBlockHeader) (blocks := blocks)
+      (σ := σ) (σ₀ := σ₀) (gas := gas) (substate := substate)
+      (environment := environment) (result := result)).mpr
+      ⟨invocation, hinvocation⟩
+  exact ⟨solmFinal, result, hexecution, hgoal⟩
 
 end PAA.EvmSolm
