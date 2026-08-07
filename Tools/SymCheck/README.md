@@ -87,100 +87,28 @@ pre/post condition behavior:
 cabal test cli-smoke
 ```
 
-## Minimal CLI
+## Solver-backed bounded runs
+
+`run` explores a bounded segment, may split symbolic branches, and uses SMT for
+branch feasibility and postcondition checking.
+
+### Minimal CLI
 
 ```bash
 ./nix-develop
 cabal run symcheck -- run --code 600160020100 --pc 2 --stack 0x1 --fuel 3
 ```
 
-## Solver-free straight-line summaries
+### Run-specific options
 
-`summarize` starts at the same arbitrary midpoint as `run`, but follows only a
-single path and never constructs or consults an SMT solver:
-
-```bash
-cabal run symcheck -- summarize \
-  --code 600160020100 \
-  --pc 2 \
-  --stack 0x1 \
-  --active-words 0 \
-  --gas 100 \
-  --fuel 32
-```
-
-The summary follows the cursor carried by `RD` in EquiVM's
-`Reasoning/Reach.lean`: it reports `pc`, stack, memory, active memory words,
-returndata, local storage and transient storage, completed-step count, and
-cumulative symbolic gas cost. It also reports the available gas. The emitted
-summary intentionally omits the broader account world, environment fields, the
-original state, and any equality back to the start state.
-
-hevm's local expression simplifier is applied throughout execution and when
-rendering the summary. If an apparent SMT request simplifies to a literal
-condition, `summarize` selects that path locally. If it remains symbolic, or an
-opcode needs another unresolved effect or external datum, the command stops at
-the cursor before that opcode; its step and gas cost are therefore not included.
-For an unresolved `JUMPI`, the stop output includes both possible next
-addresses, labelled `not-taken` and `taken`.
-Calls and creates are also explicit boundaries, because recursively entering a
-callee would no longer describe the caller's straight-line cursor. `--fuel`
-remains a safety bound for concrete loops.
-
-`summarize` accepts `--pre` constraints as annotations on the initial cursor,
-but it does not use them to prove branch conditions. It rejects `--post`, since
-postcondition checking is solver-backed; use `run` for that workflow.
-
-For `summarize`, values supplied with `--stack` form a known top-of-stack prefix
-above an abstract initial tail. The executor materializes `initial_stack_N`
-words lazily whenever a reached opcode reads deeper than the known prefix. Pushes
-and other produced values remain above the untouched tail, so a result may look
-like:
-
-```text
-stack: [(Add (Var "initial_stack_0") (Var "initial_stack_1"))]
-       ++ drop 2 initial-stack-tail
-initial-stack-depth: 2 <= depth <= 1024
-```
-
-The lower bound prevents stack underflow and the upper bound prevents stack
-overflow on every completed instruction. Use `--stack-depth N` to state an exact
-total initial depth; then a definite underflow or overflow is reported at the
-cursor before the failing opcode. Without it, the summary is conditional on the
-reported valid depth interval. The solver-backed `run` command retains its
-existing finite-stack auto-padding behavior.
-
-Useful flags:
-
-- `--target-pc N`
-- `--memory HEX|sym:NAME`
-- `--stack-depth N` (`summarize` only)
-- `--active-words WORD`
-- `--gas WORD`
-- `--calldata HEX|sym:NAME`
-- `--returndata HEX|sym:NAME`
-- `--address ADDR|sym:NAME`
-- `--code-address ADDR|sym:NAME`
-- `--caller ADDR|sym:NAME`
-- `--override-caller ADDR|sym:NAME`
-- `--origin ADDR|sym:NAME`
-- `--coinbase ADDR|sym:NAME`
-- `--callvalue WORD`
-- `--block-number WORD`
-- `--timestamp WORD`
-- `--static`
-- `--empty-base`
-- `--abstract-base`
-- `--store SLOT=VALUE` (repeatable; switches current storage to concrete)
-- `--pre COND` (repeatable; adds an initial symbolic precondition)
 - `--post COND` (repeatable; checks a postcondition on each final branch)
-- `--json` (machine-readable output)
-- `--trace-opcodes` (include opcode annotations alongside `pc` traces)
-- `--fail-on-overapproximation` (exit nonzero if execution uses model overapproximation on any branch)
-- `--no-smt-weakening` (disable conservative weakening fallback for unsupported SMT queries)
-- `--quiet-smt-weakening` (keep weakening enabled but suppress runtime notes)
+- `--fail-on-overapproximation` (fail if execution uses model overapproximation)
+- `--no-smt-weakening` (disable conservative weakening for unsupported SMT queries)
+- `--quiet-smt-weakening` (suppress weakening notes)
 
-Condition syntax, first pass:
+### Condition language
+
+First-pass condition syntax:
 
 - `stack[0]==7`
 - `stack[1]>=var:x`
@@ -260,6 +188,8 @@ Supported call opcodes are:
 
 `call[N].opcode` only supports `==` and `!=`.
 
+### Examples
+
 Example:
 
 ```bash
@@ -282,6 +212,8 @@ cabal run symcheck -- run \
   --post 'call[0].to==0x1234'
 ```
 
+### Run output
+
 Final branch output, both in text mode and `--json`, includes:
 
 - final `pc`, `stack`, `memory`, and `returndata`
@@ -292,7 +224,7 @@ Final branch output, both in text mode and `--json`, includes:
 - final path-constraint count and the rendered path constraints themselves
 - call-boundary metadata, SMT mode, and overapproximation markers
 
-## Call boundaries
+### Call boundaries
 
 `CALL`, `CALLCODE`, `DELEGATECALL`, and `STATICCALL` are treated as segment
 cutpoints. SymCheck records the call facts, synthesizes an abstract post-call
@@ -339,7 +271,7 @@ Warning:
 This is currently a deliberate overapproximation for segment work. Treat any
 storage-sensitive result after call boundaries with caution.
 
-## SMT weakening
+### SMT weakening
 
 When a satisfiability query mentions a symbolic-size `CopySlice`, `hevm` cannot
 encode it directly for SMT. SymCheck can conservatively weaken such queries by
@@ -352,6 +284,141 @@ replacing the unsupported buffer expression with a fresh abstract buffer.
 - solution-finding queries used for concretization stay exact-only
 - text output marks each branch as `smt: exact` or `smt: weakened`
 - JSON output includes `usedWeakenedSmt` per branch
+
+## Solver-free straight-line summaries
+
+`summarize` starts at the same arbitrary midpoint as `run`, but follows only a
+single path and never constructs or consults an SMT solver:
+
+```bash
+cabal run symcheck -- summarize \
+  --code 600160020100 \
+  --pc 2 \
+  --stack 0x1 \
+  --active-words 0 \
+  --gas 100 \
+  --fuel 32
+```
+
+The summary follows the cursor carried by `RD` in EquiVM's
+`Reasoning/Reach.lean`: it reports `pc`, stack, memory, active memory words,
+returndata, local storage and transient storage, completed-step count, and
+cumulative symbolic gas cost. It also reports the available gas. The emitted
+summary intentionally omits the broader account world, environment fields, the
+original state, and any equality back to the start state.
+
+hevm's local expression simplifier is applied throughout execution and when
+rendering the summary. If an apparent SMT request simplifies to a literal
+condition, `summarize` selects that path locally. If it remains symbolic, or an
+opcode needs another unresolved effect or external datum, the command stops at
+the cursor before that opcode; its step and gas cost are therefore not included.
+For an unresolved `JUMPI`, the stop output includes both possible next
+addresses, labelled `not-taken` and `taken`.
+Calls and creates are also explicit boundaries, because recursively entering a
+callee would no longer describe the caller's straight-line cursor. `--fuel`
+remains a safety bound for concrete loops.
+
+`summarize` accepts `--pre` constraints as annotations on the initial cursor,
+but it does not use them to prove branch conditions. It rejects `--post`, since
+postcondition checking is solver-backed; use `run` for that workflow.
+
+For `summarize`, values supplied with `--stack` form a known top-of-stack prefix
+above an abstract initial tail. The executor materializes `initial_stack_N`
+words lazily whenever a reached opcode reads deeper than the known prefix. Pushes
+and other produced values remain above the untouched tail, so a result may look
+like:
+
+```text
+stack: [(Add (Var "initial_stack_0") (Var "initial_stack_1"))]
+       ++ drop 2 initial-stack-tail
+initial-stack-depth: 2 <= depth <= 1024
+```
+
+The lower bound prevents stack underflow and the upper bound prevents stack
+overflow on every completed instruction. Use `--stack-depth N` to state an exact
+total initial depth; then a definite underflow or overflow is reported at the
+cursor before the failing opcode. Without it, the summary is conditional on the
+reported valid depth interval. The solver-backed `run` command retains its
+existing finite-stack auto-padding behavior.
+
+### Summary options
+
+- `--code HEX`
+- `--pc N`
+- `--stack WORD` (repeatable; known top-of-stack prefix)
+- `--fuel N`
+- `--target-pc N`
+- `--memory HEX|sym:NAME`
+- `--stack-depth N` (`summarize` only)
+- `--active-words WORD`
+- `--gas WORD`
+- `--calldata HEX|sym:NAME`
+- `--returndata HEX|sym:NAME`
+- `--address ADDR|sym:NAME`
+- `--code-address ADDR|sym:NAME`
+- `--caller ADDR|sym:NAME`
+- `--override-caller ADDR|sym:NAME`
+- `--origin ADDR|sym:NAME`
+- `--coinbase ADDR|sym:NAME`
+- `--callvalue WORD`
+- `--block-number WORD`
+- `--timestamp WORD`
+- `--static`
+- `--empty-base`
+- `--abstract-base`
+- `--store SLOT=VALUE` (repeatable; switches current storage to concrete)
+- `--pre COND` (repeatable; records an initial annotation without solver use)
+- `--json` (machine-readable output)
+- `--trace-opcodes` (include opcode annotations alongside `pc` traces)
+
+## EquiVM RDx block catalogs
+
+EquiVM's translation layer intentionally lives outside this Haskell package.  After building the
+`symcheck` executable, `../generate_rdx_blocks.py` repeatedly calls the existing solver-free JSON
+summary command and emits three reviewable artifacts:
+
+- a Lean file containing kernel-checked `RDx` block theorems;
+- a JSON coverage manifest for tools and agents;
+- a Markdown catalog preserving every raw SymCheck summary for human/agent inspection.
+
+For example:
+
+```bash
+python3 ../generate_rdx_blocks.py \
+  --symcheck "$(cabal list-bin symcheck)" \
+  --code 60806040525f5ffd \
+  --lean-code ctorStoreRuntimeBytecode \
+  --lean-import Examples.CtorStore.Bytecode \
+  --namespace CtorStore.GeneratedBlocks \
+  --output /tmp/CtorStoreGenerated.lean \
+  --manifest /tmp/CtorStoreGenerated.json \
+  --summaries /tmp/CtorStoreGenerated.md
+```
+
+The generator returns status 2 after writing the artifacts when some block is only partially
+covered.  The manifest and Markdown catalog identify the first unsupported PC/opcode.  Lake checks
+committed generated Lean files but never invokes SymCheck, Cabal, Nix, or this Python script.
+Generated Lean catalogs set `maxRecDepth 100000`, which is needed for closed bytecode checks on
+large runtimes such as Modexp.
+Terminal and control-flow edges receive generated helper theorems.  A `JUMP` helper exposes its
+decode and valid-destination hypotheses.  A `JUMPI` body gets both taken and not-taken helpers; Lean
+infers their exact target and condition directly from the opaque body theorem's post-state.  Agents
+therefore combine blocks without translating SymCheck expression syntax into theorem headers.
+
+Two committed catalogs exercise the integration without making Lake run Haskell:
+
+- `Fixtures/SymCheckGeneratedSmoke.lean` and `fixtures/ctor_store_runtime.{json,md}` use the real
+  `CtorStore` runtime and cover memory growth plus a reverting terminal edge;
+- `Fixtures/SymCheckGeneratedBranchSmoke.lean` and `fixtures/dynamic_branch.{json,md}` cover
+  symbolic taken/not-taken edges and the deepest shared `DUP`/`SWAP` wrappers.
+
+`python3 -B ../test_generate_rdx_blocks.py` checks the generator and retained catalogs.  Compile
+the kernel-checked fixtures with:
+
+```bash
+lake build Tools.SymCheck.Fixtures.SymCheckGeneratedSmoke \
+  Tools.SymCheck.Fixtures.SymCheckGeneratedBranchSmoke
+```
 
 ## Next low-hanging fruit
 

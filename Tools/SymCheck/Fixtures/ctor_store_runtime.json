@@ -1,0 +1,91 @@
+{
+  "blocks": [
+    {
+      "bodyTheorem": "block_0_body",
+      "edgeTheorems": [
+        "block_0_halt"
+      ],
+      "endpoint": 7,
+      "reason": null,
+      "start": 0,
+      "status": "complete",
+      "summary": {
+        "activeWords": "(Max\n  3\n  (Var \"active_words\")\n)",
+        "constraints": 0,
+        "gasAvailable": "(Sub\n  (Var \"gas\")\n  (Add\n    13\n    (Sub\n      (MemoryGasCost\n        (Max\n          3\n          (Var \"active_words\")\n        )\n      )\n      (MemoryGasCost\n        (Var \"active_words\")\n      )\n    )\n  )\n)",
+        "gasCost": "(Add\n  13\n  (Sub\n    (MemoryGasCost\n      (Max\n        3\n        (Var \"active_words\")\n      )\n    )\n    (MemoryGasCost\n      (Var \"active_words\")\n    )\n  )\n)",
+        "initialStackDepth": {
+          "exact": null,
+          "knownPrefix": 0,
+          "maximum": 1022,
+          "minimum": 0
+        },
+        "memory": "(WriteWord\n  idx:\n    64\n  val:\n    128\n  buf:\n    (AbstractBuf \"memory\")\n)",
+        "mode": "straight-line",
+        "nextAddresses": null,
+        "pathConstraints": [],
+        "pc": 7,
+        "pcTrace": [
+          0,
+          2,
+          4,
+          5,
+          6,
+          7
+        ],
+        "pcTraceOpcodes": [
+          {
+            "opcode": "PUSH1",
+            "pc": 0
+          },
+          {
+            "opcode": "PUSH1",
+            "pc": 2
+          },
+          {
+            "opcode": "MSTORE",
+            "pc": 4
+          },
+          {
+            "opcode": "PUSH0",
+            "pc": 5
+          },
+          {
+            "opcode": "PUSH0",
+            "pc": 6
+          },
+          {
+            "opcode": "REVERT",
+            "pc": 7
+          }
+        ],
+        "returndata": "(AbstractBuf \"returndata\")",
+        "solverFree": true,
+        "stack": [
+          "0",
+          "0"
+        ],
+        "stackTail": {
+          "drop": 0,
+          "materialized": 0,
+          "name": "initial-stack-tail",
+          "remaining": null
+        },
+        "steps": 5,
+        "stop": "target-pc 7",
+        "storage": "(AbstractStore (SymAddr \"entrypoint\") Nothing)",
+        "transientStorage": "(AbstractStore (SymAddr \"entrypoint\") Nothing)"
+      },
+      "target": 7,
+      "terminator": "REVERT",
+      "theoremInitialStackMaterialized": 0,
+      "theoremInitialStackMaximum": 1022
+    }
+  ],
+  "code": "60806040525f5ffd",
+  "complete": true,
+  "formatVersion": 1,
+  "generator": "Tools/generate_rdx_blocks.py",
+  "leanCode": "ctorStoreRuntimeBytecode",
+  "namespace": "CtorStore.SymCheckSmoke"
+}

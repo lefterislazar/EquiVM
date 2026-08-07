@@ -374,7 +374,6 @@ theorem RDx.swap11 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
       mem aw rdata acc (k + 1) (C + 3) :=
   rd.stepSwap (fun _ hc hp hs => swap11_xstep hc hp hdec hs hov)
 
-
 theorem RDx.dup2
     {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -415,6 +414,221 @@ theorem RDx.jumpdest
     exact ⟨hcode, by rw [hpc], hstk, hmem, haw, hrdata, hacc, hee, hworld⟩
   · intro _ _
     rfl
+
+private theorem dup12_generated_xstep {s : State} {code : ByteArray}
+    {pcv a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.DUP12, .none))
+    (hstk : s.machineState.stack =
+      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
+    (hov : t.length + 13 ≤ 1024) :
+    Xstep (D_J code 0) s =
+      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass else
+       .ok (stSwap s
+        (ll :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t), .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP12, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_dup12 s hd, hstk]
+  have hov' :
+      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t).length -
+          12 + 13 > 1024) := by
+    simp only [List.length_cons]; omega
+  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
+
+private theorem dup16_generated_xstep {s : State} {code : ByteArray}
+    {pcv a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.DUP16, .none))
+    (hstk : s.machineState.stack =
+      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: pp :: t)
+    (hov : t.length + 17 ≤ 1024) :
+    Xstep (D_J code 0) s =
+      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass else
+       .ok (stSwap s
+        (pp :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn ::
+          oo :: pp :: t), .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP16, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_dup16 s hd, hstk]
+  have hov' :
+      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo ::
+          pp :: t).length - 16 + 17 > 1024) := by
+    simp only [List.length_cons]; omega
+  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
+
+private theorem swap12_generated_xstep {s : State} {code : ByteArray}
+    {pcv a b c d e f gg hh ii jj kk ll mm : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.SWAP12, .none))
+    (hstk : s.machineState.stack =
+      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: t)
+    (hov : t.length + 13 ≤ 1024) :
+    Xstep (D_J code 0) s =
+      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass else
+       .ok (stSwap s
+        (mm :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: a :: t), .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP12, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_swap12 s hd, hstk]
+  have hov' :
+      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: t).length -
+          13 + 13 > 1024) := by
+    simp only [List.length_cons]; omega
+  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
+
+private theorem swap13_generated_xstep {s : State} {code : ByteArray}
+    {pcv a b c d e f gg hh ii jj kk ll mm nn : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.SWAP13, .none))
+    (hstk : s.machineState.stack =
+      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: t)
+    (hov : t.length + 14 ≤ 1024) :
+    Xstep (D_J code 0) s =
+      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass else
+       .ok (stSwap s
+        (nn :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: a :: t), .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP13, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_swap13 s hd, hstk]
+  have hov' :
+      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: t).length -
+          14 + 14 > 1024) := by
+    simp only [List.length_cons]; omega
+  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
+
+private theorem swap14_generated_xstep {s : State} {code : ByteArray}
+    {pcv a b c d e f gg hh ii jj kk ll mm nn oo : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.SWAP14, .none))
+    (hstk : s.machineState.stack =
+      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: t)
+    (hov : t.length + 15 ≤ 1024) :
+    Xstep (D_J code 0) s =
+      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass else
+       .ok (stSwap s
+        (oo :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: a :: t),
+        .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP14, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_swap14 s hd, hstk]
+  have hov' :
+      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo ::
+          t).length - 15 + 15 > 1024) := by
+    simp only [List.length_cons]; omega
+  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
+
+private theorem swap15_generated_xstep {s : State} {code : ByteArray}
+    {pcv a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.SWAP15, .none))
+    (hstk : s.machineState.stack =
+      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: pp :: t)
+    (hov : t.length + 16 ≤ 1024) :
+    Xstep (D_J code 0) s =
+      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass else
+       .ok (stSwap s
+        (pp :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo ::
+          a :: t), .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP15, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_swap15 s hd, hstk]
+  have hov' :
+      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo ::
+          pp :: t).length - 16 + 16 > 1024) := by
+    simp only [List.length_cons]; omega
+  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
+
+private theorem swap16_generated_xstep {s : State} {code : ByteArray}
+    {pcv a b c d e f gg hh ii jj kk ll mm nn oo pp qq : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.SWAP16, .none))
+    (hstk : s.machineState.stack =
+      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: pp ::
+        qq :: t)
+    (hov : t.length + 17 ≤ 1024) :
+    Xstep (D_J code 0) s =
+      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass else
+       .ok (stSwap s
+        (qq :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo ::
+          pp :: a :: t), .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP16, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_swap16 s hd, hstk]
+  have hov' :
+      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo ::
+          pp :: qq :: t).length - 17 + 17 > 1024) := by
+    simp only [List.length_cons]; omega
+  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
+
+/-- Exact `SWAP12` step used by generated SymCheck traces. -/
+theorem RDx.swap12Canonical {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {a b c d e f gg hh ii jj kk ll mm : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc
+      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: t)
+      mem aw rdata acc k C)
+    (hdec : decode code pc = some (.SWAP12, .none)) (hov : t.length + 13 ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩)
+      (mm :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: a :: t)
+      mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepSwap (fun _ hc hp hs => swap12_generated_xstep hc hp hdec hs hov)
+
+/-- Exact `SWAP13` step used by generated SymCheck traces. -/
+theorem RDx.swap13Canonical {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {a b c d e f gg hh ii jj kk ll mm nn : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc
+      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: t)
+      mem aw rdata acc k C)
+    (hdec : decode code pc = some (.SWAP13, .none)) (hov : t.length + 14 ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩)
+      (nn :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: a :: t)
+      mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepSwap (fun _ hc hp hs => swap13_generated_xstep hc hp hdec hs hov)
+
+/-- Exact `SWAP14` step used by generated SymCheck traces. -/
+theorem RDx.swap14Canonical {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {a b c d e f gg hh ii jj kk ll mm nn oo : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc
+      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: t)
+      mem aw rdata acc k C)
+    (hdec : decode code pc = some (.SWAP14, .none)) (hov : t.length + 15 ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩)
+      (oo :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: a :: t)
+      mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepSwap (fun _ hc hp hs => swap14_generated_xstep hc hp hdec hs hov)
+
+/-- Exact `SWAP15` step used by generated SymCheck traces. -/
+theorem RDx.swap15Canonical {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc
+      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: pp :: t)
+      mem aw rdata acc k C)
+    (hdec : decode code pc = some (.SWAP15, .none)) (hov : t.length + 16 ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩)
+      (pp :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: a :: t)
+      mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepSwap (fun _ hc hp hs => swap15_generated_xstep hc hp hdec hs hov)
+
+/-- Exact `SWAP16` step used by generated SymCheck traces. -/
+theorem RDx.swap16Canonical {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {a b c d e f gg hh ii jj kk ll mm nn oo pp qq : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc
+      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: pp ::
+        qq :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.SWAP16, .none)) (hov : t.length + 17 ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩)
+      (qq :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: pp ::
+        a :: t) mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepSwap (fun _ hc hp hs => swap16_generated_xstep hc hp hdec hs hov)
 
 /-- Exact PUSH0 step. -/
 theorem RDx.push0
@@ -713,6 +927,22 @@ theorem RDx.pushConst
   · intro _ _
     rfl
 
+/-- Explicit-width form of `pushConst` for generated `evm_run` traces.  Keeping `width` and `op`
+as ordinary arguments prevents proof elaboration from seeing unresolved metavariables before the
+concrete decode check is run. -/
+theorem RDx.pushCanonical
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : Nat}
+    (h : RDx code ee g s0 pc stk mem aw rdata acc k C)
+    (width : Nat) (op : Operation.POp) (arg : UInt256) (hop : op ≠ .PUSH0)
+    (hdec : decode code pc = some (.Push op, some (arg, width)))
+    (hov : stk.length + 1 ≤ 1024) :
+    RDx code ee g s0 (pc + UInt256.ofNat width.succ) (arg :: stk) mem aw rdata acc
+      (k + 1) (C + 3) :=
+  h.pushConst arg (width := width) (op := op) hop hdec hov
+
 theorem RDx.push4
     {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
@@ -974,6 +1204,55 @@ theorem RDx.mload
     simp only [stMLoad]
     rw [hmc s hm.2.2.2.2.1 hm.2.2.1, Sat256.subNat_subNat]
 
+/-- Generator-oriented `MSTORE`: expose the canonical EVMLean successor instead of requiring
+callers to name and prove equalities for the memory cost, memory, and active-word result. -/
+theorem RDx.mstoreCanonical
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {offset value : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc (offset :: value :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.MSTORE, .none)) (hov : t.length ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩) t
+      (value.toByteArray.write 0 mem offset.toNat 32)
+      (UInt256.ofNat (MachineState.M aw.toNat offset.toNat 32)) rdata acc
+      (k + 1)
+      (C + ((Cₘ (UInt256.ofNat (MachineState.M aw.toNat offset.toNat 32)) - Cₘ aw) + 3)) := by
+  apply RDx.mstore
+    (Cₘ (UInt256.ofNat (MachineState.M aw.toNat offset.toNat 32)) - Cₘ aw)
+    (value.toByteArray.write 0 mem offset.toNat 32)
+    (UInt256.ofNat (MachineState.M aw.toNat offset.toNat 32)) h hdec
+  · intro s hsAw hsStk
+    exact mstoreCost_of_stack hsAw hsStk rfl
+  · rfl
+  · rfl
+  · exact hov
+
+/-- Generator-oriented `MLOAD` with its canonical cost, value, and active-word expressions. -/
+theorem RDx.mloadCanonical
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {offset : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc (offset :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.MLOAD, .none)) (hov : t.length + 1 ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩)
+      ((if offset.toNat ≥ mem.size ∨ offset ≥ aw * ⟨32⟩ then ⟨0⟩
+        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding offset.toNat 32))) :: t)
+      mem (UInt256.ofNat (MachineState.M aw.toNat offset.toNat 32)) rdata acc
+      (k + 1)
+      (C + ((Cₘ (UInt256.ofNat (MachineState.M aw.toNat offset.toNat 32)) - Cₘ aw) + 3)) := by
+  apply RDx.mload
+    (Cₘ (UInt256.ofNat (MachineState.M aw.toNat offset.toNat 32)) - Cₘ aw)
+    (if offset.toNat ≥ mem.size ∨ offset ≥ aw * ⟨32⟩ then ⟨0⟩
+      else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding offset.toNat 32)))
+    (UInt256.ofNat (MachineState.M aw.toNat offset.toNat 32)) h hdec
+  · intro s hsAw hsStk
+    exact mloadCost_of_stack hsAw hsStk rfl
+  · rfl
+  · rfl
+  · exact hov
+
 theorem RDx.dup4 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
@@ -1093,7 +1372,33 @@ theorem RDx.dup15 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
       mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => dup15_xstep hc hp hdec hs hov)
 
+/-- Exact `DUP12` step used by generated SymCheck traces. -/
+theorem RDx.dup12Canonical {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc
+      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
+      mem aw rdata acc k C)
+    (hdec : decode code pc = some (.DUP12, .none)) (hov : t.length + 13 ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩)
+      (ll :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
+      mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepSwap (fun _ hc hp hs => dup12_generated_xstep hc hp hdec hs hov)
 
+/-- Exact `DUP16` step used by generated SymCheck traces. -/
+theorem RDx.dup16Canonical {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc
+      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo :: pp :: t)
+      mem aw rdata acc k C)
+    (hdec : decode code pc = some (.DUP16, .none)) (hov : t.length + 17 ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩)
+      (pp :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: oo ::
+        pp :: t) mem aw rdata acc (k + 1) (C + 3) :=
+  h.stepSwap (fun _ hc hp hs => dup16_generated_xstep hc hp hdec hs hov)
 
 theorem RDx.dup1
     {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
@@ -1303,6 +1608,30 @@ theorem RDx.calldatacopy
     simp only [stCalldatacopy]
     rw [hmc s hm.2.2.2.2.1 hm.2.2.1, Sat256.subNat_subNat]
 
+/-- Canonical `CALLDATACOPY` successor for generated traces. -/
+theorem RDx.calldatacopyCanonical
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {dst src len : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc (dst :: src :: len :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.CALLDATACOPY, .none)) (hov : t.length ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩) t
+      (ee.calldata.write src.toNat mem dst.toNat len.toNat)
+      (UInt256.ofNat (MachineState.M aw.toNat dst.toNat len.toNat)) rdata acc
+      (k + 1)
+      (C + ((Cₘ (UInt256.ofNat (MachineState.M aw.toNat dst.toNat len.toNat)) - Cₘ aw) +
+        (GasConstants.Gverylow + GasConstants.Gcopy * ((len.toNat + 31) / 32)))) := by
+  apply RDx.calldatacopy
+    (Cₘ (UInt256.ofNat (MachineState.M aw.toNat dst.toNat len.toNat)) - Cₘ aw)
+    (ee.calldata.write src.toNat mem dst.toNat len.toNat)
+    (UInt256.ofNat (MachineState.M aw.toNat dst.toNat len.toNat)) h hdec
+  · intro s hsAw hsStk
+    simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hsAw, hsStk]
+  · rfl
+  · rfl
+  · exact hov
+
 /-- `MCOPY` with exact memory expansion and copy-word cost. -/
 theorem RDx.mcopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -1345,6 +1674,31 @@ theorem RDx.mcopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     simp only [stMcopy, cost]
     rw [hmc s hm.2.2.2.2.1 hm.2.2.1, Sat256.subNat_subNat]
 
+/-- Canonical `MCOPY` successor for generated traces. -/
+theorem RDx.mcopyCanonical
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {dst src len : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc (dst :: src :: len :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.MCOPY, .none)) (hov : t.length ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩) t (mem.write src.toNat mem dst.toNat len.toNat)
+      (UInt256.ofNat (MachineState.M aw.toNat (max dst.toNat src.toNat) len.toNat))
+      rdata acc (k + 1)
+      (C + ((Cₘ (UInt256.ofNat
+          (MachineState.M aw.toNat (max dst.toNat src.toNat) len.toNat)) - Cₘ aw) +
+        (GasConstants.Gverylow + GasConstants.Gcopy * ((len.toNat + 31) / 32)))) := by
+  apply RDx.mcopy
+    (Cₘ (UInt256.ofNat
+      (MachineState.M aw.toNat (max dst.toNat src.toNat) len.toNat)) - Cₘ aw)
+    (mem.write src.toNat mem dst.toNat len.toNat)
+    (UInt256.ofNat (MachineState.M aw.toNat (max dst.toNat src.toNat) len.toNat)) h hdec
+  · intro s hsAw hsStk
+    simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hsAw, hsStk]
+  · rfl
+  · rfl
+  · exact hov
+
 /-- `MSTORE8` with its exact dynamic memory-expansion cost. -/
 theorem RDx.mstore8 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -1378,6 +1732,29 @@ theorem RDx.mstore8 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : St
   · intro s hm
     simp only [stMStore8]
     rw [hmc s hm.2.2.2.2.1 hm.2.2.1, Sat256.subNat_subNat]
+
+/-- Canonical `MSTORE8` successor for generated traces. -/
+theorem RDx.mstore8Canonical
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {offset value : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc (offset :: value :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.MSTORE8, .none)) (hov : t.length ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩) t
+      ((⟨#[UInt8.ofNat value.toNat]⟩ : ByteArray).write 0 mem offset.toNat 1)
+      (UInt256.ofNat (MachineState.M aw.toNat offset.toNat 1)) rdata acc
+      (k + 1)
+      (C + ((Cₘ (UInt256.ofNat (MachineState.M aw.toNat offset.toNat 1)) - Cₘ aw) + 3)) := by
+  apply RDx.mstore8
+    (Cₘ (UInt256.ofNat (MachineState.M aw.toNat offset.toNat 1)) - Cₘ aw)
+    ((⟨#[UInt8.ofNat value.toNat]⟩ : ByteArray).write 0 mem offset.toNat 1)
+    (UInt256.ofNat (MachineState.M aw.toNat offset.toNat 1)) h hdec
+  · intro s hsAw hsStk
+    simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hsAw, hsStk]
+  · rfl
+  · rfl
+  · exact hov
 
 /-- Exact loop induction with a closed-form gas threshold. -/
 theorem RDx.whileLoopGas
@@ -1640,6 +2017,24 @@ theorem RDx.ret
     rw [hmc s haw hstk]
     simp
 
+/-- Canonical `RETURN` edge for generated blocks. -/
+theorem RDx.retCanonical
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {off len : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc (off :: len :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.RETURN, .none)) (hov : t.length ≤ 1024) :
+    RDxRet code g s0 acc (mem.readWithPadding off.toNat len.toNat)
+      (C + (Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat len.toNat)) - Cₘ aw)) := by
+  apply RDx.ret
+    (Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat len.toNat)) - Cₘ aw)
+    (mem.readWithPadding off.toNat len.toNat) h hdec
+  · intro s hsAw hsStk
+    simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hsAw, hsStk]
+  · rfl
+  · exact hov
+
 /-- Exact `STOP`, whose local charge is zero. -/
 theorem RDx.stop
     {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
@@ -1701,6 +2096,22 @@ theorem RDx.rev
     RDxRev code g s0 (C + memoryCost) := by
   exact RDx.revOutput memoryCost (mem.readWithPadding off.toNat len.toNat)
     h hdec hmc rfl hov
+
+/-- Canonical `REVERT` edge for generated blocks. -/
+theorem RDx.revCanonical
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {off len : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc (off :: len :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.REVERT, .none)) (hov : t.length ≤ 1024) :
+    RDxRev code g s0
+      (C + (Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat len.toNat)) - Cₘ aw)) := by
+  apply RDx.rev
+    (Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat len.toNat)) - Cₘ aw) h hdec
+  · intro s hsAw hsStk
+    simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hsAw, hsStk]
+  · exact hov
 
 /-- `INVALID` closes an exact cursor with `InvalidInstruction`, rather than with `REVERT`. -/
 theorem RDx.invalid

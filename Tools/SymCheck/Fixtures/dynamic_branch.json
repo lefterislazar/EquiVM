@@ -1,0 +1,261 @@
+{
+  "blocks": [
+    {
+      "bodyTheorem": "block_0_body",
+      "edgeTheorems": [
+        "block_0_taken",
+        "block_0_notTaken"
+      ],
+      "endpoint": 0,
+      "reason": null,
+      "start": 0,
+      "status": "complete",
+      "summary": {
+        "activeWords": "(Var \"active_words\")",
+        "constraints": 0,
+        "gasAvailable": "(Var \"gas\")",
+        "gasCost": "0",
+        "initialStackDepth": {
+          "exact": null,
+          "knownPrefix": 0,
+          "maximum": 1024,
+          "minimum": 0
+        },
+        "memory": "(AbstractBuf \"memory\")",
+        "mode": "straight-line",
+        "nextAddresses": null,
+        "pathConstraints": [],
+        "pc": 0,
+        "pcTrace": [
+          0
+        ],
+        "pcTraceOpcodes": [
+          {
+            "opcode": "JUMPI",
+            "pc": 0
+          }
+        ],
+        "returndata": "(AbstractBuf \"returndata\")",
+        "solverFree": true,
+        "stack": [],
+        "stackTail": {
+          "drop": 0,
+          "materialized": 0,
+          "name": "initial-stack-tail",
+          "remaining": null
+        },
+        "steps": 0,
+        "stop": "target-pc 0",
+        "storage": "(AbstractStore (SymAddr \"entrypoint\") Nothing)",
+        "transientStorage": "(AbstractStore (SymAddr \"entrypoint\") Nothing)"
+      },
+      "target": 0,
+      "terminator": "JUMPI",
+      "theoremInitialStackMaterialized": 2,
+      "theoremInitialStackMaximum": 1024
+    },
+    {
+      "bodyTheorem": "block_1_body",
+      "edgeTheorems": [
+        "block_1_halt"
+      ],
+      "endpoint": 1,
+      "reason": null,
+      "start": 1,
+      "status": "complete",
+      "summary": {
+        "activeWords": "(Var \"active_words\")",
+        "constraints": 0,
+        "gasAvailable": "(Var \"gas\")",
+        "gasCost": "0",
+        "initialStackDepth": {
+          "exact": null,
+          "knownPrefix": 0,
+          "maximum": 1024,
+          "minimum": 0
+        },
+        "memory": "(AbstractBuf \"memory\")",
+        "mode": "straight-line",
+        "nextAddresses": null,
+        "pathConstraints": [],
+        "pc": 1,
+        "pcTrace": [
+          1
+        ],
+        "pcTraceOpcodes": [
+          {
+            "opcode": "STOP",
+            "pc": 1
+          }
+        ],
+        "returndata": "(AbstractBuf \"returndata\")",
+        "solverFree": true,
+        "stack": [],
+        "stackTail": {
+          "drop": 0,
+          "materialized": 0,
+          "name": "initial-stack-tail",
+          "remaining": null
+        },
+        "steps": 0,
+        "stop": "target-pc 1",
+        "storage": "(AbstractStore (SymAddr \"entrypoint\") Nothing)",
+        "transientStorage": "(AbstractStore (SymAddr \"entrypoint\") Nothing)"
+      },
+      "target": 1,
+      "terminator": "STOP",
+      "theoremInitialStackMaterialized": 0,
+      "theoremInitialStackMaximum": 1024
+    },
+    {
+      "bodyTheorem": "block_2_body",
+      "edgeTheorems": [
+        "block_2_halt"
+      ],
+      "endpoint": 5,
+      "reason": null,
+      "start": 2,
+      "status": "complete",
+      "summary": {
+        "activeWords": "(Var \"active_words\")",
+        "constraints": 0,
+        "gasAvailable": "(Sub\n  (Var \"gas\")\n  7\n)",
+        "gasCost": "7",
+        "initialStackDepth": {
+          "exact": null,
+          "knownPrefix": 0,
+          "maximum": 1023,
+          "minimum": 16
+        },
+        "memory": "(AbstractBuf \"memory\")",
+        "mode": "straight-line",
+        "nextAddresses": null,
+        "pathConstraints": [],
+        "pc": 5,
+        "pcTrace": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "pcTraceOpcodes": [
+          {
+            "opcode": "JUMPDEST",
+            "pc": 2
+          },
+          {
+            "opcode": "DUP12",
+            "pc": 3
+          },
+          {
+            "opcode": "SWAP16",
+            "pc": 4
+          },
+          {
+            "opcode": "STOP",
+            "pc": 5
+          }
+        ],
+        "returndata": "(AbstractBuf \"returndata\")",
+        "solverFree": true,
+        "stack": [
+          "(Var \"initial_stack_15\")",
+          "(Var \"initial_stack_0\")",
+          "(Var \"initial_stack_1\")",
+          "(Var \"initial_stack_2\")",
+          "(Var \"initial_stack_3\")",
+          "(Var \"initial_stack_4\")",
+          "(Var \"initial_stack_5\")",
+          "(Var \"initial_stack_6\")",
+          "(Var \"initial_stack_7\")",
+          "(Var \"initial_stack_8\")",
+          "(Var \"initial_stack_9\")",
+          "(Var \"initial_stack_10\")",
+          "(Var \"initial_stack_11\")",
+          "(Var \"initial_stack_12\")",
+          "(Var \"initial_stack_13\")",
+          "(Var \"initial_stack_14\")",
+          "(Var \"initial_stack_11\")"
+        ],
+        "stackTail": {
+          "drop": 16,
+          "materialized": 16,
+          "name": "initial-stack-tail",
+          "remaining": null
+        },
+        "steps": 3,
+        "stop": "target-pc 5",
+        "storage": "(AbstractStore (SymAddr \"entrypoint\") Nothing)",
+        "transientStorage": "(AbstractStore (SymAddr \"entrypoint\") Nothing)"
+      },
+      "target": 5,
+      "terminator": "STOP",
+      "theoremInitialStackMaterialized": 16,
+      "theoremInitialStackMaximum": 1023
+    },
+    {
+      "bodyTheorem": "block_6_body",
+      "edgeTheorems": [
+        "block_6_jump"
+      ],
+      "endpoint": 7,
+      "reason": null,
+      "start": 6,
+      "status": "complete",
+      "summary": {
+        "activeWords": "(Var \"active_words\")",
+        "constraints": 0,
+        "gasAvailable": "(Sub\n  (Var \"gas\")\n  1\n)",
+        "gasCost": "1",
+        "initialStackDepth": {
+          "exact": null,
+          "knownPrefix": 0,
+          "maximum": 1024,
+          "minimum": 0
+        },
+        "memory": "(AbstractBuf \"memory\")",
+        "mode": "straight-line",
+        "nextAddresses": null,
+        "pathConstraints": [],
+        "pc": 7,
+        "pcTrace": [
+          6,
+          7
+        ],
+        "pcTraceOpcodes": [
+          {
+            "opcode": "JUMPDEST",
+            "pc": 6
+          },
+          {
+            "opcode": "JUMP",
+            "pc": 7
+          }
+        ],
+        "returndata": "(AbstractBuf \"returndata\")",
+        "solverFree": true,
+        "stack": [],
+        "stackTail": {
+          "drop": 0,
+          "materialized": 0,
+          "name": "initial-stack-tail",
+          "remaining": null
+        },
+        "steps": 1,
+        "stop": "target-pc 7",
+        "storage": "(AbstractStore (SymAddr \"entrypoint\") Nothing)",
+        "transientStorage": "(AbstractStore (SymAddr \"entrypoint\") Nothing)"
+      },
+      "target": 7,
+      "terminator": "JUMP",
+      "theoremInitialStackMaterialized": 1,
+      "theoremInitialStackMaximum": 1024
+    }
+  ],
+  "code": "57005b8b9f005b56",
+  "complete": true,
+  "formatVersion": 1,
+  "generator": "Tools/generate_rdx_blocks.py",
+  "leanCode": "symCheckBranchFixtureBytecode",
+  "namespace": "SymCheckBranchSmoke"
+}

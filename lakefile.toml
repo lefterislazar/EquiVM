@@ -31,6 +31,10 @@ globs = ["Proofs.+"]
 name = "Benchmarks"
 globs = ["Benchmarks.+"]
 
+[[lean_lib]]
+name = "Tools"
+globs = ["Tools.+"]
+
 # [[lean_exe]]
 # name = "equivm"
 # root = "EquiVM"

@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+
+import importlib.util
+import json
+from pathlib import Path
+import sys
+import unittest
+
+
+MODULE_PATH = Path(__file__).with_name("generate_rdx_blocks.py")
+FIXTURE_DIR = MODULE_PATH.parent / "SymCheck" / "fixtures"
+SPEC = importlib.util.spec_from_file_location("generate_rdx_blocks", MODULE_PATH)
+assert SPEC is not None and SPEC.loader is not None
+GEN = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = GEN
+SPEC.loader.exec_module(GEN)
+
+
+class GeneratorTests(unittest.TestCase):
+    def test_disassembly_skips_push_payload_jumpdest(self) -> None:
+        instructions = GEN.disassemble(bytes.fromhex("605b5b00"))
+        self.assertEqual([(i.pc, i.opcode) for i in instructions], [(0, 0x60), (2, 0x5B), (3, 0)])
+
+    def test_truncated_push_is_not_rendered(self) -> None:
+        code = bytes.fromhex("62ff")
+        self.assertIsNone(GEN.render_step(code, {"pc": 0, "opcode": "PUSH3"}))
+
+    def test_discovers_jump_target_and_fallthrough_entries(self) -> None:
+        blocks = GEN.discover_blocks(bytes.fromhex("600657005b005b00"), [])
+        self.assertEqual(
+            [(b.start, b.target, b.terminator) for b in blocks],
+            [(0, 2, "JUMPI"), (3, 3, "STOP"), (4, 5, "STOP"), (6, 7, "STOP")],
+        )
+
+    def test_push_renderer_uses_explicit_width(self) -> None:
+        step = GEN.render_step(bytes.fromhex("62010203"), {"pc": 0, "opcode": "PUSH3"})
+        self.assertEqual(step, "pushCanonical 3 .PUSH3 ⟨0x10203⟩ (by decide)")
+
+    def test_deep_stack_opcode_renderers(self) -> None:
+        self.assertEqual(GEN.render_step(b"\x8b", {"pc": 0, "opcode": "DUP12"}), "dup12Canonical")
+        self.assertEqual(GEN.render_step(b"\x8f", {"pc": 0, "opcode": "DUP16"}), "dup16Canonical")
+        self.assertEqual(GEN.render_step(b"\x9f", {"pc": 0, "opcode": "SWAP16"}), "swap16Canonical")
+
+    def test_symbolic_jumpi_edges_are_inferred_from_body(self) -> None:
+        edges = GEN.render_control_edge_theorems(
+            "block_0_body", "code", 0, 2, 1022, "JUMPI", 3
+        )
+        self.assertEqual([name for name, _ in edges], ["block_0_taken", "block_0_notTaken"])
+        self.assertIn("(block_0_body hdepth h).jumpiT", edges[0][1])
+        self.assertIn("fun (hdec : _) (hcondition : _) (hjd : _)", edges[0][1])
+        self.assertIn("simp only [List.length_cons]; omega", edges[0][1])
+        self.assertIn("(block_0_body hdepth h).jumpiNT", edges[1][1])
+
+        shallow_edges = GEN.render_control_edge_theorems(
+            "block_0_body", "code", 0, 2, 1024, "JUMPI", 2
+        )
+        self.assertIn("(by omega)", shallow_edges[0][1])
+        self.assertNotIn("List.length_cons", shallow_edges[0][1])
+
+    def test_terminator_inputs_extend_materialized_tail(self) -> None:
+        summary = {"stack": [], "stackTail": {"materialized": 0}}
+        self.assertEqual(GEN.materialized_for_edge(summary, "JUMPI"), 2)
+        summary = {"stack": ["target"], "stackTail": {"materialized": 3}}
+        self.assertEqual(GEN.materialized_for_edge(summary, "JUMPI"), 4)
+        self.assertEqual(GEN.materialized_for_edge(summary, "SELFDESTRUCT"), 3)
+
+    def test_markdown_preserves_raw_summary(self) -> None:
+        summary = {
+            "stop": "target-pc 1", "steps": 1, "gasCost": "3", "pcTraceOpcodes": [],
+            "stack": ['(Var "x")'], "memory": "sym:memory", "activeWords": "active_words",
+            "returndata": "sym:returndata",
+        }
+        rendered = GEN.markdown_section({
+            "start": 0, "endpoint": 1, "target": 1, "status": "complete",
+            "summary": summary,
+        })
+        self.assertIn("Raw SymCheck JSON", rendered)
+        self.assertIn(json.dumps(summary, indent=2, sort_keys=True), rendered)
+
+    def test_committed_catalogs_preserve_every_raw_summary(self) -> None:
+        for stem in ("ctor_store_runtime", "dynamic_branch"):
+            manifest = json.loads((FIXTURE_DIR / f"{stem}.json").read_text(encoding="utf-8"))
+            markdown = (FIXTURE_DIR / f"{stem}.md").read_text(encoding="utf-8")
+            self.assertTrue(manifest["complete"])
+            self.assertEqual(manifest["generator"], "Tools/generate_rdx_blocks.py")
+            for block in manifest["blocks"]:
+                raw = json.dumps(block["summary"], indent=2, sort_keys=True)
+                self.assertIn(raw, markdown)
+
+    def test_committed_branch_catalog_exercises_edges_and_deep_stack(self) -> None:
+        lean = (FIXTURE_DIR.parent / "Fixtures" /
+                "SymCheckGeneratedBranchSmoke.lean").read_text(encoding="utf-8")
+        self.assertIn("set_option maxRecDepth 100000", lean)
+        self.assertIn("evm_theorem block_0_taken", lean)
+        self.assertIn("evm_theorem block_0_notTaken", lean)
+        self.assertIn("evm_theorem block_6_jump", lean)
+        self.assertIn("dup12Canonical", lean)
+        self.assertIn("swap16Canonical", lean)
+
+
+if __name__ == "__main__":
+    unittest.main()
