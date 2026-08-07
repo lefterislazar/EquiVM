@@ -204,8 +204,8 @@
         "solidity": "solidity"
       },
       "locked": {
-        "lastModified": 1786056560,
-        "narHash": "sha256-4vJvd8q5ncclWAjWow0O3N7CVTZlO6IdaXQxczpyjKg=",
+        "lastModified": 1786113266,
+        "narHash": "sha256-TJqB/DX0eKOWhd5nwmWBeYkqhFETxczO787DYRStG1A=",
         "owner": "lefterislazar",
         "repo": "hevm",
         "rev": "29b4a3b413024390bf2da26608aee22758723415",

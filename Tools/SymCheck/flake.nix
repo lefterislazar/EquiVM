@@ -3,7 +3,7 @@
 
   inputs = {
     hevm = {
-      url = "github:lefterislazar/hevm/591718ec393e3468f8c5bba1ae2bc1bcd1c50f59";
+      url = "github:lefterislazar/hevm/29b4a3b413024390bf2da26608aee22758723415";
       inputs.flake-utils.follows = "flake-utils";
       inputs.nixpkgs.follows = "nixpkgs";
     };

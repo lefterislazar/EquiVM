@@ -3,4 +3,4 @@ packages: .
 source-repository-package
   type: git
   location: https://github.com/lefterislazar/hevm.git
-  tag: 591718ec393e3468f8c5bba1ae2bc1bcd1c50f59
+  tag: 29b4a3b413024390bf2da26608aee22758723415
