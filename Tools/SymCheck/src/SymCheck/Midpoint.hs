@@ -122,7 +122,6 @@ data Overapproximation
   = OverapproxCallSuccess CallOpcode
   | OverapproxCallReturndata CallOpcode
   | OverapproxCallStorage CallOpcode
-  | OverapproxGasOpcode
   | OverapproxPostCallExtcodesize
   | OverapproxPostCallExtcodehash
   | OverapproxCoarseExtcodecopyMemory
@@ -450,7 +449,7 @@ makeMidpointVM spec = do
         , tStorage = spec.transientStorage
         , origStorage = spec.originalStorage
         }
-  vm0 <- makeVm $ defaultVMOpts
+  vm0 <- makeVm $ (defaultVMOpts :: VMOpts Symbolic)
     { contract = seeded
     , calldata = (spec.calldata, spec.constraints)
     , value = spec.callvalue
@@ -459,6 +458,7 @@ makeMidpointVM spec = do
     , caller = spec.caller
     , origin = spec.origin
     , coinbase = spec.coinbase
+    , gas = Var "Gas"
     , number = spec.blockNumber
     , timestamp = spec.timestamp
     , blockGaslimit = 0
@@ -480,7 +480,7 @@ makeMidpointVM spec = do
           { pc = spec.pc
           , stack = spec.stack
           , memory = SymbolicMemory spec.memory
-          , memorySize = spec.memorySize
+          , memorySize = word64Expr spec.memorySize
           , calldata = spec.calldata
           , callvalue = spec.callvalue
         , caller = spec.caller
@@ -533,8 +533,6 @@ runSegment spec = go [] [] [] 0 spec.fuel
             }
       | Just (boundary, vm', newOverapprox) <- cutAtCallBoundary vm =
           go (extendPcTrace traceRev vm.state.pc) (boundary : seenCalls) (reverse newOverapprox <> overapprox) (stepsLeft + 1) (fuelLeft - 1) vm'
-      | Just (vm', newOverapprox) <- abstractGasStep vm =
-          go (extendPcTrace traceRev vm.state.pc) seenCalls (reverse newOverapprox <> overapprox) (stepsLeft + 1) (fuelLeft - 1) vm'
       | Just (vm', newOverapprox) <- abstractPostCallWorldStep vm =
           go (extendPcTrace traceRev vm.state.pc) seenCalls (reverse newOverapprox <> overapprox) (stepsLeft + 1) (fuelLeft - 1) vm'
       | otherwise = do
@@ -634,8 +632,6 @@ runSegmentWithSolvers spec vm0 =
                     (fuelLeft - 1)
                     vm')
                 branches
-      | Just (vm', newOverapprox) <- abstractGasStep vm =
-          go solverGroup (extendPcTrace traceRev vm.state.pc) seenCalls (reverse newOverapprox <> overapprox) weakenedSmt (stepsLeft + 1) (fuelLeft - 1) vm'
       | Just (vm', newOverapprox) <- abstractPostCallWorldStep vm =
           go solverGroup (extendPcTrace traceRev vm.state.pc) seenCalls (reverse newOverapprox <> overapprox) weakenedSmt (stepsLeft + 1) (fuelLeft - 1) vm'
       | otherwise = do
@@ -800,7 +796,6 @@ appendVmConstraints extra vm =
     , exploreDepth = vm.exploreDepth
     , keccakPreImgs = vm.keccakPreImgs
     , mergeState = vm.mergeState
-    , expectedRevert = vm.expectedRevert
     }
 
 currentOpcode :: VM Symbolic -> Maybe (GenericOp Word8)
@@ -812,17 +807,6 @@ currentOpcode vm = do
   if pc0 < 0 || pc0 >= BS.length codeBytes
     then Nothing
     else Just (getOp (BS.index codeBytes pc0))
-
-abstractGasStep :: VM Symbolic -> Maybe (VM Symbolic, [Overapproximation])
-abstractGasStep vm = do
-  op <- currentOpcode vm
-  case op of
-    OpGas ->
-      let resultExpr = Var (T.pack ("gas_opcode_" <> show vm.freshVar))
-          state' = advanceState vm.state (resultExpr : vm.state.stack)
-      in Just (vm { state = state', freshVar = vm.freshVar + 1 }, [OverapproxGasOpcode])
-    _ ->
-      Nothing
 
 callBoundaryForOp :: VM Symbolic -> GenericOp Word8 -> Maybe CallBoundary
 callBoundaryForOp vm = \case
@@ -1019,14 +1003,16 @@ deterministicPreCallOutcome vm boundary
   | callViolatesStaticContext vm boundary = Left StateChangeWhileStatic
   | otherwise = do
       -- This only handles pre-call outcomes we can decide locally without SMT.
-      memorySize' <- applyCallMemoryAccesses vm.state.memorySize boundary.inputOffset boundary.inputSize boundary.outputOffset boundary.outputSize
+      memorySize0 <- concreteFrameMemorySize vm.state.memorySize
+      memorySize' <- applyCallMemoryAccesses memorySize0 boundary.inputOffset boundary.inputSize boundary.outputOffset boundary.outputSize
       case deterministicCallFailure vm boundary of
         Just () -> Right (DeterministicCallFailure memorySize')
         Nothing -> Right (DeterministicCallContinuation memorySize')
 
 symbolicPreCallOutcome :: VM Symbolic -> CallBoundary -> Either EvmError CallPrecheck
 symbolicPreCallOutcome vm boundary = do
-  memorySize' <- applyCallMemoryAccesses vm.state.memorySize boundary.inputOffset boundary.inputSize boundary.outputOffset boundary.outputSize
+  memorySize0 <- concreteFrameMemorySize vm.state.memorySize
+  memorySize' <- applyCallMemoryAccesses memorySize0 boundary.inputOffset boundary.inputSize boundary.outputOffset boundary.outputSize
   case symbolicStaticViolationProp vm boundary of
     Just prop -> Right (CallPrecheckBranch SymbolicStaticViolation prop memorySize')
     Nothing ->
@@ -1108,12 +1094,23 @@ literalWord = \case
   Lit value0 -> Just value0
   _ -> Nothing
 
+word64Expr :: Word64 -> Expr EWord
+word64Expr = Lit . fromIntegral
+
+concreteFrameMemorySize :: Expr EWord -> Either EvmError Word64
+concreteFrameMemorySize = \case
+  Lit value0 ->
+    maybe (Left IllegalOverflow) Right (toWord64 value0)
+  _ ->
+    Right maxBound
+
 applyCallMemoryAccesses :: Word64 -> Expr EWord -> Expr EWord -> Expr EWord -> Expr EWord -> Either EvmError Word64
 applyCallMemoryAccesses memorySize0 inOffset inSize outOffset outSize = do
   memorySize1 <- applyMemoryAccessRange memorySize0 inOffset inSize
   applyMemoryAccessRange memorySize1 outOffset outSize
 
 applyMemoryAccessRange :: Word64 -> Expr EWord -> Expr EWord -> Either EvmError Word64
+applyMemoryAccessRange currentSize _ _ | currentSize == maxBound = Right maxBound
 applyMemoryAccessRange currentSize _ (Lit 0) = Right currentSize
 applyMemoryAccessRange currentSize (Lit offs) (Lit sz) =
   let word64Limit = fromIntegral (maxBound :: Word64) :: W256
@@ -1140,7 +1137,7 @@ advanceStateWithMemory state0 stack' memory' memorySize' returndata' =
     , pc = state0.pc + 1
     , stack = stack'
     , memory = memory'
-    , memorySize = memorySize'
+    , memorySize = word64Expr memorySize'
     , returndata = returndata'
     , calldata = state0.calldata
     , callvalue = state0.callvalue
@@ -1248,7 +1245,7 @@ abstractPostCallWorldStep vm = do
       case vm.state.stack of
         _addr : memOffset : codeOffset : copySize : xs ->
           let state0 = vm.state
-          in case extcodecopyMemoryUpdate epoch vm.freshVar state0.memory state0.memorySize memOffset codeOffset copySize of
+          in case concreteFrameMemorySize state0.memorySize >>= \memorySize0 -> extcodecopyMemoryUpdate epoch vm.freshVar state0.memory memorySize0 memOffset codeOffset copySize of
               Left err ->
                 Just (vm {result = Just (VMFailure err)}, [])
               Right ExtcodecopyMemoryUpdate {newMemory, newMemorySize, usedCoarseAbstraction} ->
@@ -1260,7 +1257,7 @@ abstractPostCallWorldStep vm = do
                         , pc = state0.pc + 1
                         , stack = xs
                         , memory = newMemory
-                        , memorySize = newMemorySize
+                        , memorySize = word64Expr newMemorySize
                         , returndata = state0.returndata
                         , calldata = state0.calldata
                         , callvalue = state0.callvalue

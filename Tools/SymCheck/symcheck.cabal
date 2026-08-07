@@ -1,5 +1,5 @@
 cabal-version: 3.0
-name: equivm-symcheck
+name: symcheck
 version: 0.1.0.0
 build-type: Simple
 
@@ -26,7 +26,7 @@ library
     text,
     transformers
 
-executable equivm-symcheck
+executable symcheck
   hs-source-dirs: app, src
   main-is: Main.hs
   other-modules:
@@ -46,7 +46,7 @@ executable equivm-symcheck
     base >= 4.14 && < 5,
     bytestring,
     containers,
-    equivm-symcheck,
+    symcheck,
     hevm,
     mtl,
     text,
@@ -60,7 +60,7 @@ test-suite cli-smoke
   ghc-options:
     -Wall
   build-tool-depends:
-    equivm-symcheck:equivm-symcheck
+    symcheck:symcheck
   build-depends:
     base >= 4.14 && < 5,
     process

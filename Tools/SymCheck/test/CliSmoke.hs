@@ -74,7 +74,7 @@ tests =
 
 runTest :: TestCase -> IO ()
 runTest test = do
-  (exitCode, stdoutText, stderrText) <- readProcessWithExitCode "equivm-symcheck" (testArgs test) ""
+  (exitCode, stdoutText, stderrText) <- readProcessWithExitCode "symcheck" (testArgs test) ""
   assertEqual (testName test) "exit code" (expectedExit test) exitCode stderrText
   mapM_ (assertContains (testName test) stdoutText) (expectedStdout test)
   mapM_ (assertContains (testName test) stderrText) (expectedStderr test)

@@ -741,8 +741,6 @@ renderOverapproximation = \case
     renderCallOpcode opcode <> " returndata abstracted"
   OverapproxCallStorage opcode ->
     renderCallOpcode opcode <> " post-call storage abstracted"
-  OverapproxGasOpcode ->
-    "GAS opcode abstracted"
   OverapproxPostCallExtcodesize ->
     "EXTCODESIZE after abstract call world"
   OverapproxPostCallExtcodehash ->
@@ -923,11 +921,11 @@ parseCli args = do
 usage :: String
 usage = unlines $
   [ "usage:"
-  , "  equivm-symcheck smoke-all"
+  , "  symcheck smoke-all"
   ]
-    <> fmap (\(name, _) -> "  equivm-symcheck " <> name) smokeCommands
+    <> fmap (\(name, _) -> "  symcheck " <> name) smokeCommands
     <>
-      [ "  equivm-symcheck run --code HEX [--pc N] [--fuel N] [--target-pc N] [--stack WORD]..."
+      [ "  symcheck run --code HEX [--pc N] [--fuel N] [--target-pc N] [--stack WORD]..."
       , "                      [--memory HEX|sym:NAME] [--calldata HEX|sym:NAME]"
       , "                      [--returndata HEX|sym:NAME] [--address ADDR|sym:NAME]"
       , "                      [--code-address ADDR|sym:NAME] [--caller ADDR|sym:NAME]"

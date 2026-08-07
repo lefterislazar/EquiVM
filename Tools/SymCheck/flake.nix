@@ -1,9 +1,9 @@
 {
-  description = "EquiVM symbolic side-condition checker";
+  description = "SymCheck symbolic EVM side-condition checker";
 
   inputs = {
     hevm = {
-      url = "github:argotorg/hevm/408bf3100f1edbfc489b21b5218332e583e503a7";
+      url = "github:lefterislazar/hevm/591718ec393e3468f8c5bba1ae2bc1bcd1c50f59";
       inputs.flake-utils.follows = "flake-utils";
       inputs.nixpkgs.follows = "nixpkgs";
     };
@@ -81,7 +81,7 @@
                     ps.haskell.lib.dontCheck
                     (ps.haskell.lib.compose.addTestToolDepends (testDeps ++ [ (hspkgs ps).cabal-install ]))
                   ];
-              equivm-symcheck = hfinal.callCabal2nix "equivm-symcheck" ./. {};
+              symcheck = hfinal.callCabal2nix "symcheck" ./. {};
             };
           in ps.haskellPackages.override {
             overrides = ps.lib.composeExtensions platformOverrides localOverrides;
@@ -103,12 +103,12 @@
           pkgs.haskell.lib.compose.overrideCabal (old: {
             configureFlags = (old.configureFlags or []) ++ [ "-fci" "-O2" ];
           }) hsPkgs.hevm;
-        symcheckPkg = pkgs.haskell.lib.dontCheck hsPkgs.equivm-symcheck;
+        symcheckPkg = pkgs.haskell.lib.dontCheck hsPkgs.symcheck;
         portableBundle =
           let
             closure = pkgs.closureInfo { rootPaths = [ symcheckPkg ]; };
           in pkgs.stdenv.mkDerivation {
-            pname = "equivm-symcheck-portable-bundle";
+            pname = "symcheck-portable-bundle";
             version = "0.1.0.0";
             dontUnpack = true;
             dontPatchShebangs = true;
@@ -119,10 +119,10 @@
               bundleRoot="$out"
               mkdir -p "$bundleRoot/bin" "$bundleRoot/lib"
 
-              cp ${symcheckPkg}/bin/equivm-symcheck "$bundleRoot/bin/equivm-symcheck-bin"
-              chmod u+w "$bundleRoot/bin/equivm-symcheck-bin"
+              cp ${symcheckPkg}/bin/symcheck "$bundleRoot/bin/symcheck-bin"
+              chmod u+w "$bundleRoot/bin/symcheck-bin"
 
-              interpreter="$(patchelf --print-interpreter "$bundleRoot/bin/equivm-symcheck-bin")"
+              interpreter="$(patchelf --print-interpreter "$bundleRoot/bin/symcheck-bin")"
               interpreterBase="$(basename "$interpreter")"
               cp "$interpreter" "$bundleRoot/lib/$interpreterBase"
               chmod u+w "$bundleRoot/lib/$interpreterBase"
@@ -167,9 +167,9 @@
                 done < <(patchelf --print-needed "$elf" || true)
               }
 
-              scan_elf "$bundleRoot/bin/equivm-symcheck-bin"
+              scan_elf "$bundleRoot/bin/symcheck-bin"
 
-              patchelf --set-rpath '$ORIGIN/../lib' "$bundleRoot/bin/equivm-symcheck-bin"
+              patchelf --set-rpath '$ORIGIN/../lib' "$bundleRoot/bin/symcheck-bin"
               for libFile in "$bundleRoot"/lib/*; do
                 if [ "$(basename "$libFile")" = "$interpreterBase" ]; then
                   continue
@@ -179,23 +179,23 @@
                 fi
               done
 
-              cat > "$bundleRoot/bin/equivm-symcheck" <<EOF
+              cat > "$bundleRoot/bin/symcheck" <<EOF
               #!/bin/sh
               set -eu
               script_dir="\$(CDPATH= cd -- "\$(dirname -- "\$0")" && pwd)"
               exec "\$script_dir/../lib/$interpreterBase" \
                 --library-path "\$script_dir/../lib" \
-                "\$script_dir/equivm-symcheck-bin" \
+                "\$script_dir/symcheck-bin" \
                 "\$@"
               EOF
-              chmod +x "$bundleRoot/bin/equivm-symcheck"
+              chmod +x "$bundleRoot/bin/symcheck"
 
               cat > "$bundleRoot/README-portable.txt" <<EOF
-              This is a standalone equivm-symcheck bundle.
+              This is a standalone symcheck bundle.
 
               Run:
 
-                ./bin/equivm-symcheck --help
+                ./bin/symcheck --help
 
               The launcher uses the bundled dynamic loader and shared libraries,
               so this bundle can run outside the originating Nix environment on
@@ -203,11 +203,11 @@
               EOF
             '';
           };
-        portableTarball = pkgs.runCommand "equivm-symcheck-portable-${system}.tar.gz"
+        portableTarball = pkgs.runCommand "symcheck-portable-${system}.tar.gz"
           { nativeBuildInputs = [ pkgs.gnutar pkgs.gzip ]; }
           ''
             mkdir -p "$out"
-            tar -C ${portableBundle} -czf "$out/equivm-symcheck-portable-${system}.tar.gz" .
+            tar -C ${portableBundle} -czf "$out/symcheck-portable-${system}.tar.gz" .
           '';
       in {
         packages.default = symcheckPkg;
@@ -217,7 +217,7 @@
         devShells.default = hsPkgs.shellFor {
           packages = ps: [
             hevmPkg
-            ps.equivm-symcheck
+            ps.symcheck
           ];
 
           buildInputs = [

@@ -1,6 +1,6 @@
 # SymCheck
 
-Prototype symbolic side-condition checker for EquiVM, built as a small Haskell package on top of a pinned `hevm` checkout.
+Prototype symbolic EVM side-condition checker, built as a small Haskell package on top of a pinned `hevm` checkout.
 
 Current scope:
 
@@ -13,7 +13,7 @@ This is intentionally an untrusted proof-design tool, not part of the Lean kerne
 ## Build
 
 ```bash
-cd Tools/SymCheck
+cd SymCheck
 ./nix-develop
 cabal build
 ```
@@ -24,7 +24,7 @@ Portable Linux bundle:
 nix build 'path:.#portable-bundle' --extra-experimental-features 'nix-command flakes'
 ```
 
-That produces `result/bin/equivm-symcheck`, a launcher that uses bundled shared
+That produces `result/bin/symcheck`, a launcher that uses bundled shared
 libraries and dynamic loader so it can be moved outside the originating Nix
 environment on a compatible `x86_64-linux` host.
 
@@ -37,7 +37,7 @@ nix build 'path:.#portable-tarball' --extra-experimental-features 'nix-command f
 The local `cabal.project` pins `hevm` via
 `source-repository-package`, and `flake.nix` pins the same repository as a
 flake input. The shell still builds a shared Haskell package set containing
-both `hevm` and `equivm-symcheck`, which keeps dependency resolution aligned
+both `hevm` and `symcheck`, which keeps dependency resolution aligned
 without relying on machine-local relative paths.
 
 After changing `flake.nix`, exit and re-enter the shell once:
@@ -47,16 +47,15 @@ exit
 ./nix-develop
 ```
 
-`./nix-develop` resolves the flake through an explicit `path:` URI rooted at the
-top-level EquiVM checkout, which avoids subdirectory `.#...` resolution edge
-cases when running Nix commands from `Tools/SymCheck`.
+`./nix-develop` resolves the flake through an explicit `path:` URI rooted at
+this checkout, which avoids relative flake resolution edge cases.
 
 ## Smoke tests
 
 ```bash
-cd Tools/SymCheck
+cd SymCheck
 ./nix-develop
-cabal run equivm-symcheck -- smoke-all
+cabal run symcheck -- smoke-all
 ```
 
 Available smoke commands:
@@ -78,7 +77,7 @@ Available smoke commands:
 Example:
 
 ```bash
-cabal run equivm-symcheck -- smoke-call-metadata
+cabal run symcheck -- smoke-call-metadata
 ```
 
 There is also a small CLI regression test suite for `run` argument parsing and
@@ -92,7 +91,7 @@ cabal test cli-smoke
 
 ```bash
 ./nix-develop
-cabal run equivm-symcheck -- run --code 600160020100 --pc 2 --stack 0x1 --fuel 3
+cabal run symcheck -- run --code 600160020100 --pc 2 --stack 0x1 --fuel 3
 ```
 
 Useful flags:
@@ -205,7 +204,7 @@ Supported call opcodes are:
 Example:
 
 ```bash
-cabal run equivm-symcheck -- run \
+cabal run symcheck -- run \
   --code 600160020100 \
   --pc 2 \
   --fuel 3 \
@@ -216,7 +215,7 @@ cabal run equivm-symcheck -- run \
 Example with a call-boundary postcondition:
 
 ```bash
-cabal run equivm-symcheck -- run \
+cabal run symcheck -- run \
   --code f100 \
   --fuel 2 \
   --stack 5 --stack 0x1234 --stack 0 --stack 0 --stack 0 --stack 0 --stack 0 \
@@ -260,8 +259,8 @@ Warning:
   calls with a known sender-balance expression
 - more complex pre-call failure conditions still fall back to the abstract
   continuation path
-- `GAS` is modeled conservatively by returning a fresh symbolic word instead of
-  hevm's symbolic gas placeholder
+- `GAS` is handled by hevm's symbolic gas state rather than a local SymCheck
+  overapproximation
 - `call[N].value` is only defined for `CALL` and `CALLCODE`; using it on
   `DELEGATECALL` or `STATICCALL` reports a postcondition error
 - after a post-call abstraction, `EXTCODECOPY` now preserves bytes outside a
@@ -304,8 +303,7 @@ Small follow-up features that look useful without changing the core executor:
   `call-count`
 - expose finer-grained overapproximation predicates in the condition language,
   not just `overapprox==none|some`; for example, let specs distinguish
-  call-storage abstraction from `GAS` abstraction or coarse `EXTCODECOPY`
-  memory abstraction
+  call-storage abstraction from coarse `EXTCODECOPY` memory abstraction
 - improve weakening diagnostics so text/JSON output records not just that SMT
   weakening happened, but also which query used it and why
 - add more world-query terms to conditions, especially balance/code facts such
