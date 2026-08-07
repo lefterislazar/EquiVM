@@ -371,11 +371,24 @@ existing finite-stack auto-padding behavior.
 - `--json` (machine-readable output)
 - `--trace-opcodes` (include opcode annotations alongside `pc` traces)
 
-## EquiVM RDx block catalogs
+## EquiVM RDx block and maximal-trace catalogs
 
 EquiVM's translation layer intentionally lives outside this Haskell package.  After building the
 `symcheck` executable, `../generate_rdx_blocks.py` repeatedly calls the existing solver-free JSON
-summary command and emits three reviewable artifact sets:
+summary command. It has two explicit modes:
+
+- `--catalog-kind blocks` (the default) emits the original basic-block bodies and edge helpers;
+- `--catalog-kind traces` emits a maximal deterministic trace from every root.
+
+A trace root is PC 0, every `JUMPDEST`, every `JUMPI` fallthrough, or a PC supplied with
+`--extra-entry-pc`. Roots determine where theorem generation starts; they do not stop an ongoing
+trace. Thus a concrete `JUMP` or locally decidable `JUMPI` crosses its destination `JUMPDEST` and
+continues. A trace stops at a halt, unresolved symbolic control flow, an unsupported RDx step, an
+external boundary, or the first revisited PC. Symbolic `JUMP`/`JUMPI` boundaries retain the same
+edge helpers as block catalogs. Loop traces end at their first revisit rather than at an arbitrary
+fuel iteration.
+
+Each invocation emits three reviewable artifact sets:
 
 - a kernel-checked Lean block catalog, optionally split into part modules;
 - a JSON coverage manifest for tools and agents;
@@ -395,8 +408,13 @@ python3 ../generate_rdx_blocks.py \
   --summaries /tmp/CtorStoreGenerated.md
 ```
 
-Catalogs of at most 100 blocks retain the single-file layout above.  Larger catalogs are split at
-block boundaries, so a body theorem and all of its edge helpers always remain together.  The path
+Generate the independent maximal-trace catalog by adding `--catalog-kind traces` and choosing
+separate output, manifest, summary, namespace, and (when split) module names. Run both commands when
+both granular block lemmas and agent-oriented maximal paths are desired. Block mode remains the
+default, so existing generation commands are unchanged.
+
+Catalogs of at most 100 entries retain the single-file layout above. Larger catalogs are split at
+catalog-entry boundaries, so a body theorem and all of its edge helpers always remain together. The path
 given by `--output` becomes a small aggregator containing the single bytecode-equality check, and
 the theorem files are written as `OUTPUT_STEM/Part000.lean`, `Part001.lean`, and so on.  Because
 Lean imports are module names rather than paths, split generation also requires the module name of
@@ -409,10 +427,10 @@ the aggregator.  For an output at `Generated/ModexpBlocks.lean`, use:
 
 Set `--blocks-per-file N` to choose another threshold, or `--blocks-per-file 0` to force the old
 single-file layout.  The unified JSON manifest records every emitted Lean file and the part that
-contains each block; the Markdown catalog likewise lists the files while retaining all summaries
+contains each entry; the Markdown catalog likewise lists the files while retaining all summaries
 in one place.
 
-The generator returns status 2 after writing the artifacts when some block is only partially
+The generator returns status 2 after writing the artifacts when some catalog entry is only partially
 covered.  The manifest and Markdown catalog identify the first unsupported PC/opcode.  Lake checks
 committed generated Lean files but never invokes SymCheck, Cabal, Nix, or this Python script.
 Generated Lean catalogs set `maxRecDepth 100000`, which is needed for closed bytecode checks on
@@ -428,12 +446,15 @@ opaque, collects arithmetic constants, and applies only exact/disjoint memory re
 can be proved from local hypotheses.  `Fixtures/SymCheckSimplifySmoke.lean` demonstrates this on the
 generated CtorStore theorem and on word-memory reads.
 
-Two committed catalogs exercise the integration without making Lake run Haskell:
+Three committed catalogs exercise the integration without making Lake run Haskell:
 
 - `Fixtures/SymCheckGeneratedSmoke.lean` and `Fixtures/ctor_store_runtime.{json,md}` use the real
   `CtorStore` runtime and cover memory growth plus a reverting terminal edge;
 - `Fixtures/SymCheckGeneratedBranchSmoke.lean` and `Fixtures/dynamic_branch.{json,md}` cover
   symbolic taken/not-taken edges and the deepest shared `DUP`/`SWAP` wrappers.
+- `Fixtures/SymCheckGeneratedDeterministicTraceSmoke.lean` and
+  `Fixtures/deterministic_trace.{json,md}` cover concrete `JUMPI`/`JUMP` traversal through later
+  roots and exact first-revisit loop cutting.
 
 `python3 -B ../test_generate_rdx_blocks.py` checks the generator and retained catalogs.  Compile
 the kernel-checked fixtures with:
@@ -441,6 +462,7 @@ the kernel-checked fixtures with:
 ```bash
 lake build Tools.SymCheck.Fixtures.SymCheckGeneratedSmoke \
   Tools.SymCheck.Fixtures.SymCheckGeneratedBranchSmoke \
+  Tools.SymCheck.Fixtures.SymCheckGeneratedDeterministicTraceSmoke \
   Tools.SymCheck.Fixtures.SymCheckSimplifySmoke
 ```
 

@@ -33,6 +33,52 @@ class GeneratorTests(unittest.TestCase):
             [(0, 2, "JUMPI"), (3, 3, "STOP"), (4, 5, "STOP"), (6, 7, "STOP")],
         )
 
+    def test_every_jumpdest_is_a_trace_root_without_being_a_boundary(self) -> None:
+        code = bytes.fromhex("6001600657005b600b56005b00")
+        roots = GEN.discover_trace_roots(code, [])
+        self.assertEqual([root.start for root in roots], [0, 5, 6, 11])
+        rendered, unsupported = GEN.render_trace_steps(
+            code,
+            [
+                {"pc": 0, "opcode": "PUSH1"},
+                {"pc": 2, "opcode": "PUSH1"},
+                {"pc": 4, "opcode": "JUMPI"},
+                {"pc": 6, "opcode": "JUMPDEST"},
+                {"pc": 7, "opcode": "PUSH1"},
+                {"pc": 9, "opcode": "JUMP"},
+                {"pc": 11, "opcode": "JUMPDEST"},
+            ],
+            12,
+        )
+        self.assertIsNone(unsupported)
+        self.assertIn("jumpiT (by native_decide) (by native_decide)", rendered)
+        self.assertIn("jump (by native_decide)", rendered)
+        self.assertEqual(rendered.count("jumpdest"), 2)
+
+    def test_trace_loop_stops_at_first_pc_revisit(self) -> None:
+        summary = {
+            "pcTraceOpcodes": [
+                {"pc": 13, "opcode": "JUMPDEST"},
+                {"pc": 14, "opcode": "PUSH1"},
+                {"pc": 16, "opcode": "JUMP"},
+                {"pc": 13, "opcode": "JUMPDEST"},
+            ]
+        }
+        self.assertEqual(GEN.first_revisit_step(summary), 3)
+
+    def test_symbolic_jumpi_smt_stop_is_a_complete_trace_boundary(self) -> None:
+        self.assertTrue(
+            GEN.is_symbolic_control_boundary(
+                "JUMPI", 'needs SMT at current opcode (condition (Var "x"))'
+            )
+        )
+        self.assertTrue(
+            GEN.is_symbolic_control_boundary(
+                "JUMP", 'needs a concrete value at current opcode (expression (Var "target"))'
+            )
+        )
+        self.assertFalse(GEN.is_symbolic_control_boundary("ADD", "needs SMT"))
+
     def test_push_renderer_uses_explicit_width(self) -> None:
         step = GEN.render_step(bytes.fromhex("62010203"), {"pc": 0, "opcode": "PUSH3"})
         self.assertEqual(step, "pushCanonical 3 .PUSH3 ⟨0x10203⟩ (by decide)")
@@ -151,6 +197,28 @@ class GeneratorTests(unittest.TestCase):
         self.assertIn("evm_theorem block_6_jump", lean)
         self.assertIn("dup12Canonical", lean)
         self.assertIn("swap16Canonical", lean)
+
+    def test_committed_maximal_trace_crosses_roots_and_cuts_loops(self) -> None:
+        manifest = json.loads(
+            (FIXTURE_DIR / "deterministic_trace.json").read_text(encoding="utf-8")
+        )
+        markdown = (FIXTURE_DIR / "deterministic_trace.md").read_text(encoding="utf-8")
+        lean = (
+            FIXTURE_DIR / "SymCheckGeneratedDeterministicTraceSmoke.lean"
+        ).read_text(encoding="utf-8")
+        self.assertTrue(manifest["complete"])
+        self.assertEqual(manifest["catalogKind"], "traces")
+        self.assertEqual(manifest["traceRoots"], [0, 5, 6, 11, 13])
+        root_zero = next(trace for trace in manifest["traces"] if trace["start"] == 0)
+        self.assertEqual(root_zero["endpoint"], 12)
+        self.assertEqual(root_zero["endKind"], "halt")
+        loop = next(trace for trace in manifest["traces"] if trace["start"] == 13)
+        self.assertEqual((loop["endpoint"], loop["endKind"]), (13, "loop-revisit"))
+        self.assertIn("jumpiT (by native_decide) (by native_decide)", lean)
+        self.assertGreaterEqual(lean.count("jumpdest"), 3)
+        for trace in manifest["traces"]:
+            raw = json.dumps(trace["summary"], indent=2, sort_keys=True)
+            self.assertIn(raw, markdown)
 
 
 if __name__ == "__main__":

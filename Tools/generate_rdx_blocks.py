@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Lean RDx block theorems from `symcheck summarize --json`.
+"""Generate Lean RDx block or maximal-trace theorems from `symcheck summarize --json`.
 
 The translator is deliberately EquiVM-specific.  SymCheck remains an untrusted,
 general summary producer; Lean replays every emitted opcode through checked RDx
@@ -97,6 +97,11 @@ class Instruction:
 
 
 @dataclass(frozen=True)
+class TraceRoot:
+    start: int
+
+
+@dataclass(frozen=True)
 class Block:
     start: int
     target: int
@@ -124,7 +129,14 @@ def disassemble(code: bytes) -> list[Instruction]:
     return result
 
 
-def discover_blocks(code: bytes, extra_entries: list[int]) -> list[Block]:
+def discover_trace_roots(code: bytes, extra_entries: list[int]) -> list[TraceRoot]:
+    """Find useful theorem entry points, not execution stopping points.
+
+    Every JUMPDEST remains independently usable by consumers.  JUMPI fallthroughs are roots too,
+    because a symbolic branch helper can establish them.  A trace which starts elsewhere does not
+    stop at any of these roots: SymCheck continues until control flow becomes symbolic, execution
+    halts, a loop revisits a PC, or the translator reaches an unsupported RDx step.
+    """
     instructions = disassemble(code)
     by_pc = {instr.pc: instr for instr in instructions}
     entries = {0} if code else set()
@@ -139,21 +151,28 @@ def discover_blocks(code: bytes, extra_entries: list[int]) -> list[Block]:
             raise SystemExit(f"extra entry PC {pc} is not an instruction boundary")
         entries.add(pc)
 
+    return [TraceRoot(start) for start in sorted(entries)]
+
+
+def discover_blocks(code: bytes, extra_entries: list[int]) -> list[Block]:
+    instructions = disassemble(code)
+    roots = discover_trace_roots(code, extra_entries)
+    entries = {root.start for root in roots}
     blocks: list[Block] = []
-    for start in sorted(entries):
+    for root in roots:
         target = len(code)
         terminator: str | None = None
-        for instr in instructions:
-            if instr.pc < start:
+        for instruction in instructions:
+            if instruction.pc < root.start:
                 continue
-            if instr.pc > start and instr.pc in entries:
-                target = instr.pc
+            if instruction.pc > root.start and instruction.pc in entries:
+                target = instruction.pc
                 break
-            if instr.opcode in TERMINATORS:
-                target = instr.pc
-                terminator = TERMINATORS[instr.opcode]
+            if instruction.opcode in TERMINATORS:
+                target = instruction.pc
+                terminator = TERMINATORS[instruction.opcode]
                 break
-        blocks.append(Block(start, target, terminator))
+        blocks.append(Block(root.start, target, terminator))
     return blocks
 
 
@@ -170,13 +189,14 @@ def parse_json_output(stdout: str) -> dict[str, Any]:
     raise RuntimeError("SymCheck did not emit a JSON object")
 
 
-def run_summary(exe: str, code_hex: str, start: int, target: int, fuel: int) -> dict[str, Any]:
+def run_summary(
+    exe: str, code_hex: str, start: int, target: int | None, fuel: int
+) -> dict[str, Any]:
     command = [
         exe,
         "summarize",
         "--code", code_hex,
         "--pc", str(start),
-        "--target-pc", str(target),
         "--fuel", str(fuel),
         "--memory", "sym:memory",
         "--active-words", "var:active_words",
@@ -189,10 +209,13 @@ def run_summary(exe: str, code_hex: str, start: int, target: int, fuel: int) -> 
         "--json",
         "--trace-opcodes",
     ]
+    if target is not None:
+        command.extend(["--target-pc", str(target)])
     process = subprocess.run(command, text=True, capture_output=True, check=False)
     if process.returncode != 0:
         raise RuntimeError(
-            f"SymCheck failed for block {start}: {process.stderr.strip() or process.stdout.strip()}"
+            f"SymCheck failed for trace root {start}: "
+            f"{process.stderr.strip() or process.stdout.strip()}"
         )
     summary = parse_json_output(process.stdout)
     required = {
@@ -231,6 +254,67 @@ def render_step(code: bytes, entry: dict[str, Any]) -> str | None:
     if pushed is not None:
         return pushed
     return SIMPLE_STEPS.get(opcode_name)
+
+
+def render_trace_step(
+    code: bytes, entry: dict[str, Any], successor_pc: int
+) -> str | None:
+    """Render an executed step, including locally resolved control flow."""
+    opcode_name = str(entry["opcode"]).upper()
+    pc = int(entry["pc"])
+    if opcode_name == "JUMP":
+        return "jump (by native_decide)"
+    if opcode_name == "JUMPI":
+        if pc >= len(code) or code[pc] != 0x57:
+            return None
+        if successor_pc == pc + 1:
+            return "jumpiNT (by native_decide)"
+        return "jumpiT (by native_decide) (by native_decide)"
+    return render_step(code, entry)
+
+
+def executed_entries(summary: dict[str, Any]) -> list[dict[str, Any]]:
+    return list(summary["pcTraceOpcodes"][: int(summary["steps"])])
+
+
+def first_revisit_step(summary: dict[str, Any]) -> int | None:
+    """Return the number of steps before the first repeated program counter."""
+    seen: set[int] = set()
+    for index, entry in enumerate(summary.get("pcTraceOpcodes", [])):
+        pc = int(entry["pc"])
+        if pc in seen:
+            return index
+        seen.add(pc)
+    return None
+
+
+def opcode_name_at(code: bytes, pc: int) -> str | None:
+    if pc < 0 or pc >= len(code):
+        return None
+    return TERMINATORS.get(code[pc])
+
+
+def is_symbolic_control_boundary(opcode_name: str | None, stop: str) -> bool:
+    return (
+        opcode_name == "JUMP"
+        and "needs a concrete value" in stop
+    ) or (
+        opcode_name == "JUMPI"
+        and ("needs a concrete value" in stop or "needs SMT" in stop)
+    )
+
+
+def render_trace_steps(
+    code: bytes, entries: list[dict[str, Any]], endpoint: int
+) -> tuple[list[str], dict[str, Any] | None]:
+    rendered: list[str] = []
+    for index, entry in enumerate(entries):
+        successor_pc = int(entries[index + 1]["pc"]) if index + 1 < len(entries) else endpoint
+        step = render_trace_step(code, entry, successor_pc)
+        if step is None:
+            return rendered, entry
+        rendered.append(step)
+    return rendered, None
 
 
 def lean_byte_array(code: bytes) -> str:
@@ -366,11 +450,18 @@ def markdown_section(record: dict[str, Any]) -> str:
     trace = ", ".join(
         f"{entry['pc']}:{entry['opcode']}" for entry in summary.get("pcTraceOpcodes", [])
     )
+    is_trace = "endKind" in record
     fields = [
-        f"## Block {record['start']} → {record['endpoint']}",
+        (
+            f"## Trace root {record['start']} → {record['endpoint']}"
+            if is_trace else f"## Block {record['start']} → {record['endpoint']}"
+        ),
         "",
         f"- Status: `{record['status']}`",
-        f"- Requested boundary: `{record['target']}`",
+        (
+            f"- End kind: `{record['endKind']}`"
+            if is_trace else f"- Requested boundary: `{record['target']}`"
+        ),
         f"- Stop: `{summary.get('stop')}`",
         f"- Steps: `{summary.get('steps')}`",
         f"- Gas cost: `{summary.get('gasCost')}`",
@@ -447,7 +538,8 @@ def write_lean_catalog(
 
     if output_module is None:
         raise SystemExit(
-            f"{len(declaration_groups)} blocks exceed --blocks-per-file {blocks_per_file}; "
+            f"{len(declaration_groups)} catalog entries exceed "
+            f"--blocks-per-file {blocks_per_file}; "
             "provide --output-module for deterministic Lean part imports"
         )
     if output.suffix != ".lean":
@@ -485,8 +577,226 @@ def write_lean_catalog(
     return [output, *part_paths]
 
 
+def generate_block(
+    exe: str,
+    code: bytes,
+    code_hex: str,
+    code_name: str,
+    block: Block,
+    fuel: int,
+) -> tuple[dict[str, Any], str, bool]:
+    """Generate one original, single-basic-block catalog entry."""
+    declarations: list[str] = []
+    summary = run_summary(exe, code_hex, block.start, block.target, fuel)
+    executed = executed_entries(summary)
+    rendered: list[str] = []
+    unsupported: dict[str, Any] | None = None
+    for entry in executed:
+        step = render_step(code, entry)
+        if step is None:
+            unsupported = entry
+            break
+        rendered.append(step)
+
+    if unsupported is not None:
+        endpoint = int(unsupported["pc"])
+        summary = run_summary(exe, code_hex, block.start, endpoint, fuel)
+        executed = executed_entries(summary)
+        prefix = [render_step(code, entry) for entry in executed]
+        if any(step is None for step in prefix):
+            raise RuntimeError("prefix summary still contains an unsupported opcode")
+        rendered = [step for step in prefix if step is not None]
+        status = "incomplete"
+        reason = f"unsupported RDx step at PC {endpoint}: {unsupported['opcode']}"
+        theorem_name = f"block_{block.start}_prefix_{endpoint}"
+    elif int(summary["pc"]) != block.target or summary["stop"] != f"target-pc {block.target}":
+        endpoint = int(summary["pc"])
+        status = "incomplete"
+        reason = str(summary["stop"])
+        theorem_name = f"block_{block.start}_prefix_{endpoint}"
+    else:
+        endpoint = block.target
+        status = "complete"
+        reason = None
+        theorem_name = f"block_{block.start}_body"
+
+    depths = summary["initialStackDepth"]
+    edge_terminator = block.terminator if status == "complete" else None
+    materialized = materialized_for_edge(summary, edge_terminator)
+    max_depth = int(depths["maximum"])
+    declarations.append(
+        render_theorem(
+            theorem_name, code_name, block.start, endpoint,
+            materialized, max_depth, rendered,
+        )
+    )
+
+    edge_names: list[str] = []
+    edge_step = terminal_step(block.terminator)
+    if status == "complete" and edge_step is not None:
+        edge_name = f"block_{block.start}_halt"
+        edge_names.append(edge_name)
+        declarations.append(
+            render_terminal_theorem(
+                edge_name, code_name, block.start,
+                materialized, max_depth, rendered, block.terminator or "",
+            )
+        )
+    elif status == "complete":
+        branch_edges = render_control_edge_theorems(
+            theorem_name, code_name, block.start,
+            materialized, max_depth, block.terminator,
+            len(summary.get("stack", [])),
+        )
+        edge_names.extend(name for name, _ in branch_edges)
+        declarations.extend(theorem for _, theorem in branch_edges)
+
+    if status == "complete" and block.terminator is not None and not edge_names:
+        status = "incomplete"
+        reason = f"unsupported RDx terminal edge: {block.terminator}"
+
+    record = {
+        "start": block.start,
+        "target": block.target,
+        "endpoint": endpoint,
+        "terminator": block.terminator,
+        "status": status,
+        "reason": reason,
+        "bodyTheorem": theorem_name,
+        "edgeTheorems": edge_names,
+        "theoremInitialStackMaterialized": materialized,
+        "theoremInitialStackMaximum": max_depth,
+        "summary": summary,
+    }
+    return record, "\n".join(declarations), status != "complete"
+
+
+def generate_trace(
+    exe: str,
+    code: bytes,
+    code_hex: str,
+    code_name: str,
+    start: int,
+    fuel: int,
+) -> tuple[dict[str, Any], str, bool]:
+    """Generate one maximal solver-free trace rooted at ``start``."""
+    summary = run_summary(exe, code_hex, start, None, fuel)
+    revisit_step = first_revisit_step(summary)
+    end_kind: str | None = None
+    if revisit_step is not None:
+        # Re-run with the exact prefix length so the summary's final symbolic state is the state at
+        # the first revisit, rather than an arbitrary later fuel-exhausted loop iteration.
+        summary = run_summary(exe, code_hex, start, None, revisit_step)
+        end_kind = "loop-revisit"
+
+    executed = executed_entries(summary)
+    endpoint = int(summary["pc"])
+    terminal: str | None = None
+    if executed:
+        last_name = str(executed[-1]["opcode"]).upper()
+        if terminal_step(last_name) is not None and int(executed[-1]["pc"]) == endpoint:
+            terminal = last_name
+            endpoint = int(executed[-1]["pc"])
+            body_entries = executed[:-1]
+            end_kind = "halt"
+        else:
+            body_entries = executed
+    else:
+        body_entries = []
+
+    rendered, unsupported = render_trace_steps(code, body_entries, endpoint)
+    if unsupported is not None:
+        endpoint = int(unsupported["pc"])
+        summary = run_summary(exe, code_hex, start, endpoint, fuel)
+        body_entries = executed_entries(summary)
+        rendered, still_unsupported = render_trace_steps(code, body_entries, endpoint)
+        if still_unsupported is not None:
+            raise RuntimeError("prefix summary still contains an unsupported opcode")
+        terminal = None
+        end_kind = "unsupported-step"
+        status = "incomplete"
+        reason = f"unsupported RDx step at PC {endpoint}: {unsupported['opcode']}"
+    else:
+        endpoint_opcode = opcode_name_at(code, endpoint)
+        stop = str(summary["stop"])
+        if end_kind == "halt":
+            status = "complete"
+            reason = None
+        elif end_kind == "loop-revisit":
+            status = "complete"
+            reason = None
+        elif is_symbolic_control_boundary(endpoint_opcode, stop):
+            end_kind = "symbolic-control"
+            status = "complete"
+            reason = None
+        else:
+            end_kind = "external-boundary" if stop != "fuel exhausted" else "fuel-exhausted"
+            status = "incomplete"
+            reason = stop
+
+    theorem_name = f"trace_{start}_body"
+    edge_terminator = terminal
+    if end_kind == "symbolic-control":
+        edge_terminator = opcode_name_at(code, endpoint)
+    depths = summary["initialStackDepth"]
+    materialized = materialized_for_edge(summary, edge_terminator)
+    max_depth = int(depths["maximum"])
+    declarations = [
+        render_theorem(
+            theorem_name, code_name, start, endpoint,
+            materialized, max_depth, rendered,
+        )
+    ]
+
+    edge_names: list[str] = []
+    if terminal is not None:
+        edge_name = f"trace_{start}_halt"
+        edge_names.append(edge_name)
+        declarations.append(
+            render_terminal_theorem(
+                edge_name, code_name, start,
+                materialized, max_depth, rendered, terminal,
+            )
+        )
+    elif end_kind == "symbolic-control":
+        branch_edges = render_control_edge_theorems(
+            theorem_name, code_name, start,
+            materialized, max_depth, edge_terminator,
+            len(summary.get("stack", [])),
+        )
+        edge_names.extend(name for name, _ in branch_edges)
+        declarations.extend(theorem for _, theorem in branch_edges)
+
+    if status == "complete" and edge_terminator is not None and not edge_names:
+        status = "incomplete"
+        reason = f"unsupported RDx terminal edge: {edge_terminator}"
+
+    record = {
+        "start": start,
+        "endpoint": endpoint,
+        "endKind": end_kind,
+        "status": status,
+        "reason": reason,
+        "bodyTheorem": theorem_name,
+        "edgeTheorems": edge_names,
+        "theoremInitialStackMaterialized": materialized,
+        "theoremInitialStackMaximum": max_depth,
+        "summary": summary,
+    }
+    return record, "\n".join(declarations), status != "complete"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--catalog-kind",
+        choices=("blocks", "traces"),
+        default="blocks",
+        help=(
+            "emit original basic blocks or maximal deterministic traces rooted at every "
+            "JUMPDEST/fallthrough entry (default: blocks)"
+        ),
+    )
     parser.add_argument("--symcheck", required=True, help="path to the built symcheck executable")
     parser.add_argument("--code", required=True, help="legacy EVM bytecode as hex")
     parser.add_argument("--lean-code", required=True, help="qualified Lean ByteArray declaration")
@@ -501,7 +811,7 @@ def main() -> int:
         "--blocks-per-file",
         type=int,
         default=100,
-        help="split catalogs larger than this many blocks (0 disables splitting; default: 100)",
+        help="split catalogs larger than this many entries (0 disables splitting; default: 100)",
     )
     parser.add_argument("--manifest", type=Path, required=True, help="machine-readable coverage JSON")
     parser.add_argument("--summaries", type=Path, required=True, help="human-readable summary Markdown")
@@ -513,11 +823,15 @@ def main() -> int:
 
     code = parse_hex(args.code)
     code_hex = code.hex()
-    blocks = discover_blocks(code, args.extra_entry_pc)
-    if args.blocks_per_file > 0 and len(blocks) > args.blocks_per_file:
+    if args.catalog_kind == "blocks":
+        catalog_entries: list[Block | TraceRoot] = discover_blocks(code, args.extra_entry_pc)
+    else:
+        catalog_entries = discover_trace_roots(code, args.extra_entry_pc)
+    if args.blocks_per_file > 0 and len(catalog_entries) > args.blocks_per_file:
         if args.output_module is None:
             parser.error(
-                f"{len(blocks)} blocks exceed --blocks-per-file {args.blocks_per_file}; "
+                f"{len(catalog_entries)} catalog entries exceed "
+                f"--blocks-per-file {args.blocks_per_file}; "
                 "--output-module is required"
             )
         if args.output.suffix != ".lean":
@@ -529,93 +843,20 @@ def main() -> int:
     declaration_groups: list[str] = []
     incomplete = False
 
-    for block in blocks:
-        block_declarations: list[str] = []
-        summary = run_summary(args.symcheck, code_hex, block.start, block.target, fuel)
-        executed = list(summary["pcTraceOpcodes"][: int(summary["steps"])])
-        rendered: list[str] = []
-        unsupported: dict[str, Any] | None = None
-        for entry in executed:
-            step = render_step(code, entry)
-            if step is None:
-                unsupported = entry
-                break
-            rendered.append(step)
-
-        if unsupported is not None:
-            endpoint = int(unsupported["pc"])
-            summary = run_summary(args.symcheck, code_hex, block.start, endpoint, fuel)
-            executed = list(summary["pcTraceOpcodes"][: int(summary["steps"])])
-            rendered = [render_step(code, entry) for entry in executed]
-            if any(step is None for step in rendered):
-                raise RuntimeError("prefix summary still contains an unsupported opcode")
-            rendered = [step for step in rendered if step is not None]
-            status = "incomplete"
-            reason = f"unsupported RDx step at PC {endpoint}: {unsupported['opcode']}"
-            theorem_name = f"block_{block.start}_prefix_{endpoint}"
-            incomplete = True
-        elif int(summary["pc"]) != block.target or summary["stop"] != f"target-pc {block.target}":
-            endpoint = int(summary["pc"])
-            status = "incomplete"
-            reason = str(summary["stop"])
-            theorem_name = f"block_{block.start}_prefix_{endpoint}"
-            incomplete = True
+    for entry in catalog_entries:
+        if args.catalog_kind == "blocks":
+            if not isinstance(entry, Block):
+                raise AssertionError("block catalog contains a trace root")
+            record, declarations, entry_incomplete = generate_block(
+                args.symcheck, code, code_hex, args.lean_code, entry, fuel
+            )
         else:
-            endpoint = block.target
-            status = "complete"
-            reason = None
-            theorem_name = f"block_{block.start}_body"
-
-        depths = summary["initialStackDepth"]
-        edge_terminator = block.terminator if status == "complete" else None
-        materialized = materialized_for_edge(summary, edge_terminator)
-        max_depth = int(depths["maximum"])
-        block_declarations.append(
-            render_theorem(
-                theorem_name, args.lean_code, block.start, endpoint,
-                materialized, max_depth, rendered,
+            record, declarations, entry_incomplete = generate_trace(
+                args.symcheck, code, code_hex, args.lean_code, entry.start, fuel
             )
-        )
-
-        edge_names: list[str] = []
-        edge_step = terminal_step(block.terminator)
-        if status == "complete" and edge_step is not None:
-            edge_name = f"block_{block.start}_halt"
-            edge_names.append(edge_name)
-            block_declarations.append(
-                render_terminal_theorem(
-                    edge_name, args.lean_code, block.start,
-                    materialized, max_depth, rendered, block.terminator or "",
-                )
-            )
-        elif status == "complete":
-            branch_edges = render_control_edge_theorems(
-                theorem_name, args.lean_code, block.start,
-                materialized, max_depth, block.terminator,
-                len(summary.get("stack", [])),
-            )
-            edge_names.extend(name for name, _ in branch_edges)
-            block_declarations.extend(theorem for _, theorem in branch_edges)
-
-        if status == "complete" and block.terminator is not None and not edge_names:
-            status = "incomplete"
-            reason = f"unsupported RDx terminal edge: {block.terminator}"
-            incomplete = True
-
-        records.append({
-            "start": block.start,
-            "target": block.target,
-            "endpoint": endpoint,
-            "terminator": block.terminator,
-            "status": status,
-            "reason": reason,
-            "bodyTheorem": theorem_name,
-            "edgeTheorems": edge_names,
-            "theoremInitialStackMaterialized": materialized,
-            "theoremInitialStackMaximum": max_depth,
-            "summary": summary,
-        })
-        declaration_groups.append("\n".join(block_declarations))
+        records.append(record)
+        declaration_groups.append(declarations)
+        incomplete = incomplete or entry_incomplete
 
     imports = ["Reasoning.SymCheck", *args.lean_import]
     lean_files = write_lean_catalog(
@@ -629,9 +870,10 @@ def main() -> int:
         declaration_groups,
         records,
     )
-    manifest = {
-        "formatVersion": 2,
+    manifest: dict[str, Any] = {
+        "formatVersion": 2 if args.catalog_kind == "blocks" else 3,
         "generator": "Tools/generate_rdx_blocks.py",
+        "catalogKind": args.catalog_kind,
         "code": code_hex,
         "leanCode": args.lean_code,
         "namespace": args.namespace,
@@ -639,13 +881,24 @@ def main() -> int:
         "outputModule": args.output_module if len(lean_files) > 1 else None,
         "blocksPerFile": args.blocks_per_file,
         "complete": not incomplete,
-        "blocks": records,
     }
+    if args.catalog_kind == "blocks":
+        manifest["blocks"] = records
+    else:
+        manifest["traceRoots"] = [entry.start for entry in catalog_entries]
+        manifest["traces"] = records
+    catalog_description = (
+        "adjacent Lean block catalog. Lean replay is authoritative for theorem conclusions."
+        if args.catalog_kind == "blocks"
+        else "adjacent Lean maximal-trace catalog. Lean replay is authoritative for theorem "
+        "conclusions. Every JUMPDEST is a root, but it does not stop an ongoing trace."
+    )
     markdown = (
         "<!-- Generated by Tools/generate_rdx_blocks.py; do not edit manually. -->\n\n"
         f"# SymCheck summaries for `{args.lean_code}`\n\n"
         "This file preserves the human-readable and raw SymCheck view used to generate the "
-        "adjacent Lean block catalog. Lean replay is authoritative for theorem conclusions.\n\n"
+        + catalog_description
+        + "\n\n"
         "Generated Lean files:\n\n"
         + "\n".join(f"- `{path}`" for path in lean_files)
         + "\n\n"
@@ -658,9 +911,12 @@ def main() -> int:
     args.summaries.write_text(markdown, encoding="utf-8")
 
     if incomplete:
-        print("generated catalog with incomplete block coverage", file=sys.stderr)
+        print(f"generated catalog with incomplete {args.catalog_kind} coverage", file=sys.stderr)
         return 2
-    print(f"generated {len(records)} block theorem catalog entries")
+    if args.catalog_kind == "blocks":
+        print(f"generated {len(records)} block theorem catalog entries")
+    else:
+        print(f"generated {len(records)} maximal deterministic trace entries")
     return 0
 
 
