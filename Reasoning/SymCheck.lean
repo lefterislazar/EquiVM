@@ -1,4 +1,5 @@
 import Reasoning.ReachExact
+import Reasoning.MemCascade
 import Lean
 
 /-!
@@ -10,6 +11,40 @@ term.  Lean infers the exact result of that term and this command records it as 
 -/
 
 open Lean Elab Command Term Meta
+
+/-- Simplify the consumer-facing conclusion of an `RDx` trace.
+
+This deliberately leaves generated replay theorems untouched.  In a path theorem, `evm_simp`
+normalizes accumulated natural-number step/gas expressions, basic `UInt256` arithmetic identities,
+and the safe exact/disjoint memory-read rules from `Reasoning.MemCascade`.  Local hypotheses are
+available to the simplifier, while `omega` discharges concrete window and bounds side conditions.
+`ring_nf` is applied only after those semantic rewrites, primarily to collect the natural-number
+constants introduced by a chain of opcode steppers.
+-/
+macro "evm_simp" : tactic =>
+  `(tactic|
+    simp (disch := omega) only [*,
+        Nat.add_assoc,
+        Nat.add_comm,
+        Nat.add_left_comm,
+        Reasoning.Theory.u256_add_assoc,
+        Reasoning.Theory.u256_add_comm,
+        Reasoning.Theory.u256_zero_add,
+        Reasoning.Theory.u256_sub_self,
+        Reasoning.Theory.u256_lor_zero,
+        Reasoning.Theory.writeWord_read_back,
+        Reasoning.Theory.writeWord_read_preserved,
+        Reasoning.Theory.writeCascade_read_word_of_head,
+        Reasoning.Theory.writeCascade_read_preserved,
+        Reasoning.Theory.writeCascade_mload_word_of_head,
+        Reasoning.Theory.fromByteArrayBigEndian_toByteArray,
+        Reasoning.Theory.u256_ofNat_toNat,
+        not_false_eq_true,
+        if_neg,
+        or_false,
+        if_false] at * <;>
+      ring_nf at * <;>
+      try assumption)
 
 /-- Declare an opaque theorem whose proposition is inferred from its proof term.
 

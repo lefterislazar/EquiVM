@@ -422,6 +422,12 @@ decode and valid-destination hypotheses.  A `JUMPI` body gets both taken and not
 infers their exact target and condition directly from the opaque body theorem's post-state.  Agents
 therefore combine blocks without translating SymCheck expression syntax into theorem headers.
 
+When a composed path has accumulated nested step/gas additions or exposes a provable memory
+read-after-write, use `evm_simp` in the consumer theorem.  It keeps the raw generated replay theorem
+opaque, collects arithmetic constants, and applies only exact/disjoint memory rewrites whose bounds
+can be proved from local hypotheses.  `Fixtures/SymCheckSimplifySmoke.lean` demonstrates this on the
+generated CtorStore theorem and on word-memory reads.
+
 Two committed catalogs exercise the integration without making Lake run Haskell:
 
 - `Fixtures/SymCheckGeneratedSmoke.lean` and `Fixtures/ctor_store_runtime.{json,md}` use the real
@@ -434,7 +440,8 @@ the kernel-checked fixtures with:
 
 ```bash
 lake build Tools.SymCheck.Fixtures.SymCheckGeneratedSmoke \
-  Tools.SymCheck.Fixtures.SymCheckGeneratedBranchSmoke
+  Tools.SymCheck.Fixtures.SymCheckGeneratedBranchSmoke \
+  Tools.SymCheck.Fixtures.SymCheckSimplifySmoke
 ```
 
 ## Next low-hanging fruit
