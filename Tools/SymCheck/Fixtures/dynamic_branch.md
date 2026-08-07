@@ -4,6 +4,10 @@
 
 This file preserves the human-readable and raw SymCheck view used to generate the adjacent Lean block catalog. Lean replay is authoritative for theorem conclusions.
 
+Generated Lean files:
+
+- `Tools/SymCheck/Fixtures/SymCheckGeneratedBranchSmoke.lean`
+
 ## Block 0 → 0
 
 - Status: `complete`

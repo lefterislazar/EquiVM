@@ -4,11 +4,12 @@ import importlib.util
 import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 
 MODULE_PATH = Path(__file__).with_name("generate_rdx_blocks.py")
-FIXTURE_DIR = MODULE_PATH.parent / "SymCheck" / "fixtures"
+FIXTURE_DIR = MODULE_PATH.parent / "SymCheck" / "Fixtures"
 SPEC = importlib.util.spec_from_file_location("generate_rdx_blocks", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 GEN = importlib.util.module_from_spec(SPEC)
@@ -77,6 +78,61 @@ class GeneratorTests(unittest.TestCase):
         self.assertIn("Raw SymCheck JSON", rendered)
         self.assertIn(json.dumps(summary, indent=2, sort_keys=True), rendered)
 
+    def test_large_catalog_is_split_at_block_boundaries(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "Generated.lean"
+            groups = [
+                f"theorem block_{index}_body : True := by trivial\n"
+                f"theorem block_{index}_edge : True := by trivial"
+                for index in range(5)
+            ]
+            records = [{"start": index} for index in range(5)]
+            paths = GEN.write_lean_catalog(
+                output,
+                "Generated",
+                2,
+                ["Reasoning.SymCheck"],
+                "Generated.Test",
+                "code",
+                b"\x00",
+                groups,
+                records,
+            )
+
+            self.assertEqual(
+                [path.relative_to(root).as_posix() for path in paths],
+                [
+                    "Generated.lean",
+                    "Generated/Part000.lean",
+                    "Generated/Part001.lean",
+                    "Generated/Part002.lean",
+                ],
+            )
+            aggregator = output.read_text(encoding="utf-8")
+            self.assertIn("import Generated.Part000", aggregator)
+            self.assertIn("private theorem symcheckCodeMatches", aggregator)
+            for index, part_path in enumerate(paths[1:]):
+                part = part_path.read_text(encoding="utf-8")
+                self.assertNotIn("symcheckCodeMatches", part)
+                first = index * 2
+                for block in range(first, min(first + 2, 5)):
+                    self.assertIn(f"theorem block_{block}_body", part)
+                    self.assertIn(f"theorem block_{block}_edge", part)
+                    self.assertEqual(records[block]["leanFile"], str(part_path))
+
+    def test_small_catalog_remains_one_file(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "Small.lean"
+            records = [{"start": 0}]
+            paths = GEN.write_lean_catalog(
+                output, None, 100, ["Reasoning.SymCheck"], "Small", "code", b"",
+                ["theorem block_0 : True := by trivial"], records,
+            )
+            self.assertEqual(paths, [output])
+            self.assertIn("symcheckCodeMatches", output.read_text(encoding="utf-8"))
+            self.assertEqual(records[0]["leanFile"], str(output))
+
     def test_committed_catalogs_preserve_every_raw_summary(self) -> None:
         for stem in ("ctor_store_runtime", "dynamic_branch"):
             manifest = json.loads((FIXTURE_DIR / f"{stem}.json").read_text(encoding="utf-8"))
@@ -88,8 +144,7 @@ class GeneratorTests(unittest.TestCase):
                 self.assertIn(raw, markdown)
 
     def test_committed_branch_catalog_exercises_edges_and_deep_stack(self) -> None:
-        lean = (FIXTURE_DIR.parent / "Fixtures" /
-                "SymCheckGeneratedBranchSmoke.lean").read_text(encoding="utf-8")
+        lean = (FIXTURE_DIR / "SymCheckGeneratedBranchSmoke.lean").read_text(encoding="utf-8")
         self.assertIn("set_option maxRecDepth 100000", lean)
         self.assertIn("evm_theorem block_0_taken", lean)
         self.assertIn("evm_theorem block_0_notTaken", lean)

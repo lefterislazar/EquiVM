@@ -6,6 +6,7 @@
         "block_0_halt"
       ],
       "endpoint": 7,
+      "leanFile": "Tools/SymCheck/Fixtures/SymCheckGeneratedSmoke.lean",
       "reason": null,
       "start": 0,
       "status": "complete",
@@ -82,10 +83,15 @@
       "theoremInitialStackMaximum": 1022
     }
   ],
+  "blocksPerFile": 100,
   "code": "60806040525f5ffd",
   "complete": true,
-  "formatVersion": 1,
+  "formatVersion": 2,
   "generator": "Tools/generate_rdx_blocks.py",
   "leanCode": "ctorStoreRuntimeBytecode",
-  "namespace": "CtorStore.SymCheckSmoke"
+  "leanFiles": [
+    "Tools/SymCheck/Fixtures/SymCheckGeneratedSmoke.lean"
+  ],
+  "namespace": "CtorStore.SymCheckSmoke",
+  "outputModule": null
 }

@@ -375,9 +375,9 @@ existing finite-stack auto-padding behavior.
 
 EquiVM's translation layer intentionally lives outside this Haskell package.  After building the
 `symcheck` executable, `../generate_rdx_blocks.py` repeatedly calls the existing solver-free JSON
-summary command and emits three reviewable artifacts:
+summary command and emits three reviewable artifact sets:
 
-- a Lean file containing kernel-checked `RDx` block theorems;
+- a kernel-checked Lean block catalog, optionally split into part modules;
 - a JSON coverage manifest for tools and agents;
 - a Markdown catalog preserving every raw SymCheck summary for human/agent inspection.
 
@@ -395,6 +395,23 @@ python3 ../generate_rdx_blocks.py \
   --summaries /tmp/CtorStoreGenerated.md
 ```
 
+Catalogs of at most 100 blocks retain the single-file layout above.  Larger catalogs are split at
+block boundaries, so a body theorem and all of its edge helpers always remain together.  The path
+given by `--output` becomes a small aggregator containing the single bytecode-equality check, and
+the theorem files are written as `OUTPUT_STEM/Part000.lean`, `Part001.lean`, and so on.  Because
+Lean imports are module names rather than paths, split generation also requires the module name of
+the aggregator.  For an output at `Generated/ModexpBlocks.lean`, use:
+
+```bash
+  --output Generated/ModexpBlocks.lean \
+  --output-module Generated.ModexpBlocks
+```
+
+Set `--blocks-per-file N` to choose another threshold, or `--blocks-per-file 0` to force the old
+single-file layout.  The unified JSON manifest records every emitted Lean file and the part that
+contains each block; the Markdown catalog likewise lists the files while retaining all summaries
+in one place.
+
 The generator returns status 2 after writing the artifacts when some block is only partially
 covered.  The manifest and Markdown catalog identify the first unsupported PC/opcode.  Lake checks
 committed generated Lean files but never invokes SymCheck, Cabal, Nix, or this Python script.
@@ -407,9 +424,9 @@ therefore combine blocks without translating SymCheck expression syntax into the
 
 Two committed catalogs exercise the integration without making Lake run Haskell:
 
-- `Fixtures/SymCheckGeneratedSmoke.lean` and `fixtures/ctor_store_runtime.{json,md}` use the real
+- `Fixtures/SymCheckGeneratedSmoke.lean` and `Fixtures/ctor_store_runtime.{json,md}` use the real
   `CtorStore` runtime and cover memory growth plus a reverting terminal edge;
-- `Fixtures/SymCheckGeneratedBranchSmoke.lean` and `fixtures/dynamic_branch.{json,md}` cover
+- `Fixtures/SymCheckGeneratedBranchSmoke.lean` and `Fixtures/dynamic_branch.{json,md}` cover
   symbolic taken/not-taken edges and the deepest shared `DUP`/`SWAP` wrappers.
 
 `python3 -B ../test_generate_rdx_blocks.py` checks the generator and retained catalogs.  Compile

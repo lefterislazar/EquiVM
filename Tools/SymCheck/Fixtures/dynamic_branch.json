@@ -7,6 +7,7 @@
         "block_0_notTaken"
       ],
       "endpoint": 0,
+      "leanFile": "Tools/SymCheck/Fixtures/SymCheckGeneratedBranchSmoke.lean",
       "reason": null,
       "start": 0,
       "status": "complete",
@@ -60,6 +61,7 @@
         "block_1_halt"
       ],
       "endpoint": 1,
+      "leanFile": "Tools/SymCheck/Fixtures/SymCheckGeneratedBranchSmoke.lean",
       "reason": null,
       "start": 1,
       "status": "complete",
@@ -113,6 +115,7 @@
         "block_2_halt"
       ],
       "endpoint": 5,
+      "leanFile": "Tools/SymCheck/Fixtures/SymCheckGeneratedBranchSmoke.lean",
       "reason": null,
       "start": 2,
       "status": "complete",
@@ -199,6 +202,7 @@
         "block_6_jump"
       ],
       "endpoint": 7,
+      "leanFile": "Tools/SymCheck/Fixtures/SymCheckGeneratedBranchSmoke.lean",
       "reason": null,
       "start": 6,
       "status": "complete",
@@ -252,10 +256,15 @@
       "theoremInitialStackMaximum": 1024
     }
   ],
+  "blocksPerFile": 100,
   "code": "57005b8b9f005b56",
   "complete": true,
-  "formatVersion": 1,
+  "formatVersion": 2,
   "generator": "Tools/generate_rdx_blocks.py",
   "leanCode": "symCheckBranchFixtureBytecode",
-  "namespace": "SymCheckBranchSmoke"
+  "leanFiles": [
+    "Tools/SymCheck/Fixtures/SymCheckGeneratedBranchSmoke.lean"
+  ],
+  "namespace": "SymCheckBranchSmoke",
+  "outputModule": null
 }
