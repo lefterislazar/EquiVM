@@ -25,6 +25,7 @@ import EVM.Op (intToOpName)
 import EVM.SymExec qualified as SymExec
 import EVM.Types
 import SymCheck
+import SymCheck qualified as MidpointRecord (MidpointSpec(..))
 import System.Environment (getArgs)
 import System.Exit (die)
 
@@ -512,25 +513,25 @@ runCli opts = do
           else ConcreteStore opts.cliStores
       spec0 =
         (defaultMidpointSpec opts.cliCode)
-          { pc = opts.cliPc
-          , stack = opts.cliStack
-          , memory = opts.cliMemory
-          , storage = storageExpr
-          , transientStorage = storageExpr
-          , originalStorage = storageExpr
-          , calldata = opts.cliCalldata
-          , returndata = opts.cliReturndata
-          , address = opts.cliAddress
-          , codeAddress = opts.cliCodeAddress
-          , caller = opts.cliCaller
-          , overrideCaller = opts.cliOverrideCaller
-          , origin = opts.cliOrigin
-          , coinbase = opts.cliCoinbase
-          , callvalue = opts.cliCallvalue
-          , blockNumber = opts.cliBlockNumber
-          , timestamp = opts.cliTimestamp
-          , static = opts.cliStatic
-          , baseState = opts.cliBaseState
+          { MidpointRecord.pc = opts.cliPc
+          , MidpointRecord.stack = opts.cliStack
+          , MidpointRecord.memory = opts.cliMemory
+          , MidpointRecord.storage = storageExpr
+          , MidpointRecord.transientStorage = storageExpr
+          , MidpointRecord.originalStorage = storageExpr
+          , MidpointRecord.calldata = opts.cliCalldata
+          , MidpointRecord.returndata = opts.cliReturndata
+          , MidpointRecord.address = opts.cliAddress
+          , MidpointRecord.codeAddress = opts.cliCodeAddress
+          , MidpointRecord.caller = opts.cliCaller
+          , MidpointRecord.overrideCaller = opts.cliOverrideCaller
+          , MidpointRecord.origin = opts.cliOrigin
+          , MidpointRecord.coinbase = opts.cliCoinbase
+          , MidpointRecord.callvalue = opts.cliCallvalue
+          , MidpointRecord.blockNumber = opts.cliBlockNumber
+          , MidpointRecord.timestamp = opts.cliTimestamp
+          , MidpointRecord.static = opts.cliStatic
+          , MidpointRecord.baseState = opts.cliBaseState
           }
       runSpec =
         SegmentRunSpec

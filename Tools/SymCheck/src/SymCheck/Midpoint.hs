@@ -30,6 +30,7 @@ import Control.Monad.ST (RealWorld, ST, stToIO)
 import Control.Monad.Trans.State.Strict (runStateT)
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
+import Data.List (foldl')
 import Data.Map qualified as Map
 import Data.Maybe (fromMaybe)
 import Data.Text qualified as T
@@ -41,6 +42,10 @@ import EVM.Op (getOp)
 import EVM.Solvers qualified as Solvers
 import EVM.SymExec qualified as SymExec
 import EVM.Types
+import EVM.Types qualified as ContractRecord (Contract(..))
+import EVM.Types qualified as FrameStateRecord (FrameState(..))
+import EVM.Types qualified as VMOptsRecord (VMOpts(..))
+import EVM.Types qualified as VMRecord (VM(..))
 import SymCheck.Smt
 
 import GHC.Word (Word8, Word64)
@@ -445,24 +450,24 @@ defaultMidpointSpec codeBytes =
 makeMidpointVM :: MidpointSpec -> ST RealWorld (VM Symbolic)
 makeMidpointVM spec = do
   let seeded = (abstractContract spec.code spec.codeAddress)
-        { storage = spec.storage
-        , tStorage = spec.transientStorage
-        , origStorage = spec.originalStorage
+        { ContractRecord.storage = spec.storage
+        , ContractRecord.tStorage = spec.transientStorage
+        , ContractRecord.origStorage = spec.originalStorage
         }
   vm0 <- makeVm $ (defaultVMOpts :: VMOpts Symbolic)
-    { contract = seeded
-    , calldata = (spec.calldata, spec.constraints)
-    , value = spec.callvalue
-    , baseState = spec.baseState
-    , address = spec.address
-    , caller = spec.caller
-    , origin = spec.origin
-    , coinbase = spec.coinbase
-    , gas = Var "Gas"
-    , number = spec.blockNumber
-    , timestamp = spec.timestamp
-    , blockGaslimit = 0
-    , prevRandao = 42069
+    { VMOptsRecord.contract = seeded
+    , VMOptsRecord.calldata = (spec.calldata, spec.constraints)
+    , VMOptsRecord.value = spec.callvalue
+    , VMOptsRecord.baseState = spec.baseState
+    , VMOptsRecord.address = spec.address
+    , VMOptsRecord.caller = spec.caller
+    , VMOptsRecord.origin = spec.origin
+    , VMOptsRecord.coinbase = spec.coinbase
+    , VMOptsRecord.gas = Var "Gas"
+    , VMOptsRecord.number = spec.blockNumber
+    , VMOptsRecord.timestamp = spec.timestamp
+    , VMOptsRecord.blockGaslimit = 0
+    , VMOptsRecord.prevRandao = 42069
     }
   let env' :: Env
       env' =
@@ -477,23 +482,23 @@ makeMidpointVM spec = do
       state' :: FrameState Symbolic
       state' =
         vm0.state
-          { pc = spec.pc
-          , stack = spec.stack
-          , memory = SymbolicMemory spec.memory
-          , memorySize = word64Expr spec.memorySize
-          , calldata = spec.calldata
-          , callvalue = spec.callvalue
-        , caller = spec.caller
-        , overrideCaller = spec.overrideCaller
-        , returndata = spec.returndata
-        , contract = spec.address
-        , codeContract = spec.codeAddress
-        , static = spec.static
-        }
+          { FrameStateRecord.pc = spec.pc
+          , FrameStateRecord.stack = spec.stack
+          , FrameStateRecord.memory = SymbolicMemory spec.memory
+          , FrameStateRecord.memorySize = word64Expr spec.memorySize
+          , FrameStateRecord.calldata = spec.calldata
+          , FrameStateRecord.callvalue = spec.callvalue
+          , FrameStateRecord.caller = spec.caller
+          , FrameStateRecord.overrideCaller = spec.overrideCaller
+          , FrameStateRecord.returndata = spec.returndata
+          , FrameStateRecord.contract = spec.address
+          , FrameStateRecord.codeContract = spec.codeAddress
+          , FrameStateRecord.static = spec.static
+          }
   pure vm0
-    { env = env'
-    , state = state'
-    , constraints = spec.constraints
+    { VMRecord.env = env'
+    , VMRecord.state = state'
+    , VMRecord.constraints = spec.constraints
     }
 
 runSegment :: SegmentRunSpec -> VM Symbolic -> ST RealWorld SegmentResult
@@ -774,28 +779,28 @@ isSatLike = \case
 appendVmConstraints :: [Prop] -> VM Symbolic -> VM Symbolic
 appendVmConstraints extra vm =
   VM
-    { result = vm.result
-    , state = vm.state
-    , frames = vm.frames
-    , env = vm.env
-    , block = vm.block
-    , tx = vm.tx
-    , logs = vm.logs
-    , traces = vm.traces
-    , pathsVisited = vm.pathsVisited
-    , burned = vm.burned
-    , iterations = vm.iterations
-    , constraints = vm.constraints <> extra
-    , config = vm.config
-    , forks = vm.forks
-    , currentFork = vm.currentFork
-    , srcLookup = vm.srcLookup
-    , labels = vm.labels
-    , osEnv = vm.osEnv
-    , freshVar = vm.freshVar
-    , exploreDepth = vm.exploreDepth
-    , keccakPreImgs = vm.keccakPreImgs
-    , mergeState = vm.mergeState
+    { VMRecord.result = vm.result
+    , VMRecord.state = vm.state
+    , VMRecord.frames = vm.frames
+    , VMRecord.env = vm.env
+    , VMRecord.block = vm.block
+    , VMRecord.tx = vm.tx
+    , VMRecord.logs = vm.logs
+    , VMRecord.traces = vm.traces
+    , VMRecord.pathsVisited = vm.pathsVisited
+    , VMRecord.burned = vm.burned
+    , VMRecord.iterations = vm.iterations
+    , VMRecord.constraints = vm.constraints <> extra
+    , VMRecord.config = vm.config
+    , VMRecord.forks = vm.forks
+    , VMRecord.currentFork = vm.currentFork
+    , VMRecord.srcLookup = vm.srcLookup
+    , VMRecord.labels = vm.labels
+    , VMRecord.osEnv = vm.osEnv
+    , VMRecord.freshVar = vm.freshVar
+    , VMRecord.exploreDepth = vm.exploreDepth
+    , VMRecord.keccakPreImgs = vm.keccakPreImgs
+    , VMRecord.mergeState = vm.mergeState
     }
 
 currentOpcode :: VM Symbolic -> Maybe (GenericOp Word8)
@@ -948,8 +953,8 @@ deterministicCallFailureVm vm plan memorySize' =
           memorySize'
           (ConcreteBuf mempty)
   in vm
-      { state = state'
-      , result = Nothing
+      { VMRecord.state = state'
+      , VMRecord.result = Nothing
       }
 
 abstractCallContinuationVm :: VM Symbolic -> CallBoundary -> CallContinuationPlan -> Word64 -> (CallBoundary, VM Symbolic, [Overapproximation])
@@ -972,11 +977,11 @@ abstractCallContinuationVm vm boundary plan memorySize' =
           }
       vm' =
         vm
-          { state = state'
-          , env = env'
-          , constraints = vm.constraints <> plan.extraConstraints
-          , freshVar = vm.freshVar + 3
-          , result = Nothing
+          { VMRecord.state = state'
+          , VMRecord.env = env'
+          , VMRecord.constraints = vm.constraints <> plan.extraConstraints
+          , VMRecord.freshVar = vm.freshVar + 3
+          , VMRecord.result = Nothing
           }
       overapprox =
         [ OverapproxCallSuccess boundary.opcode
@@ -1131,21 +1136,21 @@ roundUpToWordBoundary size =
 advanceStateWithMemory :: FrameState Symbolic -> [Expr EWord] -> Memory -> Word64 -> Expr Buf -> FrameState Symbolic
 advanceStateWithMemory state0 stack' memory' memorySize' returndata' =
   FrameState
-    { contract = state0.contract
-    , codeContract = state0.codeContract
-    , code = state0.code
-    , pc = state0.pc + 1
-    , stack = stack'
-    , memory = memory'
-    , memorySize = word64Expr memorySize'
-    , returndata = returndata'
-    , calldata = state0.calldata
-    , callvalue = state0.callvalue
-    , caller = state0.caller
-    , gas = state0.gas
-    , static = state0.static
-    , overrideCaller = state0.overrideCaller
-    , resetCaller = state0.resetCaller
+    { FrameStateRecord.contract = state0.contract
+    , FrameStateRecord.codeContract = state0.codeContract
+    , FrameStateRecord.code = state0.code
+    , FrameStateRecord.pc = state0.pc + 1
+    , FrameStateRecord.stack = stack'
+    , FrameStateRecord.memory = memory'
+    , FrameStateRecord.memorySize = word64Expr memorySize'
+    , FrameStateRecord.returndata = returndata'
+    , FrameStateRecord.calldata = state0.calldata
+    , FrameStateRecord.callvalue = state0.callvalue
+    , FrameStateRecord.caller = state0.caller
+    , FrameStateRecord.gas = state0.gas
+    , FrameStateRecord.static = state0.static
+    , FrameStateRecord.overrideCaller = state0.overrideCaller
+    , FrameStateRecord.resetCaller = state0.resetCaller
     }
 
 applyPostCallOutputMemory :: Int -> Memory -> Expr EWord -> Expr EWord -> Expr Buf -> Memory
@@ -1174,25 +1179,25 @@ abstractPostCallWorld vm abstractionId =
           abstractCode = UnknownCode addr
           contract0 =
             contract
-              { balance = freshBalance
-              , nonce =
+              { ContractRecord.balance = freshBalance
+              , ContractRecord.nonce =
                   if addr == selfAddr
                     then Nothing
                     else contract.nonce
-              , code =
+              , ContractRecord.code =
                   if addr == selfAddr
                     then abstractCode
                     else abstractCode
-              , codehash = hashcode abstractCode
+              , ContractRecord.codehash = hashcode abstractCode
               }
       in if addr == selfAddr
           then
             let freshStoreAddr = SymAddr (storageAbstractionName addr abstractionId)
                 baseStorage = AbstractStore freshStoreAddr Nothing
             in contract0
-                { storage = baseStorage
-                , tStorage = baseStorage
-                , origStorage = contract.origStorage
+                { ContractRecord.storage = baseStorage
+                , ContractRecord.tStorage = baseStorage
+                , ContractRecord.origStorage = contract.origStorage
                 }
           else contract0
 
@@ -1232,14 +1237,14 @@ abstractPostCallWorldStep vm = do
         _addr : xs ->
           let resultExpr = Var (extcodeMetricName "size" epoch vm.freshVar)
               state' = advanceState vm.state (resultExpr : xs)
-          in Just (vm {state = state', freshVar = vm.freshVar + 1}, [OverapproxPostCallExtcodesize])
+          in Just (vm {VMRecord.state = state', VMRecord.freshVar = vm.freshVar + 1}, [OverapproxPostCallExtcodesize])
         _ -> Nothing
     OpExtcodehash ->
       case vm.state.stack of
         _addr : xs ->
           let resultExpr = Var (extcodeMetricName "hash" epoch vm.freshVar)
               state' = advanceState vm.state (resultExpr : xs)
-          in Just (vm {state = state', freshVar = vm.freshVar + 1}, [OverapproxPostCallExtcodehash])
+          in Just (vm {VMRecord.state = state', VMRecord.freshVar = vm.freshVar + 1}, [OverapproxPostCallExtcodehash])
         _ -> Nothing
     OpExtcodecopy ->
       case vm.state.stack of
@@ -1251,50 +1256,50 @@ abstractPostCallWorldStep vm = do
               Right ExtcodecopyMemoryUpdate {newMemory, newMemorySize, usedCoarseAbstraction} ->
                 let state' =
                       FrameState
-                        { contract = state0.contract
-                        , codeContract = state0.codeContract
-                        , code = state0.code
-                        , pc = state0.pc + 1
-                        , stack = xs
-                        , memory = newMemory
-                        , memorySize = word64Expr newMemorySize
-                        , returndata = state0.returndata
-                        , calldata = state0.calldata
-                        , callvalue = state0.callvalue
-                        , caller = state0.caller
-                        , gas = state0.gas
-                        , static = state0.static
-                        , overrideCaller = state0.overrideCaller
-                        , resetCaller = state0.resetCaller
+                        { FrameStateRecord.contract = state0.contract
+                        , FrameStateRecord.codeContract = state0.codeContract
+                        , FrameStateRecord.code = state0.code
+                        , FrameStateRecord.pc = state0.pc + 1
+                        , FrameStateRecord.stack = xs
+                        , FrameStateRecord.memory = newMemory
+                        , FrameStateRecord.memorySize = word64Expr newMemorySize
+                        , FrameStateRecord.returndata = state0.returndata
+                        , FrameStateRecord.calldata = state0.calldata
+                        , FrameStateRecord.callvalue = state0.callvalue
+                        , FrameStateRecord.caller = state0.caller
+                        , FrameStateRecord.gas = state0.gas
+                        , FrameStateRecord.static = state0.static
+                        , FrameStateRecord.overrideCaller = state0.overrideCaller
+                        , FrameStateRecord.resetCaller = state0.resetCaller
                         }
                     overapprox = [OverapproxCoarseExtcodecopyMemory | usedCoarseAbstraction]
-                in Just (vm {state = state', freshVar = vm.freshVar + 1}, overapprox)
+                in Just (vm {VMRecord.state = state', VMRecord.freshVar = vm.freshVar + 1}, overapprox)
         _ -> Nothing
     OpMsize
       | isAbstractPostCallMemory vm.state.memory ->
           let resultExpr = Var (T.pack ("msize_after_extcodecopy_" <> show vm.freshVar))
               state' = advanceState vm.state (resultExpr : vm.state.stack)
-          in Just (vm {state = state', freshVar = vm.freshVar + 1}, [])
+          in Just (vm {VMRecord.state = state', VMRecord.freshVar = vm.freshVar + 1}, [])
     _ -> Nothing
 
 advanceState :: FrameState Symbolic -> [Expr EWord] -> FrameState Symbolic
 advanceState state0 stack' =
   FrameState
-    { contract = state0.contract
-    , codeContract = state0.codeContract
-    , code = state0.code
-    , pc = state0.pc + 1
-    , stack = stack'
-    , memory = state0.memory
-    , memorySize = state0.memorySize
-    , returndata = state0.returndata
-    , calldata = state0.calldata
-    , callvalue = state0.callvalue
-    , caller = state0.caller
-    , gas = state0.gas
-    , static = state0.static
-    , overrideCaller = state0.overrideCaller
-    , resetCaller = state0.resetCaller
+    { FrameStateRecord.contract = state0.contract
+    , FrameStateRecord.codeContract = state0.codeContract
+    , FrameStateRecord.code = state0.code
+    , FrameStateRecord.pc = state0.pc + 1
+    , FrameStateRecord.stack = stack'
+    , FrameStateRecord.memory = state0.memory
+    , FrameStateRecord.memorySize = state0.memorySize
+    , FrameStateRecord.returndata = state0.returndata
+    , FrameStateRecord.calldata = state0.calldata
+    , FrameStateRecord.callvalue = state0.callvalue
+    , FrameStateRecord.caller = state0.caller
+    , FrameStateRecord.gas = state0.gas
+    , FrameStateRecord.static = state0.static
+    , FrameStateRecord.overrideCaller = state0.overrideCaller
+    , FrameStateRecord.resetCaller = state0.resetCaller
     }
 
 isAbstractPostCallMemory :: Memory -> Bool

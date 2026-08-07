@@ -116,11 +116,11 @@
     "forge-std": {
       "flake": false,
       "locked": {
-        "lastModified": 1781201337,
-        "narHash": "sha256-u1Q541td4AT+A9GUhHKbSgVI04Rh6oJlxhh+McgpyCc=",
+        "lastModified": 1786116236,
+        "narHash": "sha256-/DTGe3wn1I/uf/KjizC5mD5xKvYJY/vVsJ9ejqJ9Vg8=",
         "owner": "foundry-rs",
         "repo": "forge-std",
-        "rev": "257559546b763ec5fa7371fb77fef9102db86446",
+        "rev": "37a36ca389095b2f677abb07642634573ba7e265",
         "type": "github"
       },
       "original": {
@@ -204,17 +204,17 @@
         "solidity": "solidity"
       },
       "locked": {
-        "lastModified": 1786113266,
-        "narHash": "sha256-TJqB/DX0eKOWhd5nwmWBeYkqhFETxczO787DYRStG1A=",
+        "lastModified": 1786120545,
+        "narHash": "sha256-Gokbsyns5VCyU/M6WTpkC1xgcjF/iQ4Rr9uJJPdZ/n4=",
         "owner": "lefterislazar",
         "repo": "hevm",
-        "rev": "29b4a3b413024390bf2da26608aee22758723415",
+        "rev": "52ead0a8d47a3f794b15a03e72e1d42a55314033",
         "type": "github"
       },
       "original": {
         "owner": "lefterislazar",
         "repo": "hevm",
-        "rev": "29b4a3b413024390bf2da26608aee22758723415",
+        "rev": "52ead0a8d47a3f794b15a03e72e1d42a55314033",
         "type": "github"
       }
     },
@@ -252,17 +252,17 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1782175435,
-        "narHash": "sha256-EMzXKmnOtBQ2MnvpiNOm7E+kOMvdPrIKaeg52Tip2Uk=",
+        "lastModified": 1742272065,
+        "narHash": "sha256-ud8vcSzJsZ/CK+r8/v0lyf4yUntVmDq6Z0A41ODfWbE=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "89570f24e97e614aa34aa9ab1c927b6578a43775",
+        "rev": "3549532663732bfd89993204d40543e9edaec4f2",
         "type": "github"
       },
       "original": {
         "owner": "nixos",
-        "ref": "nixpkgs-unstable",
         "repo": "nixpkgs",
+        "rev": "3549532663732bfd89993204d40543e9edaec4f2",
         "type": "github"
       }
     },
@@ -293,13 +293,13 @@
     "solc-macos-amd64-list-json_2": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-zzwwHA2qPotv7yp8mK7+y9BZhm7ytuFeCJVvKBBdBn4=",
+        "narHash": "sha256-Vfa5XmxKcrBfMdJX3nWo+s0YixtdZND6l4llwNp+Xl0=",
         "type": "file",
-        "url": "https://github.com/argotorg/solc-bin/raw/902dfaf/macosx-amd64/list.json"
+        "url": "https://github.com/argotorg/solc-bin/raw/97e2659/macosx-amd64/list.json"
       },
       "original": {
         "type": "file",
-        "url": "https://github.com/argotorg/solc-bin/raw/902dfaf/macosx-amd64/list.json"
+        "url": "https://github.com/argotorg/solc-bin/raw/97e2659/macosx-amd64/list.json"
       }
     },
     "solc-pkgs": {
@@ -336,11 +336,11 @@
         "solc-macos-amd64-list-json": "solc-macos-amd64-list-json_2"
       },
       "locked": {
-        "lastModified": 1777817996,
-        "narHash": "sha256-iI71iUhD7THLibl3w1JcQEhHmTwZMxChi70RTe33BAo=",
+        "lastModified": 1785919942,
+        "narHash": "sha256-U/LvMq0ZEC/BHGXSCdDs0wPLLrDYG2NBlq291spxVwA=",
         "owner": "hellwolf",
         "repo": "solc.nix",
-        "rev": "e3cf898cb804d5c0e5474b378a300fe8942e67d6",
+        "rev": "c905d68f77a7263ce1ffaf0b310f02d031e53a37",
         "type": "github"
       },
       "original": {

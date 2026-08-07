@@ -3,12 +3,12 @@
 
   inputs = {
     hevm = {
-      url = "github:lefterislazar/hevm/29b4a3b413024390bf2da26608aee22758723415";
+      url = "github:lefterislazar/hevm/52ead0a8d47a3f794b15a03e72e1d42a55314033";
       inputs.flake-utils.follows = "flake-utils";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/3549532663732bfd89993204d40543e9edaec4f2";
     foundry = {
       url = "github:shazow/foundry.nix/stable";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -67,20 +67,7 @@
             };
 
             localOverrides = hfinal: hprev: {
-              hevm =
-                ps.lib.pipe
-                  ((hfinal.callCabal2nix "hevm" hevm.outPath {
-                    secp256k1 = ps.secp256k1;
-                  }).overrideAttrs (_: {
-                    HEVM_SOLIDITY_REPO = solidity;
-                    HEVM_ETHEREUM_TESTS_REPO = "${execution-spec-tests-fixtures}/blockchain_tests";
-                    HEVM_FORGE_STD_REPO = forge-std;
-                    DAPP_SOLC = "${solc}/bin/solc";
-                  }))
-                  [
-                    ps.haskell.lib.dontCheck
-                    (ps.haskell.lib.compose.addTestToolDepends (testDeps ++ [ (hspkgs ps).cabal-install ]))
-                  ];
+              hevm = ps.haskell.lib.disableLibraryProfiling hevm.packages.${system}.unwrapped;
               symcheck = hfinal.callCabal2nix "symcheck" ./. {};
             };
           in ps.haskellPackages.override {
@@ -99,11 +86,8 @@
           pkgs.bitwuzla
         ];
         libraryPath = pkgs.lib.makeLibraryPath [ pkgs.libff pkgs.secp256k1 pkgs.gmp ];
-        hevmPkg =
-          pkgs.haskell.lib.compose.overrideCabal (old: {
-            configureFlags = (old.configureFlags or []) ++ [ "-fci" "-O2" ];
-          }) hsPkgs.hevm;
-        symcheckPkg = pkgs.haskell.lib.dontCheck hsPkgs.symcheck;
+        hevmPkg = hsPkgs.hevm;
+        symcheckPkg = pkgs.haskell.lib.disableLibraryProfiling (pkgs.haskell.lib.dontCheck hsPkgs.symcheck);
         portableBundle =
           let
             closure = pkgs.closureInfo { rootPaths = [ symcheckPkg ]; };
