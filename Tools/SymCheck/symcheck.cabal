@@ -10,6 +10,7 @@ library
     SymCheck.Conditions
     SymCheck.Midpoint
     SymCheck.Smt
+    SymCheck.StraightLine
   default-language: GHC2021
   default-extensions:
     OverloadedRecordDot
@@ -34,6 +35,7 @@ executable symcheck
     SymCheck.Conditions
     SymCheck.Midpoint
     SymCheck.Smt
+    SymCheck.StraightLine
   default-language: GHC2021
   default-extensions:
     LambdaCase

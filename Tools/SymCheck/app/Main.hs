@@ -24,6 +24,8 @@ import EVM.Format qualified as Format
 import EVM.Op (intToOpName)
 import EVM.SymExec qualified as SymExec
 import EVM.Types
+import EVM.Types qualified as FrameStateRecord (FrameState(..))
+import EVM.Types qualified as VMRecord (VM(..))
 import SymCheck
 import SymCheck qualified as MidpointRecord (MidpointSpec(..))
 import System.Environment (getArgs)
@@ -35,7 +37,9 @@ data CliOptions = CliOptions
   , cliFuel :: Int
   , cliTargetPc :: Maybe Int
   , cliStack :: [Expr EWord]
+  , cliStackDepth :: Maybe Int
   , cliMemory :: Expr Buf
+  , cliActiveWords :: Expr EWord
   , cliCalldata :: Expr Buf
   , cliReturndata :: Expr Buf
   , cliAddress :: Expr EAddr
@@ -47,6 +51,7 @@ data CliOptions = CliOptions
   , cliCallvalue :: Expr EWord
   , cliBlockNumber :: Expr EWord
   , cliTimestamp :: Expr EWord
+  , cliGas :: Expr EWord
   , cliStatic :: Bool
   , cliBaseState :: BaseState
   , cliStores :: Map.Map W256 W256
@@ -68,7 +73,9 @@ defaultCliOptions = do
     , cliFuel = 32
     , cliTargetPc = Nothing
     , cliStack = []
+    , cliStackDepth = Nothing
     , cliMemory = AbstractBuf "memory"
+    , cliActiveWords = Lit 0
     , cliCalldata = AbstractBuf "calldata"
     , cliReturndata = ConcreteBuf mempty
     , cliAddress = SymAddr "entrypoint"
@@ -80,6 +87,7 @@ defaultCliOptions = do
     , cliCallvalue = Lit 0
     , cliBlockNumber = Lit 0
     , cliTimestamp = Lit 0
+    , cliGas = Var "Gas"
     , cliStatic = False
     , cliBaseState = AbstractBase
     , cliStores = Map.empty
@@ -100,6 +108,7 @@ main = do
     [cmd]
       | Just action <- lookup cmd smokeCommands -> action
     "run" : rest -> either die runCli =<< pure (parseCli rest)
+    "summarize" : rest -> either die runSummarizeCli =<< pure (parseCli rest)
     _ -> putStrLn usage
 
 runSmokeAdd :: IO ()
@@ -507,6 +516,40 @@ callBranchSummary result =
 
 runCli :: CliOptions -> IO ()
 runCli opts = do
+  case opts.cliStackDepth of
+    Just _ -> die "--stack-depth is only supported by summarize"
+    Nothing -> pure ()
+  (runSpec, vm) <- prepareCliExecution True opts
+  results <- runSegmentWithSolvers runSpec vm
+  when opts.cliFailOnOverapproximation $
+    failIfOverapproximated results
+  reports <-
+    case opts.cliPostconditions of
+      [] -> pure Nothing
+      _ -> Just <$> checkPostconditionsWithSolvers runSpec opts.cliPostconditions results
+  if opts.cliJsonOutput
+    then emitJsonOutput opts.cliTraceOpcodes results reports
+    else do
+      printSegmentResults opts.cliTraceOpcodes results
+      maybe (pure ()) printPostconditionReports reports
+
+runSummarizeCli :: CliOptions -> IO ()
+runSummarizeCli opts = do
+  unless (null opts.cliPostconditions) $
+    die "summarize is solver-free and does not accept --post"
+  (runSpec, vm) <- prepareCliExecution False opts
+  summary <-
+    stToIO $
+      runStraightLineWithStack
+        runSpec
+        InitialStackSpec {stackExactInitialDepth = opts.cliStackDepth}
+        vm
+  if opts.cliJsonOutput
+    then emitStraightLineJson opts.cliTraceOpcodes summary
+    else printStraightLineSummary opts.cliTraceOpcodes summary
+
+prepareCliExecution :: Bool -> CliOptions -> IO (SegmentRunSpec, VM Symbolic)
+prepareCliExecution autoPadStack opts = do
   let storageExpr =
         if Map.null opts.cliStores
           then AbstractStore opts.cliAddress Nothing
@@ -570,20 +613,18 @@ runCli opts = do
           , static = spec0.static
           , baseState = spec0.baseState
           }
-  paddedSpec <- either die pure $ autoFillInitialStackDepth runSpec spec
-  vm <- stToIO $ makeMidpointVM paddedSpec
-  results <- runSegmentWithSolvers runSpec vm
-  when opts.cliFailOnOverapproximation $
-    failIfOverapproximated results
-  reports <-
-    case opts.cliPostconditions of
-      [] -> pure Nothing
-      _ -> Just <$> checkPostconditionsWithSolvers runSpec opts.cliPostconditions results
-  if opts.cliJsonOutput
-    then emitJsonOutput opts.cliTraceOpcodes results reports
-    else do
-      printSegmentResults opts.cliTraceOpcodes results
-      maybe (pure ()) printPostconditionReports reports
+  preparedSpec <-
+    if autoPadStack
+      then either die pure $ autoFillInitialStackDepth runSpec spec
+      else pure spec
+  vm0 <- stToIO $ makeMidpointVM preparedSpec
+  let state' =
+        vm0.state
+          { FrameStateRecord.memorySize = Expr.simplify opts.cliActiveWords
+          , FrameStateRecord.gas = Expr.simplify opts.cliGas
+          }
+      vm = vm0 { VMRecord.state = state' }
+  pure (runSpec, vm)
 
 unlessNull :: [a] -> IO () -> IO ()
 unlessNull xs action =
@@ -636,6 +677,74 @@ printSegmentResults includeTraceOpcodes results =
     printOne (idx, result) = do
       putStrLn $ "branch: " <> show idx
       printSegmentResult includeTraceOpcodes result
+
+printStraightLineSummary :: Bool -> StraightLineSummary -> IO ()
+printStraightLineSummary includeTraceOpcodes summary = do
+  frozenVm <- stToIO $ SymExec.freezeVM summary.summaryFinalVm
+  let currentContractState = lookupRunningContract frozenVm
+  putStrLn "summary: straight-line (solver-free)"
+  putStrLn $ "steps: " <> show summary.summarySteps
+  putStrLn $ "gas-cost: " <> renderWordExpr summary.summaryGasCost
+  putStrLn $ "gas-available: " <> renderWordExpr frozenVm.state.gas
+  putStrLn $ "stop:  " <> renderStraightLineStop summary.summaryStopReason
+  case summary.summaryBranchSuccessors of
+    Just successors ->
+      putStrLn $
+        "next-addresses: [not-taken="
+          <> show successors.branchNotTakenAddress
+          <> ", taken="
+          <> renderWordExpr successors.branchTakenAddress
+          <> "]"
+    Nothing -> pure ()
+  putStrLn $ "pc:    " <> show frozenVm.state.pc
+  putStrLn $ "pc-trace: " <> renderPcTrace summary.summaryPcTrace
+  when includeTraceOpcodes $
+    putStrLn $ "pc-trace-opcodes: " <> renderPcTraceOpcodes frozenVm.state.code summary.summaryPcTrace
+  putStrLn $
+    "stack: "
+      <> renderAbstractStack frozenVm.state.stack summary.summaryStack
+  putStrLn $ "initial-stack-depth: " <> renderInitialStackDepth summary.summaryStack
+  putStrLn $
+    "materialized-initial-tail: "
+      <> show summary.summaryStack.stackMaterializedTailDepth
+  putStrLn $ "memory: " <> renderMemory frozenVm.state.memory
+  putStrLn $ "active-words: " <> renderWordExpr frozenVm.state.memorySize
+  putStrLn $ "returndata: " <> renderBufExpr frozenVm.state.returndata
+  putStrLn $ "constraints: " <> show (length frozenVm.constraints)
+  unlessNull frozenVm.constraints $ do
+    putStrLn "path-constraints:"
+    mapM_ (\prop0 -> putStrLn $ "  " <> renderProp prop0) frozenVm.constraints
+  case currentContractState of
+    Just contract -> do
+      putStrLn $ "storage: " <> renderStorageExpr contract.storage
+      putStrLn $ "transient-storage: " <> renderStorageExpr contract.tStorage
+    Nothing -> do
+      putStrLn "storage: <missing-contract>"
+      putStrLn "transient-storage: <missing-contract>"
+
+renderStraightLineStop :: StraightLineStop -> String
+renderStraightLineStop = \case
+  StraightLineTargetPc stopPc -> "target-pc " <> show stopPc
+  StraightLineFuelExhausted -> "fuel exhausted"
+  StraightLineHalted result -> renderVmResult result
+  StraightLineNeedsSmt condition ->
+    "needs SMT at current opcode (condition " <> renderWordExpr condition <> ")"
+  StraightLineNeedsConcreteValue expr ->
+    "needs a concrete value at current opcode (expression " <> renderWordExpr expr <> ")"
+  StraightLineNeedsExternalData item ->
+    "needs external data at current opcode (" <> item <> ")"
+  StraightLineNeedsBranch -> "needs path branching at current opcode"
+  StraightLineCallBoundary opcode ->
+    "call/create boundary at current opcode (" <> opcode <> ")"
+  StraightLineStackUnderflow required actual ->
+    "stack underflow at current opcode (requires initial depth "
+      <> show required <> ", exact depth is " <> show actual <> ")"
+  StraightLineStackOverflow resultingDepth ->
+    "stack overflow at current opcode (resulting depth "
+      <> show resultingDepth <> " exceeds 1024)"
+  StraightLineInfeasibleStackBounds minimumDepth maximumDepth ->
+    "no initial stack depth can reach the current opcode (minimum "
+      <> show minimumDepth <> ", maximum " <> show maximumDepth <> ")"
 
 printPostconditionReports :: [[PostconditionReport]] -> IO ()
 printPostconditionReports [] = pure ()
@@ -870,8 +979,12 @@ parseCli args = do
       (\n -> opts { cliTargetPc = Just n }) <$> parseInt value >>= \opts' -> go opts' rest
     go opts ("--stack" : value : rest) =
       (\wordExpr -> opts { cliStack = opts.cliStack <> [wordExpr] }) <$> parseWordExpr value >>= \opts' -> go opts' rest
+    go opts ("--stack-depth" : value : rest) =
+      (\n -> opts { cliStackDepth = Just n }) <$> parseInt value >>= \opts' -> go opts' rest
     go opts ("--memory" : value : rest) =
       (\bufExpr -> opts { cliMemory = bufExpr }) <$> parseBufExpr value >>= \opts' -> go opts' rest
+    go opts ("--active-words" : value : rest) =
+      (\wordExpr -> opts { cliActiveWords = wordExpr }) <$> parseWordExpr value >>= \opts' -> go opts' rest
     go opts ("--calldata" : value : rest) =
       (\bufExpr -> opts { cliCalldata = bufExpr }) <$> parseBufExpr value >>= \opts' -> go opts' rest
     go opts ("--returndata" : value : rest) =
@@ -894,6 +1007,8 @@ parseCli args = do
       (\wordExpr -> opts { cliBlockNumber = wordExpr }) <$> parseWordExpr value >>= \opts' -> go opts' rest
     go opts ("--timestamp" : value : rest) =
       (\wordExpr -> opts { cliTimestamp = wordExpr }) <$> parseWordExpr value >>= \opts' -> go opts' rest
+    go opts ("--gas" : value : rest) =
+      (\wordExpr -> opts { cliGas = wordExpr }) <$> parseWordExpr value >>= \opts' -> go opts' rest
     go opts ("--static" : rest) =
       go opts { cliStatic = True } rest
     go opts ("--empty-base" : rest) =
@@ -927,7 +1042,10 @@ usage = unlines $
     <> fmap (\(name, _) -> "  symcheck " <> name) smokeCommands
     <>
       [ "  symcheck run --code HEX [--pc N] [--fuel N] [--target-pc N] [--stack WORD]..."
-      , "                      [--memory HEX|sym:NAME] [--calldata HEX|sym:NAME]"
+      , "  symcheck summarize --code HEX [--pc N] [--fuel N] [--target-pc N] [--stack WORD]..."
+      , "                      [--stack-depth N]"
+      , "                      [--memory HEX|sym:NAME] [--active-words WORD]"
+      , "                      [--gas WORD] [--calldata HEX|sym:NAME]"
       , "                      [--returndata HEX|sym:NAME] [--address ADDR|sym:NAME]"
       , "                      [--code-address ADDR|sym:NAME] [--caller ADDR|sym:NAME]"
       , "                      [--override-caller ADDR|sym:NAME] [--origin ADDR|sym:NAME]"
@@ -1251,6 +1369,33 @@ renderWordExprList :: [Expr EWord] -> String
 renderWordExprList exprs =
   "[" <> concatWith ", " (fmap renderWordExpr exprs) <> "]"
 
+renderAbstractStack :: [Expr EWord] -> AbstractStackSummary -> String
+renderAbstractStack exprs stackInfo =
+  renderWordExprList exprs <> renderTail
+  where
+    dropped = stackInfo.stackMaterializedTailDepth
+    renderTail =
+      case stackInfo.stackExactDepth of
+        Nothing -> " ++ drop " <> show dropped <> " initial-stack-tail"
+        Just exactDepth ->
+          let remaining =
+                max 0
+                  (exactDepth - stackInfo.stackKnownPrefixDepth - dropped)
+          in if remaining == 0
+              then ""
+              else
+                " ++ take " <> show remaining
+                  <> " (drop " <> show dropped <> " initial-stack-tail)"
+
+renderInitialStackDepth :: AbstractStackSummary -> String
+renderInitialStackDepth stackInfo =
+  case stackInfo.stackExactDepth of
+    Just exactDepth -> show exactDepth <> " (exact)"
+    Nothing ->
+      show stackInfo.stackMinimumInitialDepth
+        <> " <= depth <= "
+        <> show stackInfo.stackMaximumInitialDepth
+
 renderPcTrace :: [Int] -> String
 renderPcTrace pcs =
   "[" <> concatWith ", " (fmap show pcs) <> "]"
@@ -1333,6 +1478,70 @@ emitJsonOutput includeTraceOpcodes results reports = do
           , "postconditions" .= fmap postconditionReportsToJson reports
           ]
   LBS8.putStrLn (encode jsonValue)
+
+emitStraightLineJson :: Bool -> StraightLineSummary -> IO ()
+emitStraightLineJson includeTraceOpcodes summary = do
+  frozenVm <- stToIO $ SymExec.freezeVM summary.summaryFinalVm
+  let jsonValue =
+        object
+          ( [ "mode" .= ("straight-line" :: String)
+            , "solverFree" .= True
+            , "steps" .= summary.summarySteps
+            , "gasCost" .= renderWordExpr summary.summaryGasCost
+            , "gasAvailable" .= renderWordExpr frozenVm.state.gas
+            , "stop" .= renderStraightLineStop summary.summaryStopReason
+            , "nextAddresses" .= fmap branchSuccessorsToJson summary.summaryBranchSuccessors
+            , "pc" .= frozenVm.state.pc
+            , "pcTrace" .= summary.summaryPcTrace
+            , "stack" .= fmap renderWordExpr frozenVm.state.stack
+            , "stackTail" .= abstractStackTailToJson summary.summaryStack
+            , "initialStackDepth" .= initialStackDepthToJson summary.summaryStack
+            , "memory" .= renderMemory frozenVm.state.memory
+            , "activeWords" .= renderWordExpr frozenVm.state.memorySize
+            , "returndata" .= renderBufExpr frozenVm.state.returndata
+            , "constraints" .= length frozenVm.constraints
+            , "pathConstraints" .= fmap renderProp frozenVm.constraints
+            , "storage" .= fmap (renderStorageExpr . (.storage)) (lookupRunningContract frozenVm)
+            , "transientStorage" .= fmap (renderStorageExpr . (.tStorage)) (lookupRunningContract frozenVm)
+            ]
+              <> [ "pcTraceOpcodes" .= pcTraceOpcodesToJson frozenVm.state.code summary.summaryPcTrace
+                 | includeTraceOpcodes
+                 ]
+          )
+  LBS8.putStrLn (encode jsonValue)
+
+branchSuccessorsToJson :: BranchSuccessors -> Value
+branchSuccessorsToJson successors =
+  object
+    [ "notTaken" .= successors.branchNotTakenAddress
+    , "taken" .= renderWordExpr successors.branchTakenAddress
+    ]
+
+abstractStackTailToJson :: AbstractStackSummary -> Value
+abstractStackTailToJson stackInfo =
+  object
+    [ "name" .= ("initial-stack-tail" :: String)
+    , "materialized" .= stackInfo.stackMaterializedTailDepth
+    , "drop" .= stackInfo.stackMaterializedTailDepth
+    , "remaining" .=
+        fmap
+          (\exactDepth ->
+            max 0
+              ( exactDepth
+                  - stackInfo.stackKnownPrefixDepth
+                  - stackInfo.stackMaterializedTailDepth
+              ))
+          stackInfo.stackExactDepth
+    ]
+
+initialStackDepthToJson :: AbstractStackSummary -> Value
+initialStackDepthToJson stackInfo =
+  object
+    [ "exact" .= stackInfo.stackExactDepth
+    , "minimum" .= stackInfo.stackMinimumInitialDepth
+    , "maximum" .= stackInfo.stackMaximumInitialDepth
+    , "knownPrefix" .= stackInfo.stackKnownPrefixDepth
+    ]
 
 segmentResultToJson :: Bool -> (Int, SegmentResult) -> IO Value
 segmentResultToJson includeTraceOpcodes (idx, result) = do

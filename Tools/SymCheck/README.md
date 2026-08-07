@@ -94,10 +94,69 @@ cabal test cli-smoke
 cabal run symcheck -- run --code 600160020100 --pc 2 --stack 0x1 --fuel 3
 ```
 
+## Solver-free straight-line summaries
+
+`summarize` starts at the same arbitrary midpoint as `run`, but follows only a
+single path and never constructs or consults an SMT solver:
+
+```bash
+cabal run symcheck -- summarize \
+  --code 600160020100 \
+  --pc 2 \
+  --stack 0x1 \
+  --active-words 0 \
+  --gas 100 \
+  --fuel 32
+```
+
+The summary follows the cursor carried by `RD` in EquiVM's
+`Reasoning/Reach.lean`: it reports `pc`, stack, memory, active memory words,
+returndata, local storage and transient storage, completed-step count, and
+cumulative symbolic gas cost. It also reports the available gas. The emitted
+summary intentionally omits the broader account world, environment fields, the
+original state, and any equality back to the start state.
+
+hevm's local expression simplifier is applied throughout execution and when
+rendering the summary. If an apparent SMT request simplifies to a literal
+condition, `summarize` selects that path locally. If it remains symbolic, or an
+opcode needs another unresolved effect or external datum, the command stops at
+the cursor before that opcode; its step and gas cost are therefore not included.
+For an unresolved `JUMPI`, the stop output includes both possible next
+addresses, labelled `not-taken` and `taken`.
+Calls and creates are also explicit boundaries, because recursively entering a
+callee would no longer describe the caller's straight-line cursor. `--fuel`
+remains a safety bound for concrete loops.
+
+`summarize` accepts `--pre` constraints as annotations on the initial cursor,
+but it does not use them to prove branch conditions. It rejects `--post`, since
+postcondition checking is solver-backed; use `run` for that workflow.
+
+For `summarize`, values supplied with `--stack` form a known top-of-stack prefix
+above an abstract initial tail. The executor materializes `initial_stack_N`
+words lazily whenever a reached opcode reads deeper than the known prefix. Pushes
+and other produced values remain above the untouched tail, so a result may look
+like:
+
+```text
+stack: [(Add (Var "initial_stack_0") (Var "initial_stack_1"))]
+       ++ drop 2 initial-stack-tail
+initial-stack-depth: 2 <= depth <= 1024
+```
+
+The lower bound prevents stack underflow and the upper bound prevents stack
+overflow on every completed instruction. Use `--stack-depth N` to state an exact
+total initial depth; then a definite underflow or overflow is reported at the
+cursor before the failing opcode. Without it, the summary is conditional on the
+reported valid depth interval. The solver-backed `run` command retains its
+existing finite-stack auto-padding behavior.
+
 Useful flags:
 
 - `--target-pc N`
 - `--memory HEX|sym:NAME`
+- `--stack-depth N` (`summarize` only)
+- `--active-words WORD`
+- `--gas WORD`
 - `--calldata HEX|sym:NAME`
 - `--returndata HEX|sym:NAME`
 - `--address ADDR|sym:NAME`

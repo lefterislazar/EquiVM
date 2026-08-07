@@ -16,6 +16,8 @@ module SymCheck.Midpoint
   , Overapproximation(..)
   , SegmentResult(..)
   , requiredInitialStackDepth
+  , opcodeRequiredStackDepth
+  , opcodeProducedStackDepth
   , ensureInitialStackDepth
   , autoFillInitialStackDepth
   , runtimeCodeFromBytes
@@ -30,7 +32,6 @@ import Control.Monad.ST (RealWorld, ST, stToIO)
 import Control.Monad.Trans.State.Strict (runStateT)
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
-import Data.List (foldl')
 import Data.Map qualified as Map
 import Data.Maybe (fromMaybe)
 import Data.Text qualified as T
@@ -146,6 +147,188 @@ data StackCheckOutcome
   = ContinueAt !Int !Int
   | StopCheck
 
+-- | Number of stack items an opcode must be able to read.
+--
+-- This is exported for the straight-line executor, which grows an abstract
+-- initial stack lazily at each actually reached opcode.
+opcodeRequiredStackDepth :: GenericOp Word8 -> Int
+opcodeRequiredStackDepth = \case
+  OpStop -> 0
+  OpAdd -> 2
+  OpMul -> 2
+  OpSub -> 2
+  OpDiv -> 2
+  OpSdiv -> 2
+  OpMod -> 2
+  OpSmod -> 2
+  OpAddmod -> 3
+  OpMulmod -> 3
+  OpExp -> 2
+  OpSignextend -> 2
+  OpLt -> 2
+  OpGt -> 2
+  OpSlt -> 2
+  OpSgt -> 2
+  OpEq -> 2
+  OpIszero -> 1
+  OpAnd -> 2
+  OpOr -> 2
+  OpXor -> 2
+  OpNot -> 1
+  OpByte -> 2
+  OpShl -> 2
+  OpShr -> 2
+  OpSar -> 2
+  OpClz -> 1
+  OpSha3 -> 2
+  OpAddress -> 0
+  OpBalance -> 1
+  OpOrigin -> 0
+  OpCaller -> 0
+  OpCallvalue -> 0
+  OpCalldataload -> 1
+  OpCalldatasize -> 0
+  OpCalldatacopy -> 3
+  OpCodesize -> 0
+  OpCodecopy -> 3
+  OpGasprice -> 0
+  OpExtcodesize -> 1
+  OpExtcodecopy -> 4
+  OpReturndatasize -> 0
+  OpReturndatacopy -> 3
+  OpExtcodehash -> 1
+  OpBlockhash -> 1
+  OpCoinbase -> 0
+  OpTimestamp -> 0
+  OpNumber -> 0
+  OpPrevRandao -> 0
+  OpGaslimit -> 0
+  OpChainid -> 0
+  OpSelfbalance -> 0
+  OpBaseFee -> 0
+  OpBlobhash -> 1
+  OpBlobBaseFee -> 0
+  OpPop -> 1
+  OpMcopy -> 3
+  OpMload -> 1
+  OpMstore -> 2
+  OpMstore8 -> 2
+  OpSload -> 1
+  OpSstore -> 2
+  OpTload -> 1
+  OpTstore -> 2
+  OpJump -> 1
+  OpJumpi -> 2
+  OpPc -> 0
+  OpMsize -> 0
+  OpGas -> 0
+  OpJumpdest -> 0
+  OpCreate -> 3
+  OpCall -> 7
+  OpStaticcall -> 6
+  OpCallcode -> 7
+  OpReturn -> 2
+  OpDelegatecall -> 6
+  OpCreate2 -> 4
+  OpRevert -> 2
+  OpSelfdestruct -> 1
+  OpDup n -> fromIntegral n
+  OpSwap n -> fromIntegral n + 1
+  OpLog n -> fromIntegral n + 2
+  OpPush0 -> 0
+  OpPush _ -> 0
+  OpUnknown _ -> 0
+
+-- | Stack depth present immediately after a successfully completed opcode,
+-- relative to the suffix below the items consumed by that opcode.
+opcodeProducedStackDepth :: GenericOp Word8 -> Int
+opcodeProducedStackDepth = \case
+  OpStop -> 0
+  OpAdd -> 1
+  OpMul -> 1
+  OpSub -> 1
+  OpDiv -> 1
+  OpSdiv -> 1
+  OpMod -> 1
+  OpSmod -> 1
+  OpAddmod -> 1
+  OpMulmod -> 1
+  OpExp -> 1
+  OpSignextend -> 1
+  OpLt -> 1
+  OpGt -> 1
+  OpSlt -> 1
+  OpSgt -> 1
+  OpEq -> 1
+  OpIszero -> 1
+  OpAnd -> 1
+  OpOr -> 1
+  OpXor -> 1
+  OpNot -> 1
+  OpByte -> 1
+  OpShl -> 1
+  OpShr -> 1
+  OpSar -> 1
+  OpClz -> 1
+  OpSha3 -> 1
+  OpAddress -> 1
+  OpBalance -> 1
+  OpOrigin -> 1
+  OpCaller -> 1
+  OpCallvalue -> 1
+  OpCalldataload -> 1
+  OpCalldatasize -> 1
+  OpCalldatacopy -> 0
+  OpCodesize -> 1
+  OpCodecopy -> 0
+  OpGasprice -> 1
+  OpExtcodesize -> 1
+  OpExtcodecopy -> 0
+  OpReturndatasize -> 1
+  OpReturndatacopy -> 0
+  OpExtcodehash -> 1
+  OpBlockhash -> 1
+  OpCoinbase -> 1
+  OpTimestamp -> 1
+  OpNumber -> 1
+  OpPrevRandao -> 1
+  OpGaslimit -> 1
+  OpChainid -> 1
+  OpSelfbalance -> 1
+  OpBaseFee -> 1
+  OpBlobhash -> 1
+  OpBlobBaseFee -> 1
+  OpPop -> 0
+  OpMcopy -> 0
+  OpMload -> 1
+  OpMstore -> 0
+  OpMstore8 -> 0
+  OpSload -> 1
+  OpSstore -> 0
+  OpTload -> 1
+  OpTstore -> 0
+  OpJump -> 0
+  OpJumpi -> 0
+  OpPc -> 1
+  OpMsize -> 1
+  OpGas -> 1
+  OpJumpdest -> 0
+  OpCreate -> 1
+  OpCall -> 1
+  OpStaticcall -> 1
+  OpCallcode -> 1
+  OpReturn -> 0
+  OpDelegatecall -> 1
+  OpCreate2 -> 1
+  OpRevert -> 0
+  OpSelfdestruct -> 0
+  OpDup n -> fromIntegral n + 1
+  OpSwap n -> fromIntegral n + 1
+  OpLog _ -> 0
+  OpPush0 -> 1
+  OpPush _ -> 1
+  OpUnknown _ -> 0
+
 requiredInitialStackDepth :: SegmentRunSpec -> MidpointSpec -> Either String Int
 requiredInitialStackDepth runSpec spec =
   case spec.code of
@@ -177,180 +360,10 @@ requiredInitialStackDepth runSpec spec =
               go (stepsChecked + stepCost) pc1 depthDelta' depthRequired' codeBytes
 
     opRequiredDepth :: GenericOp Word8 -> Int
-    opRequiredDepth = \case
-      OpStop -> 0
-      OpAdd -> 2
-      OpMul -> 2
-      OpSub -> 2
-      OpDiv -> 2
-      OpSdiv -> 2
-      OpMod -> 2
-      OpSmod -> 2
-      OpAddmod -> 3
-      OpMulmod -> 3
-      OpExp -> 2
-      OpSignextend -> 2
-      OpLt -> 2
-      OpGt -> 2
-      OpSlt -> 2
-      OpSgt -> 2
-      OpEq -> 2
-      OpIszero -> 1
-      OpAnd -> 2
-      OpOr -> 2
-      OpXor -> 2
-      OpNot -> 1
-      OpByte -> 2
-      OpShl -> 2
-      OpShr -> 2
-      OpSar -> 2
-      OpClz -> 1
-      OpSha3 -> 2
-      OpAddress -> 0
-      OpBalance -> 1
-      OpOrigin -> 0
-      OpCaller -> 0
-      OpCallvalue -> 0
-      OpCalldataload -> 1
-      OpCalldatasize -> 0
-      OpCalldatacopy -> 3
-      OpCodesize -> 0
-      OpCodecopy -> 3
-      OpGasprice -> 0
-      OpExtcodesize -> 1
-      OpExtcodecopy -> 4
-      OpReturndatasize -> 0
-      OpReturndatacopy -> 3
-      OpExtcodehash -> 1
-      OpBlockhash -> 1
-      OpCoinbase -> 0
-      OpTimestamp -> 0
-      OpNumber -> 0
-      OpPrevRandao -> 0
-      OpGaslimit -> 0
-      OpChainid -> 0
-      OpSelfbalance -> 0
-      OpBaseFee -> 0
-      OpBlobhash -> 1
-      OpBlobBaseFee -> 0
-      OpPop -> 1
-      OpMcopy -> 3
-      OpMload -> 1
-      OpMstore -> 2
-      OpMstore8 -> 2
-      OpSload -> 1
-      OpSstore -> 2
-      OpTload -> 1
-      OpTstore -> 2
-      OpJump -> 1
-      OpJumpi -> 2
-      OpPc -> 0
-      OpMsize -> 0
-      OpGas -> 0
-      OpJumpdest -> 0
-      OpCreate -> 3
-      OpCall -> 7
-      OpStaticcall -> 6
-      OpCallcode -> 7
-      OpReturn -> 2
-      OpDelegatecall -> 6
-      OpCreate2 -> 4
-      OpRevert -> 2
-      OpSelfdestruct -> 1
-      OpDup n -> fromIntegral n
-      OpSwap n -> fromIntegral n + 1
-      OpLog n -> fromIntegral n + 2
-      OpPush0 -> 0
-      OpPush _ -> 0
-      OpUnknown _ -> 0
+    opRequiredDepth = opcodeRequiredStackDepth
 
     opProducedDepth :: GenericOp Word8 -> Int
-    opProducedDepth = \case
-      OpStop -> 0
-      OpAdd -> 1
-      OpMul -> 1
-      OpSub -> 1
-      OpDiv -> 1
-      OpSdiv -> 1
-      OpMod -> 1
-      OpSmod -> 1
-      OpAddmod -> 1
-      OpMulmod -> 1
-      OpExp -> 1
-      OpSignextend -> 1
-      OpLt -> 1
-      OpGt -> 1
-      OpSlt -> 1
-      OpSgt -> 1
-      OpEq -> 1
-      OpIszero -> 1
-      OpAnd -> 1
-      OpOr -> 1
-      OpXor -> 1
-      OpNot -> 1
-      OpByte -> 1
-      OpShl -> 1
-      OpShr -> 1
-      OpSar -> 1
-      OpClz -> 1
-      OpSha3 -> 1
-      OpAddress -> 1
-      OpBalance -> 1
-      OpOrigin -> 1
-      OpCaller -> 1
-      OpCallvalue -> 1
-      OpCalldataload -> 1
-      OpCalldatasize -> 1
-      OpCalldatacopy -> 0
-      OpCodesize -> 1
-      OpCodecopy -> 0
-      OpGasprice -> 1
-      OpExtcodesize -> 1
-      OpExtcodecopy -> 0
-      OpReturndatasize -> 1
-      OpReturndatacopy -> 0
-      OpExtcodehash -> 1
-      OpBlockhash -> 1
-      OpCoinbase -> 1
-      OpTimestamp -> 1
-      OpNumber -> 1
-      OpPrevRandao -> 1
-      OpGaslimit -> 1
-      OpChainid -> 1
-      OpSelfbalance -> 1
-      OpBaseFee -> 1
-      OpBlobhash -> 1
-      OpBlobBaseFee -> 1
-      OpPop -> 0
-      OpMcopy -> 0
-      OpMload -> 1
-      OpMstore -> 0
-      OpMstore8 -> 0
-      OpSload -> 1
-      OpSstore -> 0
-      OpTload -> 1
-      OpTstore -> 0
-      OpJump -> 0
-      OpJumpi -> 0
-      OpPc -> 1
-      OpMsize -> 1
-      OpGas -> 1
-      OpJumpdest -> 0
-      OpCreate -> 1
-      OpCall -> 1
-      OpStaticcall -> 1
-      OpCallcode -> 1
-      OpReturn -> 0
-      OpDelegatecall -> 1
-      OpCreate2 -> 1
-      OpRevert -> 0
-      OpSelfdestruct -> 0
-      OpDup n -> fromIntegral n + 1
-      OpSwap n -> fromIntegral n + 1
-      OpLog _ -> 0
-      OpPush0 -> 1
-      OpPush _ -> 1
-      OpUnknown _ -> 0
+    opProducedDepth = opcodeProducedStackDepth
 
     nextStackCheckState :: Int -> GenericOp Word8 -> StackCheckOutcome
     nextStackCheckState pc0 = \case
@@ -651,7 +664,7 @@ runSegmentWithSolvers spec vm0 =
     resolveQuery solverGroup query0 vm =
       case query0 of
         PleaseAskSMT branchcondition pathconditions continue -> do
-          let pathconds = foldl' PAnd (PBool True) pathconditions
+          let pathconds = foldr PAnd (PBool True) pathconditions
           branchOutcome <-
             case branchcondition of
               Lit 0 -> pure (BranchQueryOutcome (Case False) False)
