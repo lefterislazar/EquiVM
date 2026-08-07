@@ -13,7 +13,7 @@ This is intentionally an untrusted proof-design tool, not part of the Lean kerne
 ## Build
 
 ```bash
-cd SymCheck
+cd Tools/SymCheck
 ./nix-develop
 cabal build
 ```
@@ -53,7 +53,7 @@ this checkout, which avoids relative flake resolution edge cases.
 ## Smoke tests
 
 ```bash
-cd SymCheck
+cd Tools/SymCheck
 ./nix-develop
 cabal run symcheck -- smoke-all
 ```
