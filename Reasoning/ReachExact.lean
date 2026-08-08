@@ -1842,6 +1842,14 @@ def RDxRev (code : ByteArray) (g : Sat256) (s0 : State) (cost : Nat) : Prop :=
     X (g.toNat + 1) (D_J code 0) s0 = .ok (.revert g' output) ∧
     g' = (g.subNat cost).toUInt256)
 
+/-- Normalize an exact revert cost without unfolding its threshold proof. -/
+theorem RDxRev.withCost {code : ByteArray} {g : Sat256} {s0 : State}
+    {cost cost' : Nat}
+    (h : RDxRev code g s0 cost) (hcost : cost = cost') :
+    RDxRev code g s0 cost' := by
+  subst cost'
+  exact h
+
 /-- Threshold-exact exceptional termination.
 
 This is distinct from `RDxRev`: an EVM exception has no return payload or remaining-gas result.
@@ -1851,6 +1859,14 @@ def RDxErr (code : ByteArray) (g : Sat256) (s0 : State)
     (exception : ExecutionException) (cost : Nat) : Prop :=
   (g.toNat < cost → X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass) ∧
   (cost ≤ g.toNat → X (g.toNat + 1) (D_J code 0) s0 = .error exception)
+
+/-- Normalize an exact exceptional-termination cost without unfolding its threshold proof. -/
+theorem RDxErr.withCost {code : ByteArray} {g : Sat256} {s0 : State}
+    {exception : ExecutionException} {cost cost' : Nat}
+    (h : RDxErr code g s0 exception cost) (hcost : cost = cost') :
+    RDxErr code g s0 exception cost' := by
+  subst cost'
+  exact h
 
 private theorem terminalOOGExact
     {code : ByteArray} {g : Sat256} {s0 s next : State}

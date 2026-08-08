@@ -54,6 +54,10 @@ class GeneratorTests(unittest.TestCase):
         self.assertIn("jumpiT (by native_decide) (by native_decide)", rendered)
         self.assertIn("jump (by native_decide)", rendered)
         self.assertEqual(rendered.count("jumpdest"), 2)
+        self.assertEqual(
+            GEN.render_trace_step(code, {"pc": 4, "opcode": "JUMPI"}, 5),
+            "jumpiNT (by evm_branch_zero)",
+        )
 
     def test_trace_loop_stops_at_first_pc_revisit(self) -> None:
         summary = {

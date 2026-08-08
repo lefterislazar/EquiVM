@@ -388,6 +388,12 @@ external boundary, or the first revisited PC. Symbolic `JUMP`/`JUMPI` boundaries
 edge helpers as block catalogs. Loop traces end at their first revisit rather than at an arbitrary
 fuel iteration.
 
+> **Agent note:** Generated maximal-trace proofs use `evm_branch_zero` to discharge locally
+> deterministic not-taken `JUMPI` conditions. This tactic currently covers only the branch forms
+> encountered so far. If a trace summary resolves a branch but its generated Lean proof fails at
+> that condition, extend `evm_branch_zero` with the corresponding sound simplification lemma; the
+> failure does not necessarily mean that SymCheck's trace is nondeterministic.
+
 Each invocation emits three reviewable artifact sets:
 
 - a kernel-checked Lean block catalog, optionally split into part modules;
@@ -435,6 +441,10 @@ covered.  The manifest and Markdown catalog identify the first unsupported PC/op
 committed generated Lean files but never invokes SymCheck, Cabal, Nix, or this Python script.
 Generated Lean catalogs set `maxRecDepth 100000`, which is needed for closed bytecode checks on
 large runtimes such as Modexp.
+`evm_theorem` automatically ring-normalizes only the inferred step and gas indices before it
+registers each declaration. The kernel-checked replay is transported with `RDx.withIndices` or a
+terminal relation's `withCost`; symbolic stack and memory expressions are left untouched. The
+debugging option `set_option symcheck.compactIndices false` restores the raw nested additions.
 Terminal and control-flow edges receive generated helper theorems.  A `JUMP` helper exposes its
 decode and valid-destination hypotheses.  A `JUMPI` body gets both taken and not-taken helpers; Lean
 infers their exact target and condition directly from the opaque body theorem's post-state.  Agents

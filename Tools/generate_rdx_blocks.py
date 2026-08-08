@@ -268,7 +268,7 @@ def render_trace_step(
         if pc >= len(code) or code[pc] != 0x57:
             return None
         if successor_pc == pc + 1:
-            return "jumpiNT (by native_decide)"
+            return "jumpiNT (by evm_branch_zero)"
         return "jumpiT (by native_decide) (by native_decide)"
     return render_step(code, entry)
 

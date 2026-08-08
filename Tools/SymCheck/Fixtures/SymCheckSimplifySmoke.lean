@@ -10,6 +10,10 @@ memory rewrites that are useful when composed paths expose `MSTORE`/`MLOAD` rela
 open Solm ABI Ethereum Ethereum.EVM
 open Reasoning.Reach Reasoning.Theory
 
+/-- Solver-free summaries may decide symbolic comparison tautologies such as `0 > x`. -/
+example (x : UInt256) : UInt256.gt ⟨0⟩ x = ⟨0⟩ := by
+  evm_branch_zero
+
 example
     {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
