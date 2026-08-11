@@ -135,6 +135,42 @@ theorem wideWordResultMemory_size
   unfold wideWordResultMemory
   exact storeBytesLength_size (by rw [setFreePtr_size hmem96]; exact hmemLe) hgap
 
+/-- The result allocation advances Solidity's free-memory pointer by exactly one rounded `bytes`
+allocation.  This is shared by the direct caller and normalized Barrett re-entry proofs. -/
+theorem wideWordResultMemory_read64
+    (I : ExecutionEnv) {baseSize exponentSize modulusSize : Nat}
+    (hb : baseSize <= 1024) (he : exponentSize <= 1024) (hm : modulusSize <= 1024) :
+    (wideWordResultMemory I baseSize exponentSize modulusSize).readWithPadding 64 32 =
+      UInt256.toByteArray (UInt256.ofNat
+        (operandFreePtr baseSize exponentSize modulusSize + bytesAllocationSize modulusSize)) := by
+  let mem := operandCopiedMemory I baseSize exponentSize modulusSize
+  let fp := operandFreePtr baseSize exponentSize modulusSize
+  have hmem96 : 96 <= mem.size := by
+    have hge := operandCopiedMemory_size_ge I baseSize exponentSize modulusSize hb he
+    have hptr : 96 <= operandModulusPtr baseSize exponentSize + 32 := by
+      unfold operandModulusPtr operandExponentPtr operandBasePtr bytesAllocationSize
+      omega
+    simpa only [mem] using hptr.trans hge
+  have hsetSize : (setFreePtr mem (fp + bytesAllocationSize modulusSize)).size = mem.size :=
+    setFreePtr_size hmem96
+  have hgap : fp - (setFreePtr mem (fp + bytesAllocationSize modulusSize)).size < USize.size := by
+    rw [hsetSize]
+    exact lt_usize _ (by
+      unfold fp operandFreePtr operandModulusPtr operandExponentPtr operandBasePtr
+        bytesAllocationSize
+      omega)
+  have hfp96 : 96 <= fp := by
+    unfold fp operandFreePtr operandModulusPtr operandExponentPtr operandBasePtr
+      bytesAllocationSize
+    omega
+  unfold wideWordResultMemory
+  rw [storeBytesLength_read64]
+  · exact setFreePtr_read64 hmem96
+  · rw [hsetSize]
+    exact hmem96
+  · exact hfp96
+  · exact hgap
+
 /-- Result allocation preserves every padded operand word below the old free pointer. -/
 theorem wideWordResultMemory_readOperand (I : ExecutionEnv)
     {baseSize exponentSize modulusSize read : Nat}

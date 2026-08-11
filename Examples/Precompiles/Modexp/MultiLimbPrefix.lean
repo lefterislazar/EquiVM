@@ -4445,9 +4445,7 @@ theorem wideMultiLimbOddFourthCopyAddReturnSuffixExact_of_readSuffix
       simpa [I, l, words, resultPtr, fp, wideMultiLimbOddFourthCopyReadStack,
         wideMultiLimbOddWordArrayPtr, wideMultiLimbOddWordArrayLength,
         Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
-        rd1903.withIndices (by omega) (by
-          rw [← hgasEqExpanded]
-          omega)))
+        rd1903))
 
 theorem wideMultiLimbOddSecondCopyContinueSuffixExact_of_thirdCopyAddSuffix
     (suffixGas : BytecodeContext → Nat)

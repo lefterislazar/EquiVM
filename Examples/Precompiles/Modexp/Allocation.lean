@@ -125,7 +125,7 @@ theorem allocateMemoryExact {cA gh bl σ σ₀ A I} {g : Sat256}
     {n fp ret : Nat} {tail : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     {k C : Nat}
-    (hn : n ≤ 1024) (hfp : 96 ≤ fp) (hbound : fp + bytesAllocationSize n < 2 ^ 64)
+    (hn : n ≤ 2176) (hfp : 96 ≤ fp) (hbound : fp + bytesAllocationSize n < 2 ^ 64)
     (hmemSize : 96 ≤ mem.size) (haw3 : 3 ≤ aw.toNat)
     (haw64 : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩)
     (hread : mem.readWithPadding 64 32 = UInt256.toByteArray (UInt256.ofNat fp))
@@ -141,11 +141,11 @@ theorem allocateMemoryExact {cA gh bl σ σ₀ A I} {g : Sat256}
   simp only [List.cons.injEq, and_true] at hd
   rcases hd with ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10,
     hd11, hd12, hd13, hd14, hd15, hd16, hd17, hd18, hd19, hd20, hd21, hd22, hd23⟩
-  have hallocBound : bytesAllocationSize n ≤ 1088 := by
+  have hallocBound : bytesAllocationSize n ≤ 2208 := by
     unfold bytesAllocationSize
     omega
   have hallocWord : bytesAllocationSize n < UInt256.size :=
-    lt_trans (lt_of_le_of_lt hallocBound (by decide : 1088 < 2 ^ 64)) (by decide)
+    lt_trans (lt_of_le_of_lt hallocBound (by decide : 2208 < 2 ^ 64)) (by decide)
   have hfpWord : fp < UInt256.size :=
     lt_trans (by omega : fp < 2 ^ 64) (by decide)
   have hnewWord : fp + bytesAllocationSize n < UInt256.size :=
@@ -470,7 +470,7 @@ private theorem jumpDest_1434 :
 theorem wordArraySizeExact {cA gh bl σ σ₀ A I} {g : Sat256}
     {n ret : Nat} {tail : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    {k C : Nat} (hn : n ≤ 32) (htail : tail.length ≤ 1019)
+    {k C : Nat} (hn : n ≤ 68) (htail : tail.length ≤ 1019)
     (hret : (D_J runtimeBytecode 0).contains (UInt256.ofNat ret) = true)
     (rd0 : RDx runtimeBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1434⟩
       (UInt256.ofNat n :: UInt256.ofNat ret :: tail) mem aw rdata acc k C) :
@@ -481,13 +481,13 @@ theorem wordArraySizeExact {cA gh bl σ σ₀ A I} {g : Sat256}
   simp only [List.cons.injEq, and_true] at hd
   rcases hd with ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10, hd11⟩
   have hnWord : n < UInt256.size :=
-    lt_trans (lt_of_le_of_lt hn (by decide : 32 < 2 ^ 64)) (by decide)
+    lt_trans (lt_of_le_of_lt hn (by decide : 68 < 2 ^ 64)) (by decide)
   have hpayloadWord : wordArrayPayloadSize n < UInt256.size := by
-    apply lt_of_le_of_lt (show wordArrayPayloadSize n ≤ 1024 by
+    apply lt_of_le_of_lt (show wordArrayPayloadSize n ≤ 2176 by
       unfold wordArrayPayloadSize
       omega) (by decide)
   have hallocWord : wordArrayAllocationSize n < UInt256.size := by
-    apply lt_of_le_of_lt (show wordArrayAllocationSize n ≤ 1056 by
+    apply lt_of_le_of_lt (show wordArrayAllocationSize n ≤ 2208 by
       unfold wordArrayAllocationSize wordArrayPayloadSize
       omega) (by decide)
   have hgt : UInt256.gt (UInt256.ofNat n) ⟨18446744073709551615⟩ = ⟨0⟩ := by
@@ -560,12 +560,12 @@ private theorem newBytesDecodes :
       some (.CALLDATACOPY, .none), some (.JUMP, .none)] := by
   native_decide
 
-private theorem allocationHeader_cancel {n : Nat} (hn : n ≤ 1024) :
+private theorem allocationHeader_cancel {n : Nat} (hn : n ≤ 2176) :
     UInt256.lnot ⟨31⟩ + UInt256.ofNat (bytesAllocationSize n) =
       UInt256.ofNat (bytesPayloadSize n) := by
-  have hp : bytesPayloadSize n ≤ 1024 := by unfold bytesPayloadSize; omega
+  have hp : bytesPayloadSize n ≤ 2176 := by unfold bytesPayloadSize; omega
   have ha : bytesAllocationSize n < UInt256.size := by
-    have : bytesAllocationSize n ≤ 1088 := by unfold bytesAllocationSize; omega
+    have : bytesAllocationSize n ≤ 2208 := by unfold bytesAllocationSize; omega
     exact lt_of_le_of_lt this (by decide)
   have hpw : bytesPayloadSize n < UInt256.size := lt_of_le_of_lt hp (by decide)
   apply u256_inj
@@ -646,7 +646,7 @@ theorem newBytesExact {cA gh bl σ σ₀ A I} {g : Sat256}
         UInt256.ofNat ret :: UInt256.ofNat n :: tail)
       mem aw rdata acc (k + 25) (C + 91) :=
     (rd485raw.withPC (by native_decide)).withIndices (by omega) (by omega)
-  have rd599 := allocateMemoryExact hn hfp hbound hmemSize haw3 haw64 hread
+  have rd599 := allocateMemoryExact (by omega : n ≤ 2176) hfp hbound hmemSize haw3 haw64 hread
     (by simp only [List.length_cons]; omega) jumpDest_599 rd485
   have rd602 := evm_run rd599 with [known jumpdest hd10, known dup3 hd11, known dup2 hd12]
   have rd603 := RDx.mstore (newBytesStoreExpansionGas aw fp)
@@ -676,7 +676,7 @@ theorem newBytesExact {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd616 := evm_run rd615raw with [known jumpdest hd21, known add hd22]
   have hcancel : UInt256.ofNat (bytesAllocationSize n) + UInt256.lnot ⟨31⟩ =
       UInt256.ofNat (bytesPayloadSize n) := by
-    rw [u256_add_comm, allocationHeader_cancel hn]
+    rw [u256_add_comm, allocationHeader_cancel (by omega : n ≤ 2176)]
   rw [hcancel] at rd616
   have rd623raw := evm_run rd616 with [known swap1 hd23,
     known push1 hd24 ⟨32⟩, known calldatasize hd25, known swap2 hd26, known add hd27 ]
@@ -739,14 +739,13 @@ private theorem wordArrayDecodes :
 The helper allocates a Solidity dynamic array with `n` 32-byte payload words, writes the length word
 `n`, zero-initializes the payload by copying from `calldatasize`, and returns the old free pointer.
 -/
-theorem newWordArrayExact {cA gh bl σ σ₀ A I} {g : Sat256}
+private theorem newWordArrayExact68Raw {cA gh bl σ σ₀ A I} {g : Sat256}
     {n fp ret : Nat} {tail : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     {k C : Nat}
-    (hn : n ≤ 32) (hfp : 96 ≤ fp)
+    (hn : n ≤ 68) (hfp : 96 ≤ fp)
     (hbound : fp + wordArrayAllocationSize n < 2 ^ 64)
-    (hmemSize : 96 ≤ mem.size) (hmemLe : mem.size ≤ fp)
-    (hgap : fp - mem.size < USize.size)
+    (hmemSize : 96 ≤ mem.size)
     (haw3 : 3 ≤ aw.toNat) (haw64 : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩)
     (hread : mem.readWithPadding 64 32 = UInt256.toByteArray (UInt256.ofNat fp))
     (hcalldata : I.calldata.size < 2 ^ 64) (htail : tail.length ≤ 1014)
@@ -755,7 +754,9 @@ theorem newWordArrayExact {cA gh bl σ σ₀ A I} {g : Sat256}
       (UInt256.ofNat n :: UInt256.ofNat ret :: tail) mem aw rdata acc k C) :
     RDx runtimeBytecode I g (initState cA gh bl σ σ₀ g A I) (UInt256.ofNat ret)
       (UInt256.ofNat fp :: tail)
-      (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n)
+      (I.calldata.write I.calldata.size
+        (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n)
+        (fp + 32) (wordArrayPayloadSize n))
       (newWordArrayWords aw fp n) rdata acc (k + 78) (C + newWordArrayGas aw fp n) := by
   have hdw := wordArrayDecodes
   simp only [List.cons.injEq, and_true] at hdw
@@ -766,21 +767,21 @@ theorem newWordArrayExact {cA gh bl σ σ₀ A I} {g : Sat256}
   rcases hd with ⟨_hd0,_hd1,_hd2,_hd3,_hd4,_hd5,_hd6,hd7,hd8,hd9,
     _hd10,_hd11,_hd12,_hd13,hd14,hd15,hd16,hd17,hd18,hd19,
     hd20,hd21,hd22,hd23,hd24,hd25,hd26,hd27,hd28,hd29⟩
-  have hn32 : 32 * n ≤ 1024 := by omega
+  have hn32 : 32 * n ≤ 2176 := by omega
   have hn32Word : 32 * n < UInt256.size :=
-    lt_trans (lt_of_le_of_lt hn32 (by decide : 1024 < 2 ^ 64)) (by decide)
+    lt_trans (lt_of_le_of_lt hn32 (by decide : 2176 < 2 ^ 64)) (by decide)
   have hsizeEq : wordArrayAllocationSize n = bytesAllocationSize (32 * n) :=
     wordArrayAllocationSize_eq_bytesAllocationSize_mul32 n
   have hpayloadEq : wordArrayPayloadSize n = bytesPayloadSize (32 * n) :=
     wordArrayPayloadSize_eq_bytesPayloadSize_mul32 n
   have hnWord : n < UInt256.size :=
-    lt_trans (lt_of_le_of_lt hn (by decide : 32 < 2 ^ 64)) (by decide)
+    lt_trans (lt_of_le_of_lt hn (by decide : 68 < 2 ^ 64)) (by decide)
   have hfpWord : fp < UInt256.size := lt_trans (by omega : fp < 2 ^ 64) (by decide)
-  have hpBound : wordArrayPayloadSize n ≤ 1024 := by
+  have hpBound : wordArrayPayloadSize n ≤ 2176 := by
     unfold wordArrayPayloadSize
     omega
   have hpWord : wordArrayPayloadSize n < UInt256.size :=
-    lt_trans (lt_of_le_of_lt hpBound (by decide : 1024 < 2 ^ 64)) (by decide)
+    lt_trans (lt_of_le_of_lt hpBound (by decide : 2176 < 2 ^ 64)) (by decide)
   have hfp32Word : fp + 32 < UInt256.size := by
     have : 32 ≤ wordArrayAllocationSize n := by
       unfold wordArrayAllocationSize wordArrayPayloadSize
@@ -790,12 +791,6 @@ theorem newWordArrayExact {cA gh bl σ σ₀ A I} {g : Sat256}
     unfold setFreePtr
     apply toByteArray_write32_size_of_le mem _ 64 mem.size mem.size rfl (by omega)
     omega
-  have hstoreSize :
-      (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n).size =
-        fp + 32 := by
-    unfold storeBytesLength
-    apply toByteArray_write32_size_of_ge _ _ fp mem.size (fp + 32) hsetSize hmemLe
-      hgap rfl
   have rd1434raw := evm_run rd0 with [
     known jumpdest hw0, known swap1 hw1, known push2 hw2 ⟨1500⟩,
     known push2 hw3 ⟨594⟩, known dup4 hw4, known push2 hw5 ⟨1434⟩,
@@ -856,7 +851,9 @@ theorem newWordArrayExact {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.toNat_ofNat_of_lt hfp32Word, Nat.mod_eq_of_lt hfp32Word]
   rw [hfp32] at rd623raw
   have rd624 := RDx.calldatacopy (newWordArrayCopyExpansionGas aw fp n)
-    (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n)
+    (I.calldata.write I.calldata.size
+      (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n)
+      (fp + 32) (wordArrayPayloadSize n))
     (newWordArrayWords aw fp n) rd623raw hd28
     (by
       intro s hsaw hstk
@@ -868,11 +865,7 @@ theorem newWordArrayExact {cA gh bl σ σ₀ A I} {g : Sat256}
       rw [UInt256.toNat_ofNat_of_lt hfp32Word,
         UInt256.toNat_ofNat_of_lt hpWord,
         UInt256.toNat_ofNat_of_lt
-          (lt_trans hcalldata (by decide) : I.calldata.size < UInt256.size)]
-      exact write_from_source_end_past_dest I.calldata
-        (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n)
-        I.calldata.size (fp + 32) (wordArrayPayloadSize n) (le_refl _)
-        (by rw [hstoreSize]))
+          (lt_trans hcalldata (by decide) : I.calldata.size < UInt256.size)])
     (by simp [newWordArrayWords, UInt256.toNat_ofNat_of_lt hfp32Word,
       UInt256.toNat_ofNat_of_lt hpWord])
     (by simp only [List.length_cons]; omega)
@@ -881,5 +874,373 @@ theorem newWordArrayExact {cA gh bl σ σ₀ A I} {g : Sat256}
     simp [newWordArrayGas, newWordArrayCopyExpansionGas, GasConstants.Gverylow,
       GasConstants.Gcopy, UInt256.toNat_ofNat_of_lt hn32Word, wordArrayPayloadSize]
     omega)
+
+/-- A copy whose source cursor is exactly at end-of-source has a source-independent concrete
+effect: it overwrites the in-bounds destination suffix with zero bytes. -/
+theorem write_source_end_eq_empty (src base : ByteArray) (dest len : Nat) :
+    src.write src.size base dest len = ByteArray.empty.write 0 base dest len := by
+  unfold ByteArray.write
+  by_cases hlen : len = 0
+  · simp [hlen]
+  · simp [hlen]
+
+/-- A source-exhausted EVM copy that only overwrites concrete memory preserves its size. -/
+theorem emptyWrite_size_of_inBounds (base : ByteArray) (dest len : Nat)
+    (hin : dest + len ≤ base.size) :
+    (ByteArray.empty.write 0 base dest len).size = base.size := by
+  unfold ByteArray.write
+  by_cases hlen : len = 0
+  · subst len
+    rfl
+  · simp only [if_neg hlen]
+    rw [if_pos (by simp)]
+    have hdest : min dest base.size = dest := Nat.min_eq_left (by omega)
+    rw [hdest]
+    change
+      ((ffi.ByteArray.zeroes (min len (base.size - dest))).copySlice 0 base dest
+        (min len (base.size - dest))).data.size = base.size
+    rw [ByteArray.data_copySlice]
+    rw [Array.size_append, Array.size_append, Array.size_extract, Array.size_extract,
+      Array.size_extract]
+    have hz : (ffi.ByteArray.zeroes (min len (base.size - dest))).data.size =
+        min len (base.size - dest) := ByteArray_zeroes_size _
+    rw [hz]
+    have hb : base.data.size = base.size := rfl
+    rw [hb]
+    omega
+
+/-- Within concrete memory, copying from end-of-source is byte-for-byte the same as copying an
+explicit zero array. -/
+theorem emptyWrite_eq_zeroesWrite (base : ByteArray) (dest len : Nat)
+    (hin : dest + len ≤ base.size) :
+    ByteArray.empty.write 0 base dest len =
+      (ffi.ByteArray.zeroes len).write 0 base dest len := by
+  by_cases hlen : len = 0
+  · subst len
+    rw [zeroes_zero (n := 0) rfl]
+  · rw [write_eq_gen (ffi.ByteArray.zeroes len) base dest len hlen
+      (by rw [ByteArray_zeroes_size]) hin]
+    unfold ByteArray.write
+    rw [if_neg hlen, if_pos (by simp)]
+    apply ByteArray.ext
+    simp only [ByteArray.data_copySlice, ByteArray.data_append]
+    have hz : (ffi.ByteArray.zeroes (min len (base.size - dest))).data.size =
+        min len (base.size - dest) := ByteArray_zeroes_size _
+    rw [hz]
+    have hb : base.data.size = base.size := rfl
+    rw [hb]
+    have hdest : min dest base.size = dest := Nat.min_eq_left (by omega)
+    rw [hdest]
+    have hlenMin : min len (base.size - dest) = len := by omega
+    rw [hlenMin]
+    simp only [Nat.zero_add, Nat.sub_zero, min_self, ByteArray.data_extract]
+
+/-- Every subwindow of an in-bounds source-exhausted copy reads back as zero bytes. -/
+theorem emptyWrite_read_zeroes (base : ByteArray) (dest len read width : Nat)
+    (hin : dest + len ≤ base.size) (hread : dest ≤ read)
+    (hend : read + width ≤ dest + len) (hwidth : 0 < width)
+    (hwidth64 : width < 2 ^ 64) :
+    (ByteArray.empty.write 0 base dest len).readWithPadding read width =
+      ffi.ByteArray.zeroes width := by
+  rw [emptyWrite_eq_zeroesWrite base dest len hin]
+  have hwindow :
+      ((ffi.ByteArray.zeroes len).write 0 base dest len).readWithPadding read width =
+        (ffi.ByteArray.zeroes len).extract (read - dest) (read - dest + width) := by
+    rw [readWithPadding_eq_extract' _ read width hwidth hwidth64 (by
+      rw [write_size_of_inBounds_from (ffi.ByteArray.zeroes len) base 0 dest len
+        (by omega) (by rw [ByteArray_zeroes_size]; omega) hin]
+      omega)]
+    rw [write_eq_gen (ffi.ByteArray.zeroes len) base dest len (by omega)
+      (by rw [ByteArray_zeroes_size]) hin]
+    have hprefix : (base.extract 0 dest).size = dest := by
+      rw [ByteArray.size_extract]
+      omega
+    have hmiddle : ((ffi.ByteArray.zeroes len).extract 0 len).size = len := by
+      rw [ByteArray.size_extract, ByteArray_zeroes_size]
+      omega
+    rw [extract_append_left _ _ _ _ (by
+      rw [ByteArray.size_append, hprefix, hmiddle]
+      omega)]
+    rw [extract_append_right_window _ _ _ _ (by rw [hprefix]; omega), hprefix]
+    rw [show read + width - dest = read - dest + width by omega]
+    rw [extract_extract_BA]
+    congr 1 <;> omega
+  rw [hwindow, zeroes_extract]
+  congr
+  all_goals omega
+
+/-- Concrete memory returned by a word-array allocation when the allocation reuses an already
+materialized EVM scratch region. -/
+def reusedWordArrayMemory (mem : ByteArray) (fp n : Nat) : ByteArray :=
+  ByteArray.empty.write 0
+    (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n)
+    (fp + 32) (wordArrayPayloadSize n)
+
+/-- Reusing a fully materialized allocation range does not change concrete memory size. -/
+theorem reusedWordArrayMemory_size (mem : ByteArray) (fp n : Nat)
+    (hmemSize : 96 ≤ mem.size)
+    (hin : fp + wordArrayAllocationSize n ≤ mem.size) :
+    (reusedWordArrayMemory mem fp n).size = mem.size := by
+  have hsetSize : (setFreePtr mem (fp + wordArrayAllocationSize n)).size = mem.size :=
+    setFreePtr_size hmemSize
+  have hfp32 : fp + 32 ≤ mem.size := by
+    unfold wordArrayAllocationSize wordArrayPayloadSize at hin
+    omega
+  have hstoreSize :
+      (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n).size =
+        mem.size := by
+    unfold storeBytesLength
+    apply toByteArray_write32_size_of_le _ _ fp mem.size mem.size
+    · exact hsetSize
+    · rw [hsetSize]
+      omega
+    · exact max_eq_left hfp32
+  unfold reusedWordArrayMemory
+  have hzero := emptyWrite_size_of_inBounds
+    (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n)
+    (fp + 32) (wordArrayPayloadSize n) (by
+      rw [hstoreSize]
+      unfold wordArrayAllocationSize at hin
+      omega)
+  rwa [hstoreSize] at hzero
+
+/-- The reused allocator stores the advanced Solidity free-memory pointer exactly. -/
+theorem reusedWordArrayMemory_read64 (mem : ByteArray) (fp n : Nat)
+    (hmemSize : 96 ≤ mem.size)
+    (hfp : 96 ≤ fp) (hn : 0 < n)
+    (hin : fp + wordArrayAllocationSize n ≤ mem.size) :
+    (reusedWordArrayMemory mem fp n).readWithPadding 64 32 =
+      UInt256.toByteArray (UInt256.ofNat (fp + wordArrayAllocationSize n)) := by
+  have hsetSize : (setFreePtr mem (fp + wordArrayAllocationSize n)).size = mem.size :=
+    setFreePtr_size hmemSize
+  have hfp32 : fp + 32 ≤ mem.size := by
+    unfold wordArrayAllocationSize wordArrayPayloadSize at hin
+    omega
+  have hstoreSize :
+      (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n).size =
+        mem.size := by
+    unfold storeBytesLength
+    apply toByteArray_write32_size_of_le _ _ fp mem.size mem.size
+    · exact hsetSize
+    · rw [hsetSize]
+      omega
+    · exact max_eq_left hfp32
+  unfold reusedWordArrayMemory
+  rw [emptyWrite_eq_zeroesWrite _ _ _ (by
+    rw [hstoreSize]
+    unfold wordArrayAllocationSize at hin
+    omega)]
+  rw [write_read_below_gen]
+  · unfold storeBytesLength
+    rw [write32_read_below _ _ fp 64 (by rw [toByteArray_size]) (by
+      rw [hsetSize]
+      omega) (by omega)]
+    exact setFreePtr_read64 hmemSize
+  · unfold wordArrayPayloadSize
+    omega
+  · rw [ByteArray_zeroes_size]
+  · rw [hstoreSize]
+    unfold wordArrayAllocationSize at hin
+    omega
+  · omega
+
+/-- A reused allocation preserves every earlier padded word above Solidity's reserved prefix. -/
+theorem reusedWordArrayMemory_read_below (mem : ByteArray) (fp n read : Nat)
+    (hmemSize : 96 ≤ mem.size) (hn : 0 < n)
+    (hin : fp + wordArrayAllocationSize n ≤ mem.size)
+    (hreadBase : 96 ≤ read) (hbelow : read + 32 ≤ fp) :
+    (reusedWordArrayMemory mem fp n).readWithPadding read 32 =
+      mem.readWithPadding read 32 := by
+  have hsetSize : (setFreePtr mem (fp + wordArrayAllocationSize n)).size = mem.size :=
+    setFreePtr_size hmemSize
+  have hfp32 : fp + 32 ≤ mem.size := by
+    unfold wordArrayAllocationSize wordArrayPayloadSize at hin
+    omega
+  have hstoreSize :
+      (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n).size =
+        mem.size := by
+    unfold storeBytesLength
+    apply toByteArray_write32_size_of_le _ _ fp mem.size mem.size
+    · exact hsetSize
+    · rw [hsetSize]
+      omega
+    · exact max_eq_left hfp32
+  unfold reusedWordArrayMemory
+  rw [emptyWrite_eq_zeroesWrite _ _ _ (by
+    rw [hstoreSize]
+    unfold wordArrayAllocationSize at hin
+    omega)]
+  rw [write_read_below_gen]
+  · unfold storeBytesLength
+    rw [write32_read_below _ _ fp read (by rw [toByteArray_size]) (by
+      rw [hsetSize]
+      omega) hbelow]
+    exact setFreePtr_read_above_padded hmemSize hreadBase
+  · unfold wordArrayPayloadSize
+    omega
+  · rw [ByteArray_zeroes_size]
+  · rw [hstoreSize]
+    unfold wordArrayAllocationSize at hin
+    omega
+  · omega
+
+/-- Every complete payload word of a reused allocation is reset to zero. -/
+theorem reusedWordArrayMemory_payload_read (mem : ByteArray) (fp n i : Nat)
+    (hmemSize : 96 ≤ mem.size) (hi : i < n)
+    (hin : fp + wordArrayAllocationSize n ≤ mem.size) :
+    (reusedWordArrayMemory mem fp n).readWithPadding (fp + 32 + 32 * i) 32 =
+      ffi.ByteArray.zeroes 32 := by
+  have hsetSize : (setFreePtr mem (fp + wordArrayAllocationSize n)).size = mem.size :=
+    setFreePtr_size hmemSize
+  have hfp32 : fp + 32 ≤ mem.size := by
+    unfold wordArrayAllocationSize wordArrayPayloadSize at hin
+    omega
+  have hstoreSize :
+      (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n).size =
+        mem.size := by
+    unfold storeBytesLength
+    apply toByteArray_write32_size_of_le _ _ fp mem.size mem.size
+    · exact hsetSize
+    · rw [hsetSize]
+      unfold wordArrayAllocationSize wordArrayPayloadSize at hin
+      omega
+    · exact max_eq_left hfp32
+  unfold reusedWordArrayMemory
+  apply emptyWrite_read_zeroes
+  · rw [hstoreSize]
+    unfold wordArrayAllocationSize at hin
+    omega
+  · omega
+  · unfold wordArrayPayloadSize
+    omega
+  · omega
+  · decide
+
+/-- Exact dynamic word-array allocation without assuming that concrete memory ends at the free
+pointer.  This is the form needed after a prior Barrett call has materialized the reusable scratch
+region.  The deployed `CALLDATACOPY(calldatasize(), ...)` zeroes stale in-bounds payload bytes. -/
+theorem newWordArrayExact68Reused {cA gh bl σ σ₀ A I} {g : Sat256}
+    {n fp ret : Nat} {tail : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : Nat}
+    (hn : n ≤ 68) (hfp : 96 ≤ fp)
+    (hbound : fp + wordArrayAllocationSize n < 2 ^ 64)
+    (hmemSize : 96 ≤ mem.size)
+    (haw3 : 3 ≤ aw.toNat) (haw64 : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩)
+    (hread : mem.readWithPadding 64 32 = UInt256.toByteArray (UInt256.ofNat fp))
+    (hcalldata : I.calldata.size < 2 ^ 64) (htail : tail.length ≤ 1014)
+    (hret : (D_J runtimeBytecode 0).contains (UInt256.ofNat ret) = true)
+    (rd0 : RDx runtimeBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1487⟩
+      (UInt256.ofNat n :: UInt256.ofNat ret :: tail) mem aw rdata acc k C) :
+    RDx runtimeBytecode I g (initState cA gh bl σ σ₀ g A I) (UInt256.ofNat ret)
+      (UInt256.ofNat fp :: tail) (reusedWordArrayMemory mem fp n)
+      (newWordArrayWords aw fp n) rdata acc (k + 78) (C + newWordArrayGas aw fp n) := by
+  have rd := newWordArrayExact68Raw hn hfp hbound hmemSize haw3 haw64 hread hcalldata
+    htail hret rd0
+  rw [write_source_end_eq_empty] at rd
+  simpa only [reusedWordArrayMemory] using rd
+
+/-- Exact dynamic word-array allocation when the concrete byte array initially ends no later than
+the free-memory pointer.  The calldata copy starts at `calldatasize`, so the fresh payload remains
+represented by EVM zero padding rather than concrete bytes. -/
+theorem newWordArrayExact68 {cA gh bl σ σ₀ A I} {g : Sat256}
+    {n fp ret : Nat} {tail : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : Nat}
+    (hn : n ≤ 68) (hfp : 96 ≤ fp)
+    (hbound : fp + wordArrayAllocationSize n < 2 ^ 64)
+    (hmemSize : 96 ≤ mem.size) (hmemLe : mem.size ≤ fp)
+    (hgap : fp - mem.size < USize.size)
+    (haw3 : 3 ≤ aw.toNat) (haw64 : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩)
+    (hread : mem.readWithPadding 64 32 = UInt256.toByteArray (UInt256.ofNat fp))
+    (hcalldata : I.calldata.size < 2 ^ 64) (htail : tail.length ≤ 1014)
+    (hret : (D_J runtimeBytecode 0).contains (UInt256.ofNat ret) = true)
+    (rd0 : RDx runtimeBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1487⟩
+      (UInt256.ofNat n :: UInt256.ofNat ret :: tail) mem aw rdata acc k C) :
+    RDx runtimeBytecode I g (initState cA gh bl σ σ₀ g A I) (UInt256.ofNat ret)
+      (UInt256.ofNat fp :: tail)
+      (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n)
+      (newWordArrayWords aw fp n) rdata acc (k + 78) (C + newWordArrayGas aw fp n) := by
+  have hsetSize : (setFreePtr mem (fp + wordArrayAllocationSize n)).size = mem.size :=
+    setFreePtr_size hmemSize
+  have hstoreSize :
+      (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n).size =
+        fp + 32 := by
+    unfold storeBytesLength
+    apply toByteArray_write32_size_of_ge _ _ fp mem.size (fp + 32) hsetSize hmemLe
+      hgap rfl
+  have rd := newWordArrayExact68Raw hn hfp hbound hmemSize haw3 haw64 hread hcalldata
+    htail hret rd0
+  rw [write_from_source_end_past_dest I.calldata
+    (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n)
+    I.calldata.size (fp + 32) (wordArrayPayloadSize n) (le_refl _)
+    (by rw [hstoreSize])] at rd
+  exact rd
+
+/-- Backwards-compatible 65-word interface used by the Barrett-constant dividend allocation. -/
+theorem newWordArrayExact65 {cA gh bl σ σ₀ A I} {g : Sat256}
+    {n fp ret : Nat} {tail : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : Nat}
+    (hn : n ≤ 65) (hfp : 96 ≤ fp)
+    (hbound : fp + wordArrayAllocationSize n < 2 ^ 64)
+    (hmemSize : 96 ≤ mem.size) (hmemLe : mem.size ≤ fp)
+    (hgap : fp - mem.size < USize.size)
+    (haw3 : 3 ≤ aw.toNat) (haw64 : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩)
+    (hread : mem.readWithPadding 64 32 = UInt256.toByteArray (UInt256.ofNat fp))
+    (hcalldata : I.calldata.size < 2 ^ 64) (htail : tail.length ≤ 1014)
+    (hret : (D_J runtimeBytecode 0).contains (UInt256.ofNat ret) = true)
+    (rd0 : RDx runtimeBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1487⟩
+      (UInt256.ofNat n :: UInt256.ofNat ret :: tail) mem aw rdata acc k C) :
+    RDx runtimeBytecode I g (initState cA gh bl σ σ₀ g A I) (UInt256.ofNat ret)
+      (UInt256.ofNat fp :: tail)
+      (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n)
+      (newWordArrayWords aw fp n) rdata acc (k + 78) (C + newWordArrayGas aw fp n) := by
+  exact newWordArrayExact68 (by omega) hfp hbound hmemSize hmemLe hgap haw3 haw64
+    hread hcalldata htail hret rd0
+
+/-- Backwards-compatible 33-word interface used by schoolbook normalization. -/
+theorem newWordArrayExact33 {cA gh bl σ σ₀ A I} {g : Sat256}
+    {n fp ret : Nat} {tail : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : Nat}
+    (hn : n ≤ 33) (hfp : 96 ≤ fp)
+    (hbound : fp + wordArrayAllocationSize n < 2 ^ 64)
+    (hmemSize : 96 ≤ mem.size) (hmemLe : mem.size ≤ fp)
+    (hgap : fp - mem.size < USize.size)
+    (haw3 : 3 ≤ aw.toNat) (haw64 : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩)
+    (hread : mem.readWithPadding 64 32 = UInt256.toByteArray (UInt256.ofNat fp))
+    (hcalldata : I.calldata.size < 2 ^ 64) (htail : tail.length ≤ 1014)
+    (hret : (D_J runtimeBytecode 0).contains (UInt256.ofNat ret) = true)
+    (rd0 : RDx runtimeBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1487⟩
+      (UInt256.ofNat n :: UInt256.ofNat ret :: tail) mem aw rdata acc k C) :
+    RDx runtimeBytecode I g (initState cA gh bl σ σ₀ g A I) (UInt256.ofNat ret)
+      (UInt256.ofNat fp :: tail)
+      (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n)
+      (newWordArrayWords aw fp n) rdata acc (k + 78) (C + newWordArrayGas aw fp n) := by
+  exact newWordArrayExact68 (by omega) hfp hbound hmemSize hmemLe hgap haw3 haw64
+    hread hcalldata htail hret rd0
+
+/-- Backwards-compatible 32-word interface used by the other bounded ModExp temporaries. -/
+theorem newWordArrayExact {cA gh bl σ σ₀ A I} {g : Sat256}
+    {n fp ret : Nat} {tail : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : Nat}
+    (hn : n ≤ 32) (hfp : 96 ≤ fp)
+    (hbound : fp + wordArrayAllocationSize n < 2 ^ 64)
+    (hmemSize : 96 ≤ mem.size) (hmemLe : mem.size ≤ fp)
+    (hgap : fp - mem.size < USize.size)
+    (haw3 : 3 ≤ aw.toNat) (haw64 : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩)
+    (hread : mem.readWithPadding 64 32 = UInt256.toByteArray (UInt256.ofNat fp))
+    (hcalldata : I.calldata.size < 2 ^ 64) (htail : tail.length ≤ 1014)
+    (hret : (D_J runtimeBytecode 0).contains (UInt256.ofNat ret) = true)
+    (rd0 : RDx runtimeBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1487⟩
+      (UInt256.ofNat n :: UInt256.ofNat ret :: tail) mem aw rdata acc k C) :
+    RDx runtimeBytecode I g (initState cA gh bl σ σ₀ g A I) (UInt256.ofNat ret)
+      (UInt256.ofNat fp :: tail)
+      (storeBytesLength (setFreePtr mem (fp + wordArrayAllocationSize n)) fp n)
+      (newWordArrayWords aw fp n) rdata acc (k + 78) (C + newWordArrayGas aw fp n) := by
+  exact newWordArrayExact68 (by omega) hfp hbound hmemSize hmemLe hgap haw3 haw64
+    hread hcalldata htail hret rd0
 
 end Modexp

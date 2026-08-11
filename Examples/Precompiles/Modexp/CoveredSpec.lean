@@ -49,6 +49,42 @@ def coveredEnsures (ctx : BytecodeContext) (result : BytecodeResult) : Prop :=
       ExactGasPost ctx (Model.output ctx.executionEnv.calldata)
         (wideBarrettNormalizedWordTotalGas ctx.executionEnv) result)
 
+/-- Total executable exact-gas selector for the currently covered branch family.  The final
+fallback is observable only outside `coveredAccepts`; it keeps the selector total while later
+multi-limb branches are added. -/
+def coveredGasSelector (ctx : BytecodeContext) : Nat :=
+  let I := ctx.executionEnv
+  let l := lengths I.calldata
+  let exponentValue :=
+    Model.bytesToNatPadded I.calldata (wideExponentOffset l.base) l.exponent
+  let baseValue := Model.bytesToNatPadded I.calldata 96 l.base
+  let modulusValue :=
+    Model.bytesToNatPadded I.calldata (wideModulusOffset l.base l.exponent) l.modulus
+  let parity := modulusLastByteParity
+    (operandCopiedMemory I l.base l.exponent l.modulus)
+    (operandModulusActiveWords l.base l.exponent l.modulus)
+    l.base l.exponent l.modulus
+  let directBarrett := l.modulus = 1 ∨
+    UInt256.byteAt ⟨0⟩
+      (wideLoadWord
+        (wideWordResultMemory I l.base l.exponent l.modulus)
+        (wideWordResultWords l.base l.exponent l.modulus)
+        (UInt256.ofNat (operandModulusPtr l.base l.exponent + 32))) ≠ ⟨0⟩
+  if l.base ≤ 32 ∧ l.exponent ≤ 32 ∧ l.modulus ≤ 32 then wordGasCost I
+  else if exponentValue = 0 ∨ baseValue ≤ 1 then wideFastGas I
+  else if l.modulus = 0 then
+    wideZeroModulusLengthTotalGas ctx.executionEnv
+  else if l.modulus ≤ 32 ∧ modulusValue ≤ 1 then
+    wideSmallModulusValueTotalGas ctx.executionEnv
+  else if l.modulus ≤ 32 ∧ 1 < modulusValue ∧ parity = ⟨1⟩ then
+    wideMontgomeryWordTotalGas ctx.executionEnv
+  else if l.modulus ≤ 32 ∧ 1 < modulusValue ∧ parity = ⟨0⟩ ∧ directBarrett then
+    wideBarrettDirectWordTotalGas ctx.executionEnv
+  else wideBarrettNormalizedWordTotalGas ctx.executionEnv
+
+def coveredSelectedGasEnsures (ctx : BytecodeContext) (result : BytecodeResult) : Prop :=
+  ExactGasPost ctx (Model.output ctx.executionEnv.calldata) (coveredGasSelector ctx) result
+
 theorem coveredBytecodeSpec :
     BytecodeSpec runtimeBytecode coveredAccepts coveredEnsures := by
   constructor

@@ -1842,11 +1842,27 @@ def RDxRev (code : ByteArray) (g : Sat256) (s0 : State) (cost : Nat) : Prop :=
     X (g.toNat + 1) (D_J code 0) s0 = .ok (.revert g' output) ∧
     g' = (g.subNat cost).toUInt256)
 
+/-- Threshold-exact revert termination with a resolved return payload. -/
+def RDxRevOutput (code : ByteArray) (g : Sat256) (s0 : State)
+    (output : ByteArray) (cost : Nat) : Prop :=
+  (g.toNat < cost → X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass) ∧
+  (cost ≤ g.toNat →
+    X (g.toNat + 1) (D_J code 0) s0 =
+      .ok (.revert (g.subNat cost).toUInt256 output))
+
 /-- Normalize an exact revert cost without unfolding its threshold proof. -/
 theorem RDxRev.withCost {code : ByteArray} {g : Sat256} {s0 : State}
     {cost cost' : Nat}
     (h : RDxRev code g s0 cost) (hcost : cost = cost') :
     RDxRev code g s0 cost' := by
+  subst cost'
+  exact h
+
+/-- Normalize an exact resolved revert cost without unfolding its threshold proof. -/
+theorem RDxRevOutput.withCost {code : ByteArray} {g : Sat256} {s0 : State}
+    {output : ByteArray} {cost cost' : Nat}
+    (h : RDxRevOutput code g s0 output cost) (hcost : cost = cost') :
+    RDxRevOutput code g s0 output cost' := by
   subst cost'
   exact h
 
@@ -1948,6 +1964,35 @@ theorem RDx.haltRevert
     refine ⟨(next s).machineState.gasAvailable.toUInt256, output,
       hX.trans (stepHaltRevert hgas (hstep s hm) hk henough), ?_⟩
     rw [hnextGas s hm, hgas, Sat256.subNat_subNat]
+
+/-- Generic threshold-exact reverting halt retaining its resolved output. -/
+theorem RDx.haltRevertOutput
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata output : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C cost : Nat} (next : State → State)
+    (h : RDx code ee g s0 pc stk mem aw rdata acc k C)
+    (hstep : ∀ s : State, RDxMatches code ee s0 pc stk mem aw rdata acc s →
+      Xstep (D_J code 0) s =
+        if s.machineState.gasAvailable.toNat < cost then .error .OutOfGass
+        else .ok (next s, .some (.revert, output)))
+    (hnextGas : ∀ s : State, RDxMatches code ee s0 pc stk mem aw rdata acc s →
+      (next s).machineState.gasAvailable = s.machineState.gasAvailable.subNat cost) :
+    RDxRevOutput code g s0 output (C + cost) := by
+  rcases h with ⟨hk, hoog, hreach⟩
+  constructor
+  · intro hlow
+    by_cases hC : C ≤ g.toNat
+    · obtain ⟨s, hX, hgas, hm⟩ := hreach hC
+      exact terminalOOGExact hgas (hstep s hm) hk hC hlow hX
+    · exact hoog (Nat.lt_of_not_ge hC)
+  · intro henough
+    have hC : C ≤ g.toNat := by omega
+    obtain ⟨s, hX, hgas, hm⟩ := hreach hC
+    have hhalt := hX.trans (stepHaltRevert hgas (hstep s hm) hk henough)
+    rw [hnextGas s hm, hgas, Sat256.subNat_subNat] at hhalt
+    exact hhalt
 
 /-- Close an exact cursor with a gas-guarded exceptional instruction. -/
 theorem RDx.haltError
@@ -2096,6 +2141,32 @@ theorem RDx.revOutput
     rw [hmc s haw hstk]
     simp
 
+/-- Exact `REVERT` retaining the resolved return byte array. -/
+theorem RDx.revOutputExact
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {off len : UInt256} {t : List UInt256} (memoryCost : Nat) (output : ByteArray)
+    (h : RDx code ee g s0 pc (off :: len :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.REVERT, .none))
+    (hmc : ∀ s : State, s.machineState.activeWords = aw →
+      s.machineState.stack = off :: len :: t → memoryExpansionCost s .REVERT = memoryCost)
+    (houtput : mem.readWithPadding off.toNat len.toNat = output)
+    (hov : t.length ≤ 1024) :
+    RDxRevOutput code g s0 output (C + memoryCost) := by
+  apply RDx.haltRevertOutput (cost := memoryCost) (fun s => stRevert s off len t) h
+  · intro s hm
+    rcases hm with ⟨hcode, hpc, hstk, hmem, haw, _hrdata, _hacc, _hee, _hworld⟩
+    have hs := revert_xstep hcode hpc hdec hstk hov
+    rw [hmc s haw hstk, show s.machineState.memory.readWithPadding off.toNat len.toNat = output
+      from by rw [hmem, houtput]] at hs
+    exact hs
+  · intro s hm
+    rcases hm with ⟨_hcode, _hpc, hstk, _hmem, haw, _hrdata, _hacc, _hee, _hworld⟩
+    simp only [stRevert]
+    rw [hmc s haw hstk]
+    simp
+
 /-- Exact `REVERT` in the argument order used by the established symbolic-execution DSL.  The
 revert payload is intentionally existential in `RDxRev`, so no output-resolution premise is
 needed. -/
@@ -2221,6 +2292,16 @@ private theorem xiSuccessOfXExact
   Xi_success_of_X (g := g.toUInt256) (by
     simpa [Reasoning.Theory.initState, Sat256.ofUInt256, Sat256.toUInt256] using h)
 
+private theorem xiRevertOfXExact
+    {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {g' output} {g : Sat256}
+    (h : X (g.toNat + 1) (D_J I.code 0)
+      (Reasoning.Theory.initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) =
+        .ok (.revert g' output)) :
+    Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g.toUInt256 A I =
+      .ok (.revert g' output) :=
+  Xi_revert_of_X (g := g.toUInt256) (by
+    simpa [Reasoning.Theory.initState, Sat256.ofUInt256, Sat256.toUInt256] using h)
+
 /-- Exact raw `Ξ` characterization.  Both gas cases retain their conditions, so sufficient gas
 rules out the OOG alternative. -/
 theorem RDxRet.xiResult
@@ -2248,6 +2329,28 @@ theorem RDxRet.xiResult
     have hxi := xiSuccessOfXExact (by rw [hcode]; exact hX)
     rw [hcA, hσ, hgas] at hxi
     exact hxi
+
+/-- Exact public `Ξ` characterization of a revert with resolved output. -/
+theorem RDxRevOutput.xiResult
+    {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    {code output : ByteArray} {cost : Nat}
+    (hcode : I.code = code)
+    (h : RDxRevOutput code g (Reasoning.Theory.initState cA gh bl σ σ₀ g A I)
+      output cost) :
+    (g.toNat < cost → Ξ cA gh bl σ σ₀ g.toUInt256 A I = .error .OutOfGass) ∧
+    (cost ≤ g.toNat → Ξ cA gh bl σ σ₀ g.toUInt256 A I =
+      .ok (.revert (g.subNat cost).toUInt256 output)) := by
+  rcases h with ⟨hoog, hrevert⟩
+  constructor
+  · intro hlow
+    apply xiErrorOfXExact
+    rw [hcode]
+    exact hoog hlow
+  · intro henough
+    apply xiRevertOfXExact
+    rw [hcode]
+    exact hrevert henough
 
 /-- Exact public `Ξ` characterization of an exceptional trace. -/
 theorem RDxErr.xiResult

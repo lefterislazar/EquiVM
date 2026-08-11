@@ -777,6 +777,52 @@ private theorem copyIntoZeroAtEnd (src base : ByteArray) (off width : Nat)
         rw [show (src.size - off).min width = avail from
           (Nat.min_comm (src.size - off) width).trans rfl]
 
+/-- An EVM copy whose destination starts at the concrete end of memory reads back as the
+zero-padded source window.  `ByteArray.write` only materializes the available source prefix;
+the remaining destination bytes are represented by EVM's implicit zero memory. -/
+theorem writeAtEnd_readWithPadding (src base : ByteArray) (off width : Nat)
+    (hbase64 : base.size < 2 ^ 64) (hwidth64 : width < 2 ^ 64) :
+    (src.write off base base.size width).readWithPadding base.size width =
+      Model.readPadded src off width := by
+  have hwrite :
+      src.write off base base.size width =
+        src.write off base base.size (min width (src.size - off)) := by
+    by_cases hwidth : width = 0
+    · simp [hwidth]
+    by_cases hoff : off ≥ src.size
+    · rw [write_from_source_end_past_dest src base off base.size width hoff le_rfl,
+        write_from_source_end_past_dest src base off base.size
+          (min width (src.size - off)) hoff le_rfl]
+    · have hoff' : off < src.size := Nat.lt_of_not_ge hoff
+      have havail : 0 < min width (src.size - off) := by omega
+      unfold ByteArray.write
+      simp only [if_neg hwidth, if_neg hoff, if_neg (Nat.ne_of_gt havail)]
+      have hpractical :
+          min (min width (src.size - off)) (src.size - off) =
+            min width (src.size - off) := Nat.min_eq_left (Nat.min_le_right _ _)
+      have hpadWidth :
+          min base.size (base.size + width) -
+              (base.size + min width (src.size - off)) = 0 := by omega
+      have hpadAvail :
+          min base.size (base.size + min width (src.size - off)) -
+              (base.size + min width (src.size - off)) = 0 := by omega
+      rw [hpractical]
+      rw [hpadWidth, hpadAvail]
+  rw [hwrite]
+  exact copyIntoZeroAtEnd src base off width hbase64 hwidth64
+
+/-- A subwindow of an end-of-memory copy is the corresponding padded source subwindow. -/
+theorem writeAtEnd_readWithPadding_window (src base : ByteArray)
+    (off width start len : Nat)
+    (hbaseWidth64 : base.size + width < 2 ^ 64)
+    (hlen64 : len < 2 ^ 64) (hwindow : start + len ≤ width) :
+    (src.write off base base.size width).readWithPadding (base.size + start) len =
+      Model.readPadded src (off + start) len := by
+  rw [← readWithPadding_window (src.write off base base.size width)
+    base.size width start len (by omega) (by omega) (by omega) hlen64 hwindow]
+  rw [writeAtEnd_readWithPadding src base off width (by omega) (by omega)]
+  exact model_readPadded_window src off width start len hwindow
+
 theorem operandBaseCopiedMemory_size (I : ExecutionEnv)
     (baseSize exponentSize modulusSize : Nat)
     (hb : baseSize ≤ 1024) (he : exponentSize ≤ 1024) :

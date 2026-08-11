@@ -1895,7 +1895,7 @@ theorem runPreparedBarrettNormalizedWordExactAny
     {baseSize exponentSize modulusSize ret fp resultFp : Nat} {tail : List UInt256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
     (hb : baseSize ≤ 1024) (he : exponentSize ≤ 1024)
-    (hmodPos : 0 < modulusSize) (hm : modulusSize ≤ 32)
+    (hmodPos : 0 < modulusSize) (hm : modulusSize ≤ 1024)
     (hmod : 1 < Model.bytesToNatPadded I.calldata
       (96 + baseSize + exponentSize) modulusSize)
     (hcalldata : I.calldata.size < 2 ^ 64)
@@ -2245,7 +2245,7 @@ theorem runPreparedBarrettNormalizedWordExactAny
     (by
       dsimp only [p]
       apply lt_of_le_of_lt
-        (show operandModulusPtr baseSize exponentSize + modulusSize + 31 ≤ 2303 by
+        (show operandModulusPtr baseSize exponentSize + modulusSize + 31 ≤ 3295 by
           unfold operandModulusPtr operandExponentPtr operandBasePtr bytesAllocationSize
           omega)
         (by decide))

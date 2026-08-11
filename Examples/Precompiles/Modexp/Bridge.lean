@@ -771,6 +771,22 @@ theorem model_bytesToNatPadded_split (bs : ByteArray) (start a b : Nat) :
   rw [model_readPadded_append, model_bytesToBigEndianNat_append,
     model_readPadded_size]
 
+/-- A nonzero first byte supplies the expected big-endian place-value lower bound. -/
+theorem model_bytesToNatPadded_lower_of_first
+    (bs : ByteArray) (start width : Nat) (hwidth : 0 < width)
+    (hfirst : 0 < Model.bytesToNatPadded bs start 1) :
+    256 ^ (width - 1) ≤ Model.bytesToNatPadded bs start width := by
+  have hsplit := model_bytesToNatPadded_split bs start 1 (width - 1)
+  have hsum : 1 + (width - 1) = width := by omega
+  rw [hsum] at hsplit
+  calc
+    256 ^ (width - 1) = 1 * 256 ^ (width - 1) := by simp
+    _ ≤ Model.bytesToNatPadded bs start 1 * 256 ^ (width - 1) :=
+      Nat.mul_le_mul_right _ hfirst
+    _ ≤ Model.bytesToNatPadded bs start 1 * 256 ^ (width - 1) +
+        Model.bytesToNatPadded bs (start + 1) (width - 1) := Nat.le_add_right _ _
+    _ = Model.bytesToNatPadded bs start width := hsplit.symm
+
 /-- If each byte in a trusted padded field decodes as zero, the whole field decodes as zero. -/
 theorem model_bytesToNatPadded_eq_zero_of_bytes
     (bs : ByteArray) (start width : Nat)

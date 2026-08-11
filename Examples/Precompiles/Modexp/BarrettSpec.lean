@@ -326,7 +326,7 @@ def wideBarrettNormalizedWordGas (I : ExecutionEnv)
       (wideBarrettNormalizedResultFp I baseSize exponentSize modulusSize) +
     16
 
-private theorem barrettNormalizedMemory_base_size
+theorem barrettNormalizedMemory_base_size
     {mem : ByteArray} {fp len : Nat}
     (hmem96 : 96 ≤ mem.size) (hmemLe : mem.size ≤ fp)
     (hgap : fp - mem.size < USize.size) :
@@ -336,7 +336,7 @@ private theorem barrettNormalizedMemory_base_size
     (by rw [setFreePtr_size hmem96]; exact hmemLe)
     (by rw [setFreePtr_size hmem96]; exact hgap)
 
-private theorem barrettNormalizedMemory_size
+theorem barrettNormalizedMemory_size
     {mem : ByteArray} {fp p offset len : Nat}
     (hmem96 : 96 ≤ mem.size) (hmemLe : mem.size ≤ fp)
     (hgap : fp - mem.size < USize.size) (hlen : 0 < len)
@@ -351,7 +351,7 @@ private theorem barrettNormalizedMemory_size
   unfold barrettNormalizedMemory
   simpa [mem1, hmem1Size] using hwrite
 
-private theorem barrettNormalizedMemory_read_length
+theorem barrettNormalizedMemory_read_length
     {mem : ByteArray} {fp p offset len : Nat}
     (hmem96 : 96 ≤ mem.size) (hmemLe : mem.size ≤ fp)
     (hgap : fp - mem.size < USize.size) (hlen : 0 < len)
@@ -374,7 +374,7 @@ private theorem barrettNormalizedMemory_read_length
   unfold barrettNormalizedMemory
   simpa [mem1, hmem1Size] using hpres.trans hself
 
-private theorem barrettNormalizedMemory_read64
+theorem barrettNormalizedMemory_read64
     {mem : ByteArray} {fp p offset len : Nat}
     (hmem96 : 96 ≤ mem.size) (hfp96 : 96 ≤ fp) (hmemLe : mem.size ≤ fp)
     (hgap : fp - mem.size < USize.size) (hlen : 0 < len)
@@ -404,7 +404,7 @@ private theorem barrettNormalizedMemory_read64
   unfold barrettNormalizedMemory
   simpa [mem1, hmem1Size] using hpres.trans hread64
 
-private theorem barrettNormalizedMemory_read_below_padded
+theorem barrettNormalizedMemory_read_below_padded
     {mem : ByteArray} {fp p offset len read : Nat}
     (hmem96 : 96 ≤ mem.size) (hmemLe : mem.size ≤ fp)
     (hgap : fp - mem.size < USize.size) (hlen : 0 < len)
@@ -437,7 +437,7 @@ private theorem barrettNormalizedMemory_read_below_padded
   simpa [mem1, hmem1Size] using hpresCopy.trans (hpresHeader.trans hpresFree)
 
 /-- Variable-width reads below the normalized allocation are preserved. -/
-private theorem barrettNormalizedMemory_read_below_len
+theorem barrettNormalizedMemory_read_below_len
     {mem : ByteArray} {fp p offset written read len : Nat}
     (hmem96 : 96 ≤ mem.size) (hmemLe : mem.size ≤ fp)
     (hgap : fp - mem.size < USize.size) (hwritten : 0 < written)
@@ -477,7 +477,7 @@ private theorem barrettNormalizedMemory_read_below_len
   exact hpresCopy.trans (hpresHeader.trans hpresFree)
 
 /-- Variable-width reads inside the zero gap below the normalized allocation return zeroes. -/
-private theorem barrettNormalizedMemory_read_gap_len
+theorem barrettNormalizedMemory_read_gap_len
     {mem : ByteArray} {fp p offset written read len : Nat}
     (hmem96 : 96 ≤ mem.size) (hmemLe : mem.size ≤ fp)
     (hgap : fp - mem.size < USize.size) (hwritten : 0 < written)
@@ -928,7 +928,7 @@ private theorem wideWordReturnMemory_payload_eq_natToBytes
   rw [hcopy, hsum, hextract]
   rw [← model_natToBytes_eq_toByteArray_suffix value width hwidth hfit]
 
-private theorem barrettRestoreMemory_read_below
+theorem barrettRestoreMemory_read_below
     {mem : ByteArray} {temp result offset len read : Nat}
     (hlen : 0 < len)
     (hsrc : temp + 32 + len ≤ mem.size)
@@ -941,7 +941,7 @@ private theorem barrettRestoreMemory_read_below
   exact write_read_below_gen_from_extend mem mem (temp + 32) (result + offset) len read 32
     (Nat.ne_of_gt hlen) hsrc hdest hbelow hreadIn (by decide) (by decide)
 
-private theorem barrettRestoreMemory_read_below_len
+theorem barrettRestoreMemory_read_below_len
     {mem : ByteArray} {temp result offset written read len : Nat}
     (hwritten : 0 < written) (hpos : 0 < len)
     (hlen64 : len < 2 ^ 64)
@@ -955,7 +955,7 @@ private theorem barrettRestoreMemory_read_below_len
   exact write_read_below_gen_from_extend mem mem (temp + 32) (result + offset) written
     read len (Nat.ne_of_gt hwritten) hsrc hdest hbelow hreadIn hpos hlen64
 
-private theorem barrettRestoreMemory_read_restored
+theorem barrettRestoreMemory_read_restored
     {mem : ByteArray} {temp result offset len : Nat}
     (hlen : 0 < len)
     (hsrc : temp + 32 + len ≤ mem.size)
@@ -969,7 +969,7 @@ private theorem barrettRestoreMemory_read_restored
     (Nat.ne_of_gt hlen) hsrc hdest hlen64]
   exact (readWithPadding_eq_extract' mem (temp + 32) len hlen hlen64 hsrc).symm
 
-private theorem readWithPadding_eq_leftPaddedNatToBytes
+theorem readWithPadding_eq_leftPaddedNatToBytes
     {mem : ByteArray} {start k len width value : Nat}
     (hklen : k + len = width)
     (hlenPos : 0 < len)
@@ -992,7 +992,7 @@ private theorem readWithPadding_eq_leftPaddedNatToBytes
     rw [show width = k + len by omega, hsplit, hprefix, hsuffix]
     exact model_natToBytes_leftPad value k len hfit
 
-private theorem barrettRestoreMemory_size_inBounds
+theorem barrettRestoreMemory_size_inBounds
     {mem : ByteArray} {temp result offset len : Nat}
     (hlen : 0 < len)
     (hsrc : temp + 32 + len ≤ mem.size)
@@ -1450,7 +1450,8 @@ theorem wideBarrettNormalizedWordFromEntryModelExact
     {baseSize exponentSize modulusSize : Nat}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
     (hb : baseSize ≤ 1024) (he : exponentSize ≤ 1024)
-    (hmodPos : 0 < modulusSize) (hm : modulusSize ≤ 32)
+    (hmodPos : 0 < modulusSize) (hm : modulusSize ≤ 1024)
+    (hnLe32 : wideBarrettNormalizedLenFor I baseSize exponentSize modulusSize ≤ 32)
     (hexp : Model.bytesToNatPadded I.calldata
       (wideExponentOffset baseSize) exponentSize ≠ 0)
     (hbase : 1 < Model.bytesToNatPadded I.calldata 96 baseSize)
@@ -1476,7 +1477,7 @@ theorem wideBarrettNormalizedWordFromEntryModelExact
             (wideModulusOffset baseSize exponentSize) modulusSize))
         modulusSize)
       (C + wideBarrettNormalizedWordGas I baseSize exponentSize modulusSize) := by
-  have hm1024 : modulusSize ≤ 1024 := by omega
+  have hm1024 : modulusSize ≤ 1024 := hm
   obtain ⟨kExp, rd89⟩ := reachWideExponentNonzero
     (baseSize := baseSize) (exponentSize := exponentSize) (modulusSize := modulusSize)
     (by omega : 96 + baseSize + exponentSize + 32 < 2 ^ 64) hexp rd0
@@ -1530,13 +1531,7 @@ theorem wideBarrettNormalizedWordFromEntryModelExact
       mem0, aw0, p] using Nat.sub_pos_of_lt hdeltaLt
   have hnormLenLe32Local :
       wideBarrettNormalizedLenFor I baseSize exponentSize modulusSize ≤ 32 := by
-    have hleMod :
-        wideBarrettNormalizedLenFor I baseSize exponentSize modulusSize ≤ modulusSize := by
-      simpa [wideBarrettNormalizedLenFor, barrettNormalizedLen, barrettNormalizedOffset,
-        mem0, aw0, p] using
-          (Nat.sub_le modulusSize
-            (barrettScanStop mem0 aw0 p modulusSize - p - 32))
-    exact le_trans hleMod hm
+    exact hnLe32
   have hnormLenWordLocal :
       wideBarrettNormalizedLenFor I baseSize exponentSize modulusSize < UInt256.size := by
     exact lt_of_le_of_lt hnormLenLe32Local (by decide)
@@ -1615,7 +1610,7 @@ theorem wideBarrettNormalizedWordFromEntryModelExact
         64 := by
     unfold bytesAllocationSize
     omega
-  have hfpLe : fp ≤ 2368 := by
+  have hfpLe : fp ≤ 4352 := by
     dsimp [fp, wideBarrettNormalizedFp]
     unfold operandFreePtr operandModulusPtr operandExponentPtr operandBasePtr
       bytesAllocationSize
@@ -1624,7 +1619,7 @@ theorem wideBarrettNormalizedWordFromEntryModelExact
       resultFp = fp +
         bytesAllocationSize (wideBarrettNormalizedLenFor I baseSize exponentSize modulusSize) := by
     dsimp [resultFp, fp, wideBarrettNormalizedResultFp]
-  have hresultFpLe : resultFp ≤ 2432 := by
+  have hresultFpLe : resultFp ≤ 4416 := by
     rw [hresultFpEq]
     omega
   have hboundLocal :
@@ -1632,27 +1627,27 @@ theorem wideBarrettNormalizedWordFromEntryModelExact
         (wideBarrettNormalizedLenFor I baseSize exponentSize modulusSize) < 2 ^ 64 := by
     exact lt_of_le_of_lt (by omega : fp +
       bytesAllocationSize (wideBarrettNormalizedLenFor I baseSize exponentSize modulusSize) ≤
-        2432) (by decide)
+        4416) (by decide)
   have hfp32WordLocal : fp + 32 < UInt256.size := by
-    exact lt_of_le_of_lt (by omega : fp + 32 ≤ 2400) (by decide)
+    exact lt_of_le_of_lt (by omega : fp + 32 ≤ 4384) (by decide)
   have hresultBoundLocal :
       resultFp + bytesAllocationSize
         (wideBarrettNormalizedLenFor I baseSize exponentSize modulusSize) < 2 ^ 64 := by
     exact lt_of_le_of_lt (by omega : resultFp +
       bytesAllocationSize (wideBarrettNormalizedLenFor I baseSize exponentSize modulusSize) ≤
-        2496) (by decide)
+        4480) (by decide)
   have hchecksBoundLocal :
       fp + 32 + wideBarrettNormalizedLenFor I baseSize exponentSize modulusSize + 32 <
         UInt256.size := by
     exact lt_of_le_of_lt (by omega : fp + 32 +
-      wideBarrettNormalizedLenFor I baseSize exponentSize modulusSize + 32 ≤ 2464) (by decide)
+      wideBarrettNormalizedLenFor I baseSize exponentSize modulusSize + 32 ≤ 4448) (by decide)
   have hfpEndWordLocal :
       fp + wideBarrettNormalizedLenFor I baseSize exponentSize modulusSize + 31 <
         UInt256.size := by
     exact lt_of_le_of_lt (by omega : fp +
-      wideBarrettNormalizedLenFor I baseSize exponentSize modulusSize + 31 ≤ 2431) (by decide)
+      wideBarrettNormalizedLenFor I baseSize exponentSize modulusSize + 31 ≤ 4415) (by decide)
   have hresultFpWordLocal : resultFp + 32 < UInt256.size := by
-    exact lt_of_le_of_lt (by omega : resultFp + 32 ≤ 2464) (by decide)
+    exact lt_of_le_of_lt (by omega : resultFp + 32 ≤ 4448) (by decide)
   have hresultOffsetWordLocal :
       operandFreePtr baseSize exponentSize modulusSize +
         barrettNormalizedOffset mem0 aw0 p modulusSize < UInt256.size := by
@@ -1660,7 +1655,7 @@ theorem wideBarrettNormalizedWordFromEntryModelExact
       dsimp [barrettNormalizedOffset]
       unfold barrettScanEnd at hstopUpper
       omega
-    have hfreeLe : operandFreePtr baseSize exponentSize modulusSize ≤ 2304 := by
+    have hfreeLe : operandFreePtr baseSize exponentSize modulusSize ≤ 3296 := by
       unfold operandFreePtr operandModulusPtr operandExponentPtr operandBasePtr bytesAllocationSize
       omega
     exact lt_of_le_of_lt (by
@@ -1669,7 +1664,7 @@ theorem wideBarrettNormalizedWordFromEntryModelExact
             barrettNormalizedOffset mem0 aw0 p modulusSize
             ≤ operandFreePtr baseSize exponentSize modulusSize + (modulusSize + 31) := by
               exact Nat.add_le_add_left hoffsetLe _
-        _ ≤ 2367 := by omega) (by decide)
+        _ ≤ 4351 := by omega) (by decide)
   let q := operandModulusWords baseSize exponentSize modulusSize + bytesAllocationWords modulusSize
   have haw0Eq : aw0 = UInt256.ofNat q := by
     dsimp [aw0, q]
@@ -2357,7 +2352,7 @@ theorem wideBarrettNormalizedWordFromEntryModelExact
             (Nat.lt_add_of_pos_right hnormLenPosLocal)
             hnormalizeSourceBelowFp
         exact Nat.lt_of_lt_of_le hltFp
-          (Nat.le_trans hfpLe (by decide : 2368 ≤ 2 ^ 64))
+          (Nat.le_trans hfpLe (by decide : 4352 ≤ 2 ^ 64))
       exact model_bytesToNatPadded_eq_of_readWithPadding
         haddr64
         hsourceAddr64
@@ -2396,11 +2391,11 @@ theorem wideBarrettNormalizedWordFromEntryModelExact
             (Nat.le_trans (Nat.le_add_right _ _) hnormalizeSourceBelowFp)
         have haddrLtWord : p + 32 + i < UInt256.size := by
           exact Nat.lt_of_lt_of_le haddrLtFp
-            (Nat.le_trans hfpLe (by decide : 2368 ≤ UInt256.size))
+            (Nat.le_trans hfpLe (by decide : 4352 ≤ UInt256.size))
         apply barrettScanByteAt_toNat_eq_model
         · exact haddrLtWord
         · exact Nat.lt_of_lt_of_le haddrLtFp
-            (Nat.le_trans hfpLe (by decide : 2368 ≤ 2 ^ 64))
+            (Nat.le_trans hfpLe (by decide : 4352 ≤ 2 ^ 64))
         · intro hfrontier
           change (aw0 * ⟨32⟩).toNat ≤
               (UInt256.ofNat (p + 32 + i)).toNat at hfrontier
@@ -2442,9 +2437,39 @@ theorem wideBarrettNormalizedWordFromEntryModelExact
       simp [kprefix, Nat.add_assoc]
       congr 1
       omega
-    have horiginalModulus :=
-      wideWordResultModulus_toNat_eq_model I baseSize exponentSize modulusSize
-        hb he hmodPos (by omega)
+    have horiginalModulus :
+        Model.bytesToNatPadded mem0 (p + 32) modulusSize =
+          Model.bytesToNatPadded I.calldata
+            (wideModulusOffset baseSize exponentSize) modulusSize := by
+      have hpreserved := wideWordResultMemory_readOperandLenPadded I hb he hm
+        (read := p + 32) (len := modulusSize)
+        (by
+          dsimp only [p]
+          unfold operandModulusPtr operandExponentPtr operandBasePtr bytesAllocationSize
+          omega)
+        (by omega) (by omega) (by
+          have h := Nat.add_le_add_left (bytesHeaderAndSize_le_allocation modulusSize)
+            (operandModulusPtr baseSize exponentSize)
+          simpa only [p, operandFreePtr, Nat.add_assoc] using h)
+      have hpayload := operandCopiedModulusPayload I baseSize exponentSize modulusSize hb he hm
+      have hcalldataRead : I.calldata.readWithPadding
+          (wideModulusOffset baseSize exponentSize) modulusSize =
+            Model.readPadded I.calldata
+              (wideModulusOffset baseSize exponentSize) modulusSize :=
+        readWithPadding_eq_model_readPadded I.calldata
+          (wideModulusOffset baseSize exponentSize) modulusSize
+          (by unfold wideModulusOffset; omega) (by omega)
+      apply model_bytesToNatPadded_eq_of_readWithPadding
+        (by
+          dsimp only [p]
+          unfold operandModulusPtr operandExponentPtr operandBasePtr bytesAllocationSize
+          omega)
+        (by unfold wideModulusOffset; omega) (by omega)
+      have hreadPrepared : mem0.readWithPadding (p + 32) modulusSize =
+          (operandCopiedMemory I baseSize exponentSize modulusSize).readWithPadding
+            (operandModulusPtr baseSize exponentSize + 32) modulusSize := by
+        simpa only [mem0, p] using hpreserved
+      exact hreadPrepared.trans (hpayload.trans hcalldataRead.symm)
     calc
       (wideWordModulusAtPtr
           (barrettNormalizedResultMem mem0 aw0 fp p modulusSize resultFp)
@@ -2457,8 +2482,7 @@ theorem wideBarrettNormalizedWordFromEntryModelExact
             (p + barrettNormalizedOffset mem0 aw0 p modulusSize) n := hnormalizedBytes
       _ = Model.bytesToNatPadded mem0 (p + 32) modulusSize := hsuffixOriginal
       _ = Model.bytesToNatPadded I.calldata
-            (wideModulusOffset baseSize exponentSize) modulusSize := by
-          simpa [mem0, p, wideModulusOffset] using horiginalModulus
+            (wideModulusOffset baseSize exponentSize) modulusSize := horiginalModulus
   have hbaseChunkLocal : ∀ s, s + 32 ≤ baseSize →
       (wideLoadWord
         (barrettNormalizedResultMem mem0 aw0 fp p modulusSize resultFp)
@@ -2914,7 +2938,7 @@ theorem wideBarrettNormalizedWordFromEntryModelExact
     have hresultWord :
         operandFreePtr baseSize exponentSize modulusSize < UInt256.size := by
       apply lt_of_le_of_lt
-        (show operandFreePtr baseSize exponentSize modulusSize ≤ 2304 by
+        (show operandFreePtr baseSize exponentSize modulusSize ≤ 3296 by
           unfold operandFreePtr operandModulusPtr operandExponentPtr operandBasePtr
             bytesAllocationSize
           omega)
@@ -2987,7 +3011,7 @@ theorem wideBarrettNormalizedWordFromEntryModelExact
   obtain ⟨kBarrett, rd173⟩ := runPreparedBarrettNormalizedWordExactAny
     (baseSize := baseSize) (exponentSize := exponentSize) (modulusSize := modulusSize)
     (ret := 173) (fp := fp) (resultFp := resultFp) (tail := [])
-    hb he hmodPos hm (by simpa [wideModulusOffset] using hmod) hcalldata heven
+    hb he hmodPos hm1024 (by simpa [wideModulusOffset] using hmod) hcalldata heven
     (by simpa [hlenEq, fp, resultFp] using hfacts.hnorm)
     (by
       dsimp [fp, wideBarrettNormalizedFp]
@@ -3336,11 +3360,24 @@ theorem wideBarrettNormalizedWordModelExactGas {cA gh bl σ σ₀ A I} {g : Sat2
   obtain ⟨kEntry, rd62⟩ := reachWideEntry
     (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     hcode hvalue hvalid hwide
+  have hnLe32 :
+      wideBarrettNormalizedLenFor I l.base l.exponent l.modulus ≤ 32 := by
+    have hsplit := barrettNormalizedSkippedPrefix_add_len
+      (wideWordResultMemory I l.base l.exponent l.modulus)
+      (wideWordResultWords l.base l.exponent l.modulus)
+      (operandModulusPtr l.base l.exponent) l.modulus hmodPos
+    have hle :
+        barrettNormalizedLen
+          (wideWordResultMemory I l.base l.exponent l.modulus)
+          (wideWordResultWords l.base l.exponent l.modulus)
+          (operandModulusPtr l.base l.exponent) l.modulus ≤ l.modulus := by
+      omega
+    exact le_trans (by simpa only [wideBarrettNormalizedLenFor] using hle) hmWord
   have hret := wideBarrettNormalizedWordFromEntryModelExact
     (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := g)
     (baseSize := l.base) (exponentSize := l.exponent) (modulusSize := l.modulus)
-    (acc := (cA, σ)) hb he hmodPos hmWord hexp hbase hmod hcalldata heven hfacts
+    (acc := (cA, σ)) hb he hmodPos hm hnLe32 hexp hbase hmod hcalldata heven hfacts
     (by rfl) rd62
   have hout := model_output_of_lengths I.calldata
     (by rfl : Model.bytesToNatPadded I.calldata 0 32 = l.base)

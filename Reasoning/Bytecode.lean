@@ -46,6 +46,12 @@ def BytecodeResult.returned (accountMap : AccountMap) (gasRemaining : UInt256)
   success := !(accountMap == (∅ : AccountMap))
   output := output
 
+/-- Caller observation of a resolved `REVERT`. -/
+def BytecodeResult.reverted (gasRemaining : UInt256) (output : ByteArray) : BytecodeResult where
+  gasRemaining := gasRemaining
+  success := false
+  output := output
+
 /-- Collapse a raw `Ξ` result to the gas/status/output projection used by `Θ`. -/
 def observeXi : RawBytecodeResult → BytecodeResult
   | .error _ => .failure
@@ -185,6 +191,20 @@ abbrev ExactGasSpec
   BytecodeSpec code accepts
     (fun ctx result => ExactGasPost ctx (output ctx) (gasCost ctx) result)
 
+/-- Exact caller observation for a resolved revert, including its precise OOG boundary. -/
+def ExactRevertPost
+    (ctx : BytecodeContext) (output : ByteArray) (gasCost : Nat)
+    (result : BytecodeResult) : Prop :=
+  (ctx.gas.toNat < gasCost → result = .failure) ∧
+  (gasCost ≤ ctx.gas.toNat →
+    result = .reverted (ctx.gas.subNat gasCost).toUInt256 output)
+
+abbrev ExactRevertSpec
+    (code : ByteArray) (accepts : BytecodeContext → Prop)
+    (output : BytecodeContext → ByteArray) (gasCost : BytecodeContext → Nat) : Prop :=
+  BytecodeSpec code accepts
+    (fun ctx result => ExactRevertPost ctx (output ctx) (gasCost ctx) result)
+
 /-- Precompile-like behavior at `Θ`: valid inputs have a pure output and exact gas boundary;
 invalid inputs have the unique exceptional-call observation.  There is no public exception kind or
 invalid-path threshold because neither is observable here. -/
@@ -222,6 +242,27 @@ theorem ExactGasSpec.ofRDxRet
     obtain ⟨A', hxi⟩ := hresult.2 henough
     simp [BytecodeContext.result, BytecodeContext.rawResult, observeXi, hxi,
       BytecodeResult.returned]
+
+/-- Close a resolved exact revert trace into its caller-observable bytecode specification. -/
+theorem ExactRevertSpec.ofRDxRevOutput
+    {code : ByteArray} {accepts : BytecodeContext → Prop}
+    {output : BytecodeContext → ByteArray} {gasCost : BytecodeContext → Nat}
+    (trace : ∀ ctx : BytecodeContext,
+      ctx.executionEnv.code = code → accepts ctx →
+      RDxRevOutput code ctx.gas ctx.initialState (output ctx) (gasCost ctx)) :
+    ExactRevertSpec code accepts output gasCost := by
+  constructor
+  intro ctx hcode haccepts
+  have hresult := (trace ctx hcode haccepts).xiResult hcode
+  constructor
+  · intro hlow
+    have hxi := hresult.1 hlow
+    simp [BytecodeContext.result, BytecodeContext.rawResult, observeXi, hxi,
+      BytecodeResult.failure]
+  · intro henough
+    have hxi := hresult.2 henough
+    simp [BytecodeContext.result, BytecodeContext.rawResult, observeXi, hxi,
+      BytecodeResult.reverted]
 
 /-- Join valid successful traces and invalid exceptional traces.  The exception and the cost of
 reaching it are existential proof details: `Θ` erases both, so they do not occur in the resulting

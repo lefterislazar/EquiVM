@@ -1,4 +1,5 @@
 import Examples.Precompiles.Modexp.CoveredSpec
+import Examples.Precompiles.Modexp.BarrettMultiLimbSpec
 
 /-!
 # General ModExp bytecode-spec scaffold
@@ -6,13 +7,16 @@ import Examples.Precompiles.Modexp.CoveredSpec
 This file separates the intended full ModExp bytecode contract from the region currently proved in
 `CoveredSpec`.
 
-`coveredBytecodeSpec` proves exact-gas functional correctness for the union of completed branches.
+`coveredBytecodeSpec` proves exact-gas functional correctness for the original fixed-gas union.
+`wideBarrettSelectedModelExactGas` separately exposes the completed arbitrary-width even-Barrett
+selector because its exact cost is indexed by the generated reduction and exponent traces.
 The theorem `modexpSomeExactGasSpec_of_coverage` records the remaining shape of the full proof:
 if the completed branch predicates cover every accepted ModExp input, then the bytecode satisfies
 the general functional spec with an exact gas threshold for the selected branch.
 
 The theorem is intentionally conditional.  At the moment, `coveredAccepts` is not known to cover
-all Osaka-valid inputs; multi-limb nontrivial backends remain to be proved.
+all Osaka-valid inputs; in particular, the multi-limb odd Montgomery backend is not yet integrated
+into that union.
 -/
 
 open Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach

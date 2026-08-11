@@ -590,7 +590,7 @@ theorem runPreparedZeroModulusLengthReturnExactAny
   have rd1296raw := allocateMemoryExact
     (n := 0) (fp := fp) (ret := 1296) (tail := UInt256.ofNat ret :: tail)
     (mem := mem0) (aw := aw0)
-    (by omega : 0 ≤ 1024)
+    (by omega : 0 ≤ 2176)
     (by
       dsimp only [fp]
       unfold operandFreePtr operandModulusPtr operandExponentPtr operandBasePtr bytesAllocationSize
