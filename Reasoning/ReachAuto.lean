@@ -1,4 +1,5 @@
 import Reasoning.Reach
+import Reasoning.Storage
 
 /-!
 # Reach-Auto ─ symbolic `RD` opcode steps
@@ -40,33 +41,116 @@ def memExpansionCost (aw start size : UInt256) : ℕ :=
 
 /-- A compact symbolic storage read.  Its definition is available when concrete map reasoning is
     needed, but ordinary opcode chaining retains the named term. -/
-def storageRead (owner : AccountAddress) (σ : AccountMap) (slot : UInt256) : UInt256 :=
+@[irreducible] def storageRead (owner : AccountAddress) (σ : AccountMap)
+    (slot : UInt256) : UInt256 :=
   σ.find? owner |>.option ⟨0⟩ (fun account => account.storage.findD slot ⟨0⟩)
 
 /-- A compact symbolic storage write, including the EVM zero-value deletion behavior. -/
-def storageWrite (owner : AccountAddress) (σ : AccountMap) (slot value : UInt256) : AccountMap :=
+@[irreducible] def storageWrite (owner : AccountAddress) (σ : AccountMap)
+    (slot value : UInt256) : AccountMap :=
   sstoreAccountMap owner σ slot value
 
 /-- Read a slot from an account already obtained from the account map. -/
-def accountStorageRead (account : Account) (slot : UInt256) : UInt256 :=
+@[irreducible] def accountStorageRead (account : Account) (slot : UInt256) : UInt256 :=
   account.storage.findD slot ⟨0⟩
 
 /-- Update an account already known to be present, without repeating the account-map lookup. -/
-def storageWritePresent (owner : AccountAddress) (σ : AccountMap) (account : Account)
+@[irreducible] def storageWritePresent (owner : AccountAddress) (σ : AccountMap) (account : Account)
     (slot value : UInt256) : AccountMap :=
   σ.insert owner
     (if value == default then { account with storage := account.storage.erase slot }
      else { account with storage := account.storage.insert slot value })
 
+/-! The implementation equations are deliberately not simp lemmas.  They provide an explicit
+escape hatch for concrete map proofs while keeping routine simplification at the symbolic API. -/
+
+theorem storageRead_eq (owner : AccountAddress) (σ : AccountMap) (slot : UInt256) :
+    storageRead owner σ slot =
+      (σ.find? owner |>.option ⟨0⟩ (fun account => account.storage.findD slot ⟨0⟩)) := by
+  rw [storageRead]
+
+theorem storageWrite_eq (owner : AccountAddress) (σ : AccountMap) (slot value : UInt256) :
+    storageWrite owner σ slot value = sstoreAccountMap owner σ slot value := by
+  rw [storageWrite]
+
+theorem accountStorageRead_eq (account : Account) (slot : UInt256) :
+    accountStorageRead account slot = account.storage.findD slot ⟨0⟩ := by
+  rw [accountStorageRead]
+
+theorem storageWritePresent_eq (owner : AccountAddress) (σ : AccountMap) (account : Account)
+    (slot value : UInt256) :
+    storageWritePresent owner σ account slot value =
+      σ.insert owner
+        (if value == default then { account with storage := account.storage.erase slot }
+         else { account with storage := account.storage.insert slot value }) := by
+  rw [storageWritePresent]
+
+@[simp]
 theorem storageRead_of_present {owner : AccountAddress} {σ : AccountMap} {account : Account}
     {slot : UInt256} (haccount : σ.find? owner = some account) :
     storageRead owner σ slot = accountStorageRead account slot := by
   simp [storageRead, accountStorageRead, haccount, Option.option]
 
+@[simp]
 theorem storageWrite_of_present {owner : AccountAddress} {σ : AccountMap} {account : Account}
     {slot value : UInt256} (haccount : σ.find? owner = some account) :
     storageWrite owner σ slot value = storageWritePresent owner σ account slot value := by
   simp [storageWrite, sstoreAccountMap, storageWritePresent, haccount, Option.option]
+
+@[simp]
+theorem storageRead_of_missing {owner : AccountAddress} {σ : AccountMap} {slot : UInt256}
+    (haccount : σ.find? owner = none) : storageRead owner σ slot = ⟨0⟩ := by
+  simp [storageRead, haccount, Option.option]
+
+@[simp]
+theorem storageWrite_of_missing {owner : AccountAddress} {σ : AccountMap} {slot value : UInt256}
+    (haccount : σ.find? owner = none) : storageWrite owner σ slot value = σ := by
+  simp [storageWrite, sstoreAccountMap, haccount, Option.option]
+
+/-- Reading the slot just written returns the written value.  This form is tailored to symbolic
+    chains that used `RD.sstore_of_present`. -/
+@[simp]
+theorem storageRead_storageWritePresent_same (owner : AccountAddress) (σ : AccountMap)
+    (account : Account) (slot value : UInt256) :
+    storageRead owner (storageWritePresent owner σ account slot value) slot = value := by
+  rw [storageRead, storageWritePresent, accountMap_find_insert_self]
+  simp only [Option.option]
+  by_cases hzero : (value == (default : UInt256)) = true
+  · have hvalue : value = (default : UInt256) := eq_of_beq hzero
+    subst value
+    simpa using storage_findD_erase_self account.storage slot ⟨0⟩
+  · simpa [hzero] using storage_findD_insert_self account.storage slot value ⟨0⟩
+
+/-- A write to another slot leaves this read unchanged. -/
+@[simp]
+theorem storageRead_storageWritePresent_ne (owner : AccountAddress) (σ : AccountMap)
+    (account : Account) {readSlot writeSlot value : UInt256} (hne : readSlot ≠ writeSlot) :
+    storageRead owner (storageWritePresent owner σ account writeSlot value) readSlot =
+      accountStorageRead account readSlot := by
+  rw [storageRead, storageWritePresent, accountStorageRead, accountMap_find_insert_self]
+  simp only [Option.option]
+  by_cases hzero : (value == (default : UInt256)) = true
+  · simp only [hzero, if_true]
+    exact storage_findD_erase_ne account.storage readSlot writeSlot ⟨0⟩ hne
+  · simp only [hzero]
+    exact storage_findD_insert_ne account.storage readSlot writeSlot value ⟨0⟩ hne
+
+/-- General read-after-write law for distinct slots, including the missing-account case. -/
+@[simp]
+theorem storageRead_storageWrite_ne (owner : AccountAddress) (σ : AccountMap)
+    {readSlot writeSlot value : UInt256} (hne : readSlot ≠ writeSlot) :
+    storageRead owner (storageWrite owner σ writeSlot value) readSlot =
+      storageRead owner σ readSlot := by
+  rw [storageRead, storageWrite, storageRead]
+  exact sstoreAccountMap_storage_findD_ne σ owner readSlot writeSlot value hne
+
+/-- General same-slot read-after-write law when the account is known to exist. -/
+@[simp]
+theorem storageRead_storageWrite_same_of_present {owner : AccountAddress} {σ : AccountMap}
+    {account : Account} {slot value : UInt256} (haccount : σ.find? owner = some account) :
+    storageRead owner (storageWrite owner σ slot value) slot = value := by
+  rw [storageWrite_of_present haccount]
+  exact storageRead_storageWritePresent_same owner σ account slot value
 
 /- TODO: some property that two sequential expansions can be collapsed to one-/
 
