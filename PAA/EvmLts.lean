@@ -1,10 +1,10 @@
 import PAA.PAA
-import Solm.SmallStep.Dispatch
+import Ethereum.Semantics
 
-/-! Adapters from the executable EVM semantics and a future executable Solm
-    semantics to the mathematical transition systems used by the PAA theory. -/
+/-! Adapters from the executable EVM semantics semantics to the
+    mathematical transition systems used by the PAA theory. -/
 
-namespace PAA.EvmSolm
+namespace PAA.Evm
 
 open Ethereum
 

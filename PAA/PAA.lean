@@ -1,9 +1,11 @@
-import Ethereum.Semantics
-import Ethereum.Theory.ProgressLemmas
+import Mathlib.Logic.Relation
+import Mathlib.Data.Nat.Init
 
-/- Definition of a deternimistic
+universe uA uLA uB uLB uNode
+
+/- Definition of a deterministic
    labeled transition system -/
-structure Lts_det (A L) [Ord L] [DecidableEq L] where
+structure Lts_det (A : Type uA) (L : Type uLA) where
   /- function assigns label to every state -/
   label : A → L
   /- the deterministc lts step -/
@@ -11,17 +13,14 @@ structure Lts_det (A L) [Ord L] [DecidableEq L] where
   -- /- Set of final states -/ 
   isFinal : L → Prop
 
+  /-- Final labels characterize states on which the stepper stops.  Concrete
+      adapters may expose exceptional outcomes as explicit final states. -/
   hfinal : ∀ (f : A), isFinal (label f) ↔ step f = .none
-    -- TODO: what about exceptions?
 
-  -- TODO: do I need this?
-  hfinal_exists : ∃ σ, isFinal (label σ)
-
-
-def steps_det [Ord lA] [DecidableEq lA] (t : Lts_det A lA) (σ σ' : A) : Prop :=
+def steps_det (t : Lts_det A lA) (σ σ' : A) : Prop :=
   Relation.ReflTransGen (λ σ σ' ↦ t.step σ = .some σ') σ σ'
 
-inductive steps_det_N [Ord lA] [DecidableEq lA] (t : Lts_det A lA) : A → A → ℕ → Prop where
+inductive steps_det_N (t : Lts_det A lA) : A → A → ℕ → Prop where
   | final :
     t.isFinal (t.label σ) →
     steps_det_N t σ σ 0
@@ -30,19 +29,19 @@ inductive steps_det_N [Ord lA] [DecidableEq lA] (t : Lts_det A lA) : A → A →
     t.step σ = .some σ_ → 
     steps_det_N t σ σ' (n+1)
 
-lemma steps_det_of_steps_det_N [Ord lA] [DecidableEq lA] (t : Lts_det A lA) :
+lemma steps_det_of_steps_det_N (t : Lts_det A lA) :
     steps_det_N t σ σ' N →
     steps_det t σ σ' := by
   intro h
   induction h
-  case final σ _ => simp [steps_det]; grind
+  case final => exact Relation.ReflTransGen.refl
   case trans σ_ σ' n σ hstep_det hstep ih =>
     exact Relation.ReflTransGen.head hstep ih
 
-lemma steps_det_N_of_steps_det [Ord lA] [DecidableEq lA] (t : Lts_det A lA) :
+lemma steps_det_N_of_steps_det (t : Lts_det A lA) :
     steps_det t σ σ' →
     t.isFinal (t.label σ') →
-    ∃ n, steps_det_N t σ σ' n := by
+    ∃ (n : Nat), steps_det_N t σ σ' n := by
   intro h hfinal
   induction h using Relation.ReflTransGen.head_induction_on with
   | refl => exact ⟨0, steps_det_N.final hfinal⟩
@@ -50,22 +49,22 @@ lemma steps_det_N_of_steps_det [Ord lA] [DecidableEq lA] (t : Lts_det A lA) :
       obtain ⟨n, ih⟩ := ih
       exact ⟨n + 1, steps_det_N.trans ih hstep⟩
 
-def terminate_at [Ord lA] [DecidableEq lA] (t : Lts_det A lA) (σ σ': A) : Prop :=
+def terminate_at (t : Lts_det A lA) (σ σ': A) : Prop :=
   steps_det t σ σ' ∧ t.isFinal (t.label σ')
 
-lemma steps_det_N_of_terminate_at [Ord lA] [DecidableEq lA] (t : Lts_det A lA) :
+lemma steps_det_N_of_terminate_at (t : Lts_det A lA) :
     terminate_at t σ σ' →
-    ∃ n, steps_det_N t σ σ' n := by
+    ∃ (n : Nat), steps_det_N t σ σ' n := by
   rintro ⟨hsteps, hfinal⟩
   exact steps_det_N_of_steps_det t hsteps hfinal
 
-def terminate [Ord lA] [DecidableEq lA] (t : Lts_det A lA) (σ: A) : Prop :=
+def terminate (t : Lts_det A lA) (σ: A) : Prop :=
   ∃ σ', terminate_at t σ σ'
 
 
-/- Definition of a non-deternimistic
+/- Definition of a nondeterministic
    labeled transition system -/
-structure Lts_ndet (A L) [Ord L] where
+structure Lts_ndet (A : Type uA) (L : Type uLA) where
   /- function assigns label to every state -/
   label : A → L
   /- the lts step relation -/
@@ -73,17 +72,13 @@ structure Lts_ndet (A L) [Ord L] where
   /- Set of final states -/ 
   isFinal : L → Prop
 
+  /-- Final states have no outgoing transition. -/
   hfinal : ∀ (f x : A), isFinal (label f) → ¬ step f x
-    -- TODO: what about exceptions?
 
-  -- TODO: do I need this?
-  hfinal_exists : ∃ σ, isFinal (label σ)
-
-
-def steps_ndet [Ord lA] (t : Lts_ndet A lA) (σ σ' : A) : Prop :=
+def steps_ndet (t : Lts_ndet A lA) (σ σ' : A) : Prop :=
   Relation.ReflTransGen t.step σ σ'
    
-def terminate_at_ndet [Ord lA] (t : Lts_ndet A lA) (σ σ': A) : Prop :=
+def terminate_at_ndet (t : Lts_ndet A lA) (σ σ': A) : Prop :=
   steps_ndet t σ σ' ∧ t.isFinal (t.label σ')
 
 /- A path is anchored at `start`; `steps` contains the label reached by each
@@ -98,7 +93,27 @@ def Path.final (p : Path L) : L :=
 
 namespace Lts
 
-def follow_det [Ord lA] [DecidableEq lA]
+/-- Propositional path following for an arbitrary labelled transition relation. -/
+def follow (label : A → L) (step : A → A → Prop)
+    (init : A) : List L → A → Prop
+  | [], final => final = init
+  | nextLabel :: rest, final =>
+      ∃ next, step init next ∧ label next = nextLabel ∧
+        follow label step next rest final
+
+/-- Mathematical path following for a deterministic transition system. -/
+def follow_det_rel (t : Lts_det A L) (init : A) (labels : List L)
+    (final : A) : Prop :=
+  follow t.label (fun source target => t.step source = .some target)
+    init labels final
+
+def path_det_rel (t : Lts_det A L) (init : A) (p : Path L)
+    (final : A) : Prop :=
+  t.label init = p.start ∧ follow_det_rel t init p.steps final
+
+/-- Executable deterministic path follower.  Decidable label equality is
+    deliberately required here rather than by the mathematical LTS. -/
+def follow_det [DecidableEq lA]
     (t : Lts_det A lA) (init : A) : List lA → Option A
   | [] => .some init
   | nextLabel :: rest => do
@@ -108,21 +123,64 @@ def follow_det [Ord lA] [DecidableEq lA]
       else
         .none
 
-def path_det [Ord lA] [DecidableEq lA] (t : Lts_det A lA) (init : A) (p : Path lA) : Option { σ // t.label σ = p.final } :=
+/-- The executable follower implements the propositional path semantics. -/
+theorem follow_det_eq_some_iff [DecidableEq lA]
+    (t : Lts_det A lA) (init final : A) (labels : List lA) :
+    follow_det t init labels = .some final ↔
+      follow_det_rel t init labels final := by
+  induction labels generalizing init with
+  | nil => simp [follow_det, follow_det_rel, follow, eq_comm]
+  | cons nextLabel rest ih =>
+      simp only [follow_det, follow_det_rel, follow]
+      cases hstep : t.step init with
+      | none => simp
+      | some next =>
+          by_cases hlabel : t.label next = nextLabel
+          · simp [hlabel, ih]
+            rfl
+          · simp [hlabel]
+
+def path_det [DecidableEq lA] (t : Lts_det A lA) (init : A)
+    (p : Path lA) : Option { σ // t.label σ = p.final } :=
   if t.label init = p.start then
     do
       let σ ← follow_det t init p.steps
       if h : t.label σ = p.final then .some ⟨σ, h⟩ else .none
   else .none
 
-def follow_ndet [Ord lA]
-    (t : Lts_ndet A lA) (init : A) : List lA → A → Prop
-  | [], final => final = init
-  | nextLabel :: rest, final =>
-      ∃ next, t.step init next ∧ t.label next = nextLabel ∧
-        follow_ndet t next rest final
+/-- Executable deterministic path checking is equivalent to the mathematical
+    path relation whenever the endpoint label proof is supplied. -/
+theorem path_det_eq_some_iff [DecidableEq lA]
+    (t : Lts_det A lA) (init final : A) (p : Path lA)
+    (hfinal : t.label final = p.final) :
+    path_det t init p = .some ⟨final, hfinal⟩ ↔
+      path_det_rel t init p final := by
+  constructor
+  · intro hexec
+    unfold path_det at hexec
+    by_cases hstart : t.label init = p.start
+    · rw [if_pos hstart] at hexec
+      cases hrun : follow_det t init p.steps with
+      | none => simp [hrun] at hexec
+      | some result =>
+          by_cases hend : t.label result = p.final
+          · simp [hrun, hend] at hexec
+            have hresult : result = final := by simpa using hexec
+            subst result
+            exact ⟨hstart, (follow_det_eq_some_iff t init final p.steps).mp hrun⟩
+          · simp [hrun, hend] at hexec
+    · simp [hstart] at hexec
+  · rintro ⟨hstart, hfollow⟩
+    have hrun : follow_det t init p.steps = .some final :=
+      (follow_det_eq_some_iff t init final p.steps).mpr hfollow
+    simp [path_det, hstart, hrun, hfinal]
 
-def path_ndet [Ord lA] (t : Lts_ndet A lA) (init : A) (p : Path lA) (final : A) : Prop :=
+def follow_ndet (t : Lts_ndet A lA) (init : A)
+    (labels : List lA) (final : A) : Prop :=
+  follow t.label t.step init labels final
+
+def path_ndet (t : Lts_ndet A lA) (init : A) (p : Path lA)
+    (final : A) : Prop :=
   t.label init = p.start ∧ follow_ndet t init p.steps final
   
 end Lts
@@ -130,18 +188,18 @@ end Lts
 /- Forward-simulation triple {φ₁} P; Q {φ₂}.
   If P can be followed from a pair of states satisfying φ₁, then there
   exists a matching execution of Q whose resulting state pair satisfies φ₂. -/
-def forward_triple {A lA B lB} [Ord lA] [DecidableEq lA] [Ord lB] --[DecidableEq lB]
+def forward_triple
   (LtsA : Lts_det A lA)
   (LtsB : Lts_ndet B lB)
   (phi1 : A → B → Prop)
   (P : Path lA)
   (Q : Path lB)
   (phi2 : A → B → Prop) :=
-  ∀ σA σA' σB hσA,
+  ∀ σA σA' σB,
     LtsA.label σA = P.start → 
     LtsB.label σB = Q.start → 
     phi1 σA σB →
-    Lts.path_det LtsA σA P = Option.some ⟨σA',hσA⟩ →
+    Lts.path_det_rel LtsA σA P σA' →
     ∃ σB',
       Lts.path_ndet LtsB σB Q σB' ∧
       phi2 σA' σB'
@@ -150,24 +208,19 @@ def forward_triple {A lA B lB} [Ord lA] [DecidableEq lA] [Ord lB] --[DecidableEq
 /-- A mathematical path-pair automaton.  Nodes have their own identity, so
     distinct nodes may carry different invariants at the same location pair.
     Concrete certificate formats such as tree maps can be translated into
-    this finite graph without becoming part of its refinement theory. -/
-structure PAA
-  {A lA B lB: Type u_1} [Ord lA] [DecidableEq lA] [Ord lB] --[DecidableEq lB]
-  (LtsA : Lts_det A lA)
-  (LtsB : Lts_ndet B lB)
-  where
-    Node : Type u_1
-    [nodeFintype : Fintype Node]
+    this graph without becoming part of its refinement theory. -/
+structure PAA (A : Type uA) (lA : Type uLA)
+    (B : Type uB) (lB : Type uLB) where
+    Node : Type uNode
     location : Node → lA × lB
     invariant : Node → A → B → Prop
     edge : Node → Node → Path lA → Path lB → Prop
     goal : A → B → Prop
 
 def PAA.atNode
-    [Ord lA] [DecidableEq lA] [Ord lB]
   (LtsA : Lts_det A lA)
   (LtsB : Lts_ndet B lB)
-  (paa : PAA LtsA LtsB)
+  (paa : PAA A lA B lB)
   (node : paa.Node) (σA : A) (σB : B) : Prop :=
   LtsA.label σA = (paa.location node).1 ∧
   LtsB.label σB = (paa.location node).2 ∧
@@ -178,75 +231,32 @@ namespace PAA
 /-- The directed node relation obtained by retaining exactly the PAA edges
     whose A path performs no transition. -/
 def aEmptyEdge
-    [Ord lA] [DecidableEq lA] [Ord lB]
-    {LtsA : Lts_det A lA} {LtsB : Lts_ndet B lB}
-    (paa : PAA LtsA LtsB) (source target : paa.Node) : Prop :=
+    (paa : PAA A lA B lB) (source target : paa.Node) : Prop :=
   ∃ P Q, paa.edge source target P Q ∧ P.steps = []
 
-/-- DAG condition for the A-empty-edge graph.  `WellFounded` uses the
+/-- Well-foundedness of the A-empty-edge graph. `WellFounded` uses the
     predecessor-first orientation, hence the reversed arguments below. -/
-def AEmptyDAG
-    [Ord lA] [DecidableEq lA] [Ord lB]
-    {LtsA : Lts_det A lA} {LtsB : Lts_ndet B lB}
-    (paa : PAA LtsA LtsB) : Prop :=
+def AEmptyWellFounded (paa : PAA A lA B lB) : Prop :=
   WellFounded (fun target source => paa.aEmptyEdge source target)
 
-/-- A natural-valued height for a well-founded relation on a finite type. -/
-noncomputable def finiteWellFoundedRank [Fintype α]
-    (relation : α → α → Prop) (wf : WellFounded relation) : α → Nat := by
-  classical
-  exact wf.fix fun x ranks =>
-    Finset.univ.sup fun y =>
-      if h : relation y x then ranks y h + 1 else 0
-
-lemma finiteWellFoundedRank_lt [Fintype α]
-    (relation : α → α → Prop) (wf : WellFounded relation)
-    (hxy : relation x y) :
-    finiteWellFoundedRank relation wf x < finiteWellFoundedRank relation wf y := by
-  classical
-  unfold finiteWellFoundedRank
-  conv_rhs => rw [wf.fix_eq]
-  apply Nat.lt_of_succ_le
-  have hle := Finset.le_sup
-    (s := Finset.univ)
-    (f := fun z => if h : relation z y then wf.fix
-      (fun x ranks => Finset.univ.sup fun y =>
-        if h : relation y x then ranks y h + 1 else 0) z + 1 else 0)
-    (Finset.mem_univ x)
-  simpa [hxy] using hle
-
-/-- A proof that the A-empty-edge graph is a DAG supplies the rank certificate
-    expected by `validPAA.hyp3A_rank`.  This lets a separate decidable DAG
-    checker prove `hyp3A_rank` without changing the definition of `validPAA`. -/
-theorem hyp3A_rank_of_aEmptyDAG
-    [Ord lA] [DecidableEq lA] [Ord lB]
-    {LtsA : Lts_det A lA} {LtsB : Lts_ndet B lB}
-    (paa : PAA LtsA LtsB) (hdag : paa.AEmptyDAG) :
-    ∃ rank : paa.Node → Nat,
-      ∀ {source target P Q}, paa.edge source target P Q →
-        P.steps = [] → rank target < rank source := by
-  letI : Fintype paa.Node := paa.nodeFintype
-  let relation : paa.Node → paa.Node → Prop :=
-    fun target source => paa.aEmptyEdge source target
-  refine ⟨finiteWellFoundedRank relation hdag, ?_⟩
-  intro source target P Q hedge hempty
-  apply finiteWellFoundedRank_lt relation hdag
-  exact ⟨P, Q, hedge, hempty⟩
+/-- A decreasing natural rank is an executable certificate for mathematical
+    well-foundedness. -/
+theorem aEmptyWellFounded_of_rank (paa : PAA A lA B lB)
+    (rank : paa.Node → Nat)
+    (hrank : ∀ {source target}, paa.aEmptyEdge source target →
+      rank target < rank source) :
+    paa.AEmptyWellFounded := by
+  exact Subrelation.wf hrank (InvImage.wf rank Nat.lt_wfRel.2)
 
 end PAA
 
-def pathToList (P : Path A) : List A :=
-  P.start :: P.steps
-
-def pathPrefix (P : Path A) (Q : Path A) : Prop :=
-  P.start = Q.start ∧ P.steps <+: Q.steps
-
+/-- Mathematical validity conditions sufficient for PAA refinement.  Concrete
+    certificate formats may impose additional decidable well-formedness
+    conditions without strengthening this theorem-facing interface. -/
 structure validPAA
-    [Ord lA] [DecidableEq lA]
-    [Ord lB] --[DecidableEq lB]
   (LtsA : Lts_det A lA)
   (LtsB : Lts_ndet B lB)
-  (paa : PAA LtsA LtsB) where
+  (paa : PAA A lA B lB) where
     edge_path_ok :
       ∀ {source target P Q}, paa.edge source target P Q →
         P.start = (paa.location source).1 ∧
@@ -254,18 +264,14 @@ structure validPAA
         P.final = (paa.location target).1 ∧
         Q.final = (paa.location target).2
 
-    edge_nonempty :
-      ∀ {source target P Q}, paa.edge source target P Q →
-        P.steps ≠ [] ∨ Q.steps ≠ []
-
-    hfinal : ∀ node,
-      LtsA.isFinal (paa.location node).1 ↔
+    final_preserved : ∀ node,
+      LtsA.isFinal (paa.location node).1 →
       LtsB.isFinal (paa.location node).2
 
-    hfinal_goal : ∀ node,
-      LtsA.isFinal (paa.location node).1 →
-      LtsB.isFinal (paa.location node).2 →
-      paa.invariant node = paa.goal
+    terminal_goal : ∀ node σA σB,
+      paa.atNode LtsA LtsB node σA σB →
+      LtsA.isFinal (LtsA.label σA) →
+      paa.goal σA σB
 
     hyp1 :
       ∀ {source target P Q}, paa.edge source target P Q →
@@ -279,51 +285,40 @@ structure validPAA
       ∀ source σA σB,
         paa.atNode LtsA LtsB source σA σB →
         ¬ LtsA.isFinal (LtsA.label σA) →
-        ∃ (target : paa.Node) (P : Path lA) (Q : Path lB) (σA' : A)
-            (hσA' : LtsA.label σA' = P.final),
+        ∃ (target : paa.Node) (P : Path lA) (Q : Path lB) (σA' : A),
           paa.edge source target P Q ∧
-          Lts.path_det LtsA σA P = .some ⟨σA', hσA'⟩
+          Lts.path_det_rel LtsA σA P σA'
 
-    hyp3A_rank : ∃ rank : paa.Node → Nat,
-      ∀ {source target P Q}, paa.edge source target P Q →
-        P.steps = [] →
-        rank target < rank source
+    aEmpty_wf : paa.AEmptyWellFounded
 
-lemma steps_det_N_of_follow_det [Ord lA] [DecidableEq lA]
+lemma steps_det_N_of_follow_det_rel
     (t : Lts_det A lA) :
     ∀ labels σ σ' σf n,
-      Lts.follow_det t σ labels = .some σ' →
+      Lts.follow_det_rel t σ labels σ' →
       steps_det_N t σ σf n →
       ∃ m, n = labels.length + m ∧ steps_det_N t σ' σf m := by
   intro labels
   induction labels with
   | nil =>
       intro σ σ' σf n hfollow hterm
-      simp [Lts.follow_det] at hfollow
+      simp [Lts.follow_det_rel, Lts.follow] at hfollow
       subst σ'
       exact ⟨n, by simp, hterm⟩
   | cons nextLabel rest ih =>
       intro σ σ' σf n hfollow hterm
-      simp only [Lts.follow_det] at hfollow
-      cases hstep : t.step σ with
-      | none => simp [hstep] at hfollow
-      | some next =>
-        cases hlabel : t.label next == nextLabel
-        · apply of_decide_eq_false at hlabel
-          simp [hstep, hlabel] at hfollow
-        · apply of_decide_eq_true at hlabel
-          simp [hstep, hlabel] at hfollow
-          cases hterm with
-          | final hfinal =>
-              have := (t.hfinal σ).mp hfinal
-              simp [this] at hstep
-          | trans hrest hfirst =>
-              have hnext : _ = next := Option.some.inj (hfirst.symm.trans hstep)
-              subst_vars
-              obtain ⟨m, hm, hsuffix⟩ := ih _ _ _ _ hfollow hrest
-              exact ⟨m, by simp only [List.length_cons]; omega, hsuffix⟩
+      obtain ⟨next, hstep, _, hfollow⟩ := hfollow
+      cases hterm with
+      | final hfinal =>
+          have hnone := (t.hfinal σ).mp hfinal
+          simp [hnone] at hstep
+      | trans hrest hfirst =>
+          have hnext : _ = next := Option.some.inj (hfirst.symm.trans hstep)
+          subst_vars
+          obtain ⟨m, hm, hsuffix⟩ := ih _ _ _ _ hfollow hrest
+          exact ⟨m, by simp [hm, Nat.add_assoc, Nat.add_comm],
+            hsuffix⟩
 
-lemma steps_ndet_of_follow_ndet [Ord lB] (t : Lts_ndet B lB) :
+lemma steps_ndet_of_follow_ndet (t : Lts_ndet B lB) :
     ∀ labels σ σ',
       Lts.follow_ndet t σ labels σ' →
       steps_ndet t σ σ' := by
@@ -331,7 +326,7 @@ lemma steps_ndet_of_follow_ndet [Ord lB] (t : Lts_ndet B lB) :
   induction labels with
   | nil =>
       intro σ σ' h
-      simp [Lts.follow_ndet] at h
+      simp [Lts.follow_ndet, Lts.follow] at h
       subst σ'
       exact Relation.ReflTransGen.refl
   | cons nextLabel rest ih =>
@@ -339,40 +334,19 @@ lemma steps_ndet_of_follow_ndet [Ord lB] (t : Lts_ndet B lB) :
       obtain ⟨next, hstep, _, hrest⟩ := h
       exact Relation.ReflTransGen.head hstep (ih _ _ hrest)
 
-lemma steps_ndet_of_path_ndet [Ord lB] (t : Lts_ndet B lB) :
+lemma steps_ndet_of_path_ndet (t : Lts_ndet B lB) :
     Lts.path_ndet t σ P σ' → steps_ndet t σ σ' := by
   rintro ⟨_, hpath⟩
   exact steps_ndet_of_follow_ndet t _ _ _ hpath
 
-lemma follow_det_of_path_det [Ord lA] [DecidableEq lA]
-    (t : Lts_det A lA)
-    (hσ' : t.label σ' = P.final)
-    (hpath : Lts.path_det t σ P = .some ⟨σ', hσ'⟩) :
-    Lts.follow_det t σ P.steps = .some σ' := by
-  unfold Lts.path_det at hpath
-  split at hpath
-  · rename_i hstart
-    cases hfollow : Lts.follow_det t σ P.steps with
-    | none => simp [hfollow] at hpath
-    | some result =>
-        cases hfinal : t.label result == P.final
-        · apply of_decide_eq_false at hfinal
-          simp [hfollow, hfinal] at hpath
-        · apply of_decide_eq_true at hfinal
-          simp [hfollow, hfinal] at hpath
-          have hresult : result = σ' := by simpa using hpath
-          exact congrArg some hresult
-  · simp at hpath
-
-lemma label_eq_final_of_follow_ndet [Ord lB] (t : Lts_ndet B lB) :
-    ∀ labels σ σ',
-      Lts.follow_ndet t σ labels σ' →
-      t.label σ' = labels.getLastD (t.label σ) := by
+lemma label_eq_getLastD_of_follow (label : A → L) (step : A → A → Prop) :
+    ∀ labels σ σ', Lts.follow label step σ labels σ' →
+      label σ' = labels.getLastD (label σ) := by
   intro labels
   induction labels with
   | nil =>
       intro σ σ' h
-      simp [Lts.follow_ndet] at h
+      simp [Lts.follow] at h
       subst σ'
       simp
   | cons nextLabel rest ih =>
@@ -380,20 +354,29 @@ lemma label_eq_final_of_follow_ndet [Ord lB] (t : Lts_ndet B lB) :
       obtain ⟨next, _, hlabel, hrest⟩ := h
       have hfinal := ih next σ' hrest
       cases rest with
-      | nil => simpa [Lts.follow_ndet, hlabel] using hfinal
+      | nil => simpa [Lts.follow, hlabel] using hfinal
       | cons head tail => simpa [hlabel] using hfinal
 
-lemma label_eq_final_of_path_ndet [Ord lB] (t : Lts_ndet B lB)
+lemma label_eq_final_of_path_det_rel (t : Lts_det A lA)
+    (hpath : Lts.path_det_rel t σ P σ') :
+    t.label σ' = P.final := by
+  obtain ⟨hstart, hfollow⟩ := hpath
+  rw [Path.final,
+    label_eq_getLastD_of_follow t.label
+      (fun source target => t.step source = .some target) _ _ _ hfollow,
+    hstart]
+
+lemma label_eq_final_of_path_ndet (t : Lts_ndet B lB)
     (hpath : Lts.path_ndet t σ P σ') :
     t.label σ' = P.final := by
   obtain ⟨hstart, hfollow⟩ := hpath
-  rw [Path.final, label_eq_final_of_follow_ndet t _ _ _ hfollow, hstart]
+  rw [Path.final,
+    label_eq_getLastD_of_follow t.label t.step _ _ _ hfollow, hstart]
 
 theorem paa_refinement
-  [Ord lA] [DecidableEq lA] [Ord lB]
   (LtsA : Lts_det A lA)
   (LtsB : Lts_ndet B lB)
-  (paa : PAA LtsA LtsB)
+  (paa : PAA A lA B lB)
   (hpaa : validPAA LtsA LtsB paa)
   : ∀ (source : paa.Node) σA σA' σB,
   terminate_at LtsA σA σA' →
@@ -403,10 +386,8 @@ theorem paa_refinement
     LtsB.isFinal (LtsB.label σB') ∧
     paa.goal σA' σB'
   := by
-  obtain ⟨rank, hrank⟩ := hpaa.hyp3A_rank
   have refinement_N :
-      ∀ n r (source : paa.Node) σA σAf σB,
-        rank source = r →
+      ∀ (n : Nat) (source : paa.Node) σA σAf σB,
         steps_det_N LtsA σA σAf n →
         paa.atNode LtsA LtsB source σA σB →
         ∃ σB', steps_ndet LtsB σB σB' ∧
@@ -414,27 +395,31 @@ theorem paa_refinement
     intro n
     induction n using Nat.strong_induction_on with
     | h n ihN =>
-      intro r
-      induction r using Nat.strong_induction_on with
-      | h r ihR =>
-        intro source σA σAf σB hrEq hterm hatSource
-        obtain ⟨hlabelA, hlabelB, hinvariant⟩ := hatSource
-        cases n with
-        | zero =>
+      intro source
+      refine WellFounded.induction hpaa.aEmpty_wf
+        (C := fun source => ∀ σA σAf σB,
+          steps_det_N LtsA σA σAf n →
+          paa.atNode LtsA LtsB source σA σB →
+          ∃ σB', steps_ndet LtsB σB σB' ∧
+            LtsB.isFinal (LtsB.label σB') ∧ paa.goal σAf σB')
+        source ?_
+      intro source ihEmpty σA σAf σB hterm hatSource
+      obtain ⟨hlabelA, hlabelB, hinvariant⟩ := hatSource
+      cases n with
+      | zero =>
             cases hterm with
             | final hfinalA =>
                 have hfinalLocA : LtsA.isFinal (paa.location source).1 := by
                   rw [← hlabelA]
                   exact hfinalA
                 have hfinalLocB : LtsB.isFinal (paa.location source).2 :=
-                  (hpaa.hfinal source).mp hfinalLocA
+                  hpaa.final_preserved source hfinalLocA
                 have hfinalB : LtsB.isFinal (LtsB.label σB) :=
                   by rw [hlabelB]; exact hfinalLocB
-                have hinvariantGoal : paa.invariant source = paa.goal :=
-                  hpaa.hfinal_goal source hfinalLocA hfinalLocB
                 exact ⟨σB, Relation.ReflTransGen.refl, hfinalB,
-                  by simpa [hinvariantGoal] using hinvariant⟩
-        | succ n' =>
+                  hpaa.terminal_goal source σA σB
+                    ⟨hlabelA, hlabelB, hinvariant⟩ hfinalA⟩
+      | succ n' =>
             have hnotFinalA : ¬ LtsA.isFinal (LtsA.label σA) := by
               intro hfinalA
               have hnone := (LtsA.hfinal σA).mp hfinalA
@@ -442,19 +427,20 @@ theorem paa_refinement
               | trans _ hfirst => simp [hnone] at hfirst
             have hatSource : paa.atNode LtsA LtsB source σA σB :=
               ⟨hlabelA, hlabelB, hinvariant⟩
-            obtain ⟨target, P, Q, σAm, hσAm, hedge, hpathA⟩ :=
+            obtain ⟨target, P, Q, σAm, hedge, hpathA⟩ :=
               hpaa.hyp2A_coverage source σA σB hatSource hnotFinalA
             obtain ⟨hPstart, hQstart, hPfinal, hQfinal⟩ :=
               hpaa.edge_path_ok hedge
             have hforward := hpaa.hyp1 hedge
             obtain ⟨σBm, hpathB, hinvariant'⟩ :=
-              hforward σA σAm σB hσAm
+              hforward σA σAm σB
                 (hlabelA.trans hPstart.symm)
                 (hlabelB.trans hQstart.symm) hinvariant hpathA
-            have hfollowA := follow_det_of_path_det LtsA hσAm hpathA
+            have hσAm : LtsA.label σAm = P.final :=
+              label_eq_final_of_path_det_rel LtsA hpathA
             obtain ⟨m, hnm, htermSuffix⟩ :=
-              steps_det_N_of_follow_det LtsA P.steps σA σAm σAf (n' + 1)
-                hfollowA hterm
+              steps_det_N_of_follow_det_rel LtsA P.steps σA σAm σAf (n' + 1)
+                hpathA.2 hterm
             have hlabelBm : LtsB.label σBm = Q.final :=
               label_eq_final_of_path_ndet LtsB hpathB
             have hatTarget : paa.atNode LtsA LtsB target σAm σBm :=
@@ -463,23 +449,20 @@ theorem paa_refinement
               steps_ndet_of_path_ndet LtsB hpathB
             match hempty : P.steps with
             | [] =>
-              have hm : m = n' + 1 := by simp [hempty] at hnm; omega
-              have hmeasure : rank target < r := by
-                rw [← hrEq]
-                exact hrank hedge hempty
+              have hm : m = n' + 1 := by simpa [hempty] using hnm.symm
               obtain ⟨σBf, hstepsB', hfinalBf, hgoal⟩ :=
-                ihR _ hmeasure target σAm σAf σBm rfl
+                ihEmpty target ⟨P, Q, hedge, hempty⟩ σAm σAf σBm
                   (by simpa [hm] using htermSuffix) hatTarget
               exact ⟨σBf, hstepsB.trans hstepsB', hfinalBf, hgoal⟩
             | P0 :: P' =>
               have hm : m < n' + 1 := by
-                cases hsteps : P.steps with
-                | nil => rw [hempty] at hsteps; contradiction
-                | cons head tail => simp [hsteps] at hnm; omega
+                have hlen : 0 < P.steps.length := by simp [hempty]
+                rw [hnm]
+                exact Nat.lt_add_of_pos_left hlen
               obtain ⟨σBf, hstepsB', hfinalBf, hgoal⟩ :=
-                ihN m hm (rank target) target σAm σAf σBm rfl
+                ihN m hm target σAm σAf σBm
                   htermSuffix hatTarget
               exact ⟨σBf, hstepsB.trans hstepsB', hfinalBf, hgoal⟩
   intro source σA σAf σB htermA hatSource
   obtain ⟨n, htermN⟩ := steps_det_N_of_terminate_at LtsA htermA
-  exact refinement_N n (rank source) source σA σAf σB rfl htermN hatSource
+  exact refinement_N n source σA σAf σB htermN hatSource
