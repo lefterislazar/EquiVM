@@ -1,6 +1,8 @@
 import Reasoning.Reach
 import Reasoning.Storage
 
+import Lean.Elab.Tactic
+
 /-!
 # Reach-Auto ─ symbolic `RD` opcode steps
 
@@ -593,6 +595,227 @@ theorem RD.gas {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       · exact hee
       · exact hworld
 
+
+
+
+/-!
+  rd_follow tactic: given an RD object and a path to follow, steps over that path, creating
+  proof obligations where needed
+-/
+
+open Lean Lean.Meta Lean.Elab Lean.Elab.Tactic Lean.Expr
+
+/-- Return the forward `RD` step theorem used by `rd_follow` for an operation.
+
+The symbolic lemmas in this namespace take precedence over their more general counterparts in
+`Reasoning.Reach`.  `none` means that the operation has no single theorem suitable for automatic
+dispatch (for example, `JUMPI` needs a branch choice and calls/creates have several semantic
+outcomes). -/
+private def theoremForOperation : Operation → Option Name
+  | .STOP           => some ``Reasoning.Reach.RD.stop
+  | .ADD            => some ``Reasoning.Reach.RD.add
+  | .MUL            => some ``Reasoning.Reach.RD.mul
+  | .SUB            => some ``Reasoning.Reach.RD.sub
+  | .DIV            => some ``Reasoning.Reach.RD.div
+  | .MOD            => some ``Reasoning.Reach.RD.mod
+  | .EXP            => some ``Reasoning.Reach.RD.exp
+  | .LT             => some ``Reasoning.Reach.RD.lt
+  | .GT             => some ``Reasoning.Reach.RD.gt
+  | .SLT            => some ``Reasoning.Reach.RD.slt
+  | .SGT            => some ``Reasoning.Reach.RD.sgt
+  | .EQ             => some ``Reasoning.Reach.RD.eq
+  | .ISZERO         => some ``Reasoning.Reach.RD.iszero
+  | .AND            => some ``Reasoning.Reach.RD.and
+  | .OR             => some ``Reasoning.Reach.RD.or
+  | .XOR            => some ``Reasoning.Reach.RD.xor
+  | .NOT            => some ``Reasoning.Reach.RD.not
+  | .SHL            => some ``Reasoning.Reach.RD.shl
+  | .SHR            => some ``Reasoning.Reach.RD.shr
+  | .KECCAK256      => some ``Reasoning.Reach.Auto.RD.keccak256
+  | .ADDRESS        => some ``Reasoning.Reach.RD.address
+  | .CALLER         => some ``Reasoning.Reach.RD.caller
+  | .CALLVALUE      => some ``Reasoning.Reach.RD.callvalue
+  | .CALLDATALOAD   => some ``Reasoning.Reach.RD.calldataload
+  | .CALLDATASIZE   => some ``Reasoning.Reach.RD.calldatasize
+  | .CALLDATACOPY   => some ``Reasoning.Reach.Auto.RD.calldatacopy
+  | .CODESIZE       => some ``Reasoning.Reach.RD.codesize
+  | .CODECOPY       => some ``Reasoning.Reach.Auto.RD.codecopy
+  | .EXTCODESIZE    => some ``Reasoning.Reach.RD.extcodesize
+  | .RETURNDATASIZE => some ``Reasoning.Reach.RD.returndatasize
+  | .RETURNDATACOPY => some ``Reasoning.Reach.Auto.RD.returndatacopy
+  | .TIMESTAMP      => some ``Reasoning.Reach.RD.timestamp
+  | .CHAINID        => some ``Reasoning.Reach.RD.chainid
+  | .POP            => some ``Reasoning.Reach.RD.pop
+  | .MLOAD          => some ``Reasoning.Reach.Auto.RD.mload
+  | .MSTORE         => some ``Reasoning.Reach.Auto.RD.mstore
+  | .SLOAD          => some ``Reasoning.Reach.Auto.RD.sload
+  | .SSTORE         => some ``Reasoning.Reach.Auto.RD.sstore
+  | .JUMP           => some ``Reasoning.Reach.RD.jump
+  | .GAS            => some ``Reasoning.Reach.Auto.RD.gas
+  | .JUMPDEST       => some ``Reasoning.Reach.RD.jumpdest
+  | .Push .PUSH0    => some ``Reasoning.Reach.RD.push0
+  | .Push _         => some ``Reasoning.Reach.RD.pushConst
+  | .DUP1           => some ``Reasoning.Reach.RD.dup1
+  | .DUP2           => some ``Reasoning.Reach.RD.dup2
+  | .DUP3           => some ``Reasoning.Reach.RD.dup3
+  | .DUP4           => some ``Reasoning.Reach.RD.dup4
+  | .DUP5           => some ``Reasoning.Reach.RD.dup5
+  | .DUP6           => some ``Reasoning.Reach.RD.dup6
+  | .DUP7           => some ``Reasoning.Reach.RD.dup7
+  | .DUP8           => some ``Reasoning.Reach.RD.dup8
+  | .DUP9           => some ``Reasoning.Reach.RD.dup9
+  | .DUP10          => some ``Reasoning.Reach.RD.dup10
+  | .DUP11          => some ``Reasoning.Reach.RD.dup11
+  | .DUP13          => some ``Reasoning.Reach.RD.dup13
+  | .DUP14          => some ``Reasoning.Reach.RD.dup14
+  | .DUP15          => some ``Reasoning.Reach.RD.dup15
+  | .SWAP1          => some ``Reasoning.Reach.RD.swap1
+  | .SWAP2          => some ``Reasoning.Reach.RD.swap2
+  | .SWAP3          => some ``Reasoning.Reach.RD.swap3
+  | .SWAP4          => some ``Reasoning.Reach.RD.swap4
+  | .SWAP5          => some ``Reasoning.Reach.RD.swap5
+  | .SWAP6          => some ``Reasoning.Reach.RD.swap6
+  | .SWAP7          => some ``Reasoning.Reach.RD.swap7
+  | .SWAP8          => some ``Reasoning.Reach.RD.swap8
+  | .SWAP10         => some ``Reasoning.Reach.RD.swap10
+  | .SWAP11         => some ``Reasoning.Reach.RD.swap11
+  | .LOG1           => some ``Reasoning.Reach.Auto.RD.log1
+  | .LOG3           => some ``Reasoning.Reach.Auto.RD.log3
+  | .LOG4           => some ``Reasoning.Reach.Auto.RD.log4
+  | .RETURN         => some ``Reasoning.Reach.Auto.RD.ret
+  | .REVERT         => some ``Reasoning.Reach.Auto.RD.rev
+  | _               => none
+
+
+private def peelStack (stack : Lean.Expr) (count : Nat) :
+    MetaM (Array Lean.Expr × Lean.Expr) := do
+  let mut elements := #[]
+  let mut rest := stack
+
+  for _ in [:count] do
+    rest ← Meta.whnf rest
+
+    unless rest.isAppOfArity ``List.cons 3 do
+      throwError
+        "expected at least {count} concrete stack elements, but reached:{indentExpr rest}"
+
+    let args := rest.getAppArgs
+
+    -- List.cons has arguments: {α}, head, tail
+    elements := elements.push args[1]!
+    rest := args[2]!
+
+  return (elements, rest)
+
+
+syntax (name := rdFollow) "rd_follow" term:max " [" num,* "]" : tactic
+
+#check ByteArray
+elab_rules : tactic
+  | `(tactic| rd_follow $rdstx [$pcs:num,*]) => withMainContext do
+    let pcs' := pcs.getElems.map Lean.TSyntax.getNat
+    let pcs_UInt256 := pcs'.map UInt256.ofNat
+
+
+    let rd ← elabTerm rdstx none
+    let rdType ← instantiateMVars (← Meta.inferType rd)
+
+    unless rdType.isAppOfArity ``Reasoning.Reach.RD 12 do
+      throwError "expected a proof of RD ..., but got:{indentExpr rdType}"
+
+    let args := rdType.getAppArgs
+    unless args.size == 12 do
+      throwError "unexpected number of RD arguments"
+
+    let code   := args[0]!
+
+    /- look into usafe -/
+    if code.hasMVar then
+      throwError "cannot evaluate bytecode containing metavariables:{indentExpr code}"
+
+    if code.hasFVar then
+      throwError "cannot evaluate symbolic bytecode containing local variables:{indentExpr code}"
+
+    let codeBytes ← unsafe Meta.evalExpr ByteArray (mkConst ``ByteArray) code
+
+    let mut currentRD := rd
+    let mut currentRDType := rdType
+
+    for ppc in pcs_UInt256 do
+      Lean.logInfo f!"Current Type: {currentRDType}"
+      let args := currentRDType.getAppArgs
+      unless args.size == 12 do
+        throwError "unexpected number of RD arguments"
+
+      let ee     := args[1]!
+      let g      := args[2]!
+      let s0     := args[3]!
+      let pc     := args[4]!
+      let stk    := args[5]!
+      let mem    := args[6]!
+      let aw     := args[7]!
+      let rdata  := args[8]!
+      let acc    := args[9]!
+      let k      := args[10]!
+      let C      := args[11]!
+
+      let .some (op,opargs) := decode codeBytes ppc | throwError "code not decode path pc: {ppc}"
+      /- TODO: check if more efficient to directly map to theorem, instead of passing 
+        through theorem name -/
+      let .some theoremName := theoremForOperation op |
+        throwError "rd_follow does not support operation {repr op} at pc {ppc}"
+      Lean.logInfo f!"apply {theoremName} with decoded arguments {repr opargs}"
+
+      let some consumed := Ethereum.EVM.δ op
+        | throwError "operation {repr op} has no stack-input count"
+
+      let (stackElements, stackTail) ← peelStack stk consumed
+
+      -- let previousMVars ← Meta.getMVars currentRD
+
+      let nextStep ← mkAppOptM theoremName ((#[code, ee, g, s0, pc, mem, aw, rdata, acc, k, C] : Array (Option Lean.Expr)) ++ (stackElements.map Option.some) ++ (#[stackTail, currentRD] : Array (Option Lean.Expr)))
+      /-
+      let allMVars ← Meta.getMVars nextStep
+      let newMVars :=
+        allMVars.filter fun mvarId => !previousMVars.contains mvarId
+
+      for mvarId in newMVars do
+        Lean.logInfo m!"new obligation: {← mvarId.getType}"
+        -/
+
+      Lean.logInfo f!"nextStep: {nextStep}"
+      let nextStepType ← instantiateMVars (← inferType nextStep)
+      -- Lean.logInfo f!"applied to {currentRD} gives {nextStep} with type {nextStepType}"
+      Lean.logInfo f!"applied with type {nextStepType}"
+
+      let (Expr.forallE _ hdec rest _) := nextStepType | throwError "expected decode as nextargument"
+      Lean.logInfo f!"decode: {hdec}"
+      let decVar ← mkFreshExprSyntheticOpaqueMVar hdec
+      Lean.logInfo f!"decode: {decVar}"
+
+      let (Expr.forallE _ hstackov _ _) := rest | throwError "expected decode as nextargument"
+      Lean.logInfo f!"stack: {hstackov}"
+      let stackVar ← mkFreshExprSyntheticOpaqueMVar hstackov
+      Lean.logInfo f!"stack: {stackVar}"
+
+      currentRD := mkAppN nextStep #[decVar, stackVar]
+      currentRDType ← instantiateMVars (← inferType currentRD)
+
+      appendGoals [decVar.mvarId!, stackVar.mvarId!]
+
+    
+
+    Lean.logInfo f!"what {currentRDType}"
+    return ()
+
+example : ∀ (ee : ExecutionEnv) (a b : UInt256) g s0 pc stk mem aw rdata acc k C
+  (rd : RD (.mk #[1,2,3,4,16]) ee g s0 pc (a :: b :: c :: stk) mem aw rdata acc k C)
+  , True := by
+  intros ee a b g s0 pc stk mem aw rdata acc k C rd
+  
+  rd_follow rd [1, 2]
+
+  sorry
 
 end Auto
 end Reasoning.Reach
