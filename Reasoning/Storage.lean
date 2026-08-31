@@ -1786,6 +1786,7 @@ theorem deleteSolidityStringShortZero
     {solm : Frame} {evm : EVM.State} {ref : StorageRef} {er : EvaledStorageRef}
     {baseSlot : UInt256}
     (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hbackend : cfg.storageBackend? = none)
     (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, .string))
     (hbase :
       ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
@@ -1796,13 +1797,16 @@ theorem deleteSolidityStringShortZero
   have hclear := clearSolidityStringShortZero
     (cfg := cfg) (layout := layout) (evm := evm) (er := er) (baseSlot := baseSlot)
     hcfg hbase hload
-  simp [deleteStorage?, hresolve, hclear, EvalResult.bind, bind]
+  simp only [deleteStorage?, hresolve, EvalResult.bind, bind]
+  rw [backendClearStorage?_of_none hbackend]
+  exact hclear
 
 theorem deleteSolidityStringShortPacked
     {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
     {solm : Frame} {evm : EVM.State} {ref : StorageRef} {er : EvaledStorageRef}
     {baseSlot header len : UInt256}
     (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hbackend : cfg.storageBackend? = none)
     (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, .string))
     (hbase :
       ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
@@ -1818,13 +1822,16 @@ theorem deleteSolidityStringShortPacked
     (cfg := cfg) (layout := layout) (evm := evm) (er := er)
     (baseSlot := baseSlot) (header := header) (len := len)
     hcfg hbase hload hpacked hflag hlen hvalid
-  simp [deleteStorage?, hresolve, hclear, EvalResult.bind, bind]
+  simp only [deleteStorage?, hresolve, EvalResult.bind, bind]
+  rw [backendClearStorage?_of_none hbackend]
+  exact hclear
 
 theorem deleteSolidityStringLongPrepared
     {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
     {solm : Frame} {evm : EVM.State} {ref : StorageRef} {er : EvaledStorageRef}
     {baseSlot header len : UInt256}
     (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hbackend : cfg.storageBackend? = none)
     (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, .string))
     (hbase :
       ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
@@ -1841,7 +1848,9 @@ theorem deleteSolidityStringLongPrepared
     (cfg := cfg) (layout := layout) (evm := evm) (er := er)
     (baseSlot := baseSlot) (header := header) (len := len)
     hcfg hbase hload hflag hlen hvalid
-  simp [deleteStorage?, hresolve, hclear, EvalResult.bind, bind]
+  simp only [deleteStorage?, hresolve, EvalResult.bind, bind]
+  rw [backendClearStorage?_of_none hbackend]
+  exact hclear
 
 theorem writeSolidityStringShortPacked
     {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
@@ -2069,6 +2078,7 @@ theorem assignSolidityStringEmptyFromZero
     {solm : Frame} {evm : EVM.State} {ref : StorageRef} {er : EvaledStorageRef}
     {baseSlot : UInt256}
     (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hbackend : cfg.storageBackend? = none)
     (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, .string))
     (hbase :
       ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
@@ -2079,7 +2089,10 @@ theorem assignSolidityStringEmptyFromZero
   have hwrite := writeSolidityStringEmptyFromZero
     (cfg := cfg) (layout := layout) (evm := evm) (er := er) (baseSlot := baseSlot)
     hcfg hbase hload
-  simp [assignStorageRef?, hresolve, hwrite, EvalResult.bind, bind, pure]
+  simp only [assignStorageRef?, hresolve, EvalResult.bind, bind]
+  rw [backendWriteStorage?_aggregate_of_none hbackend evm er .string (.bytes ByteArray.empty)
+      (by trivial), hwrite]
+  rfl
 
 theorem readSolidityStringShortPackedExists
     {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
@@ -2150,6 +2163,7 @@ theorem evalSolidityStringShortPackedExists
     {solm : Frame} {evm : EVM.State} {ref : StorageRef} {er : EvaledStorageRef}
     {baseSlot header len : UInt256}
     (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hbackend : cfg.storageBackend? = none)
     (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, .string))
     (hbase :
       ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
@@ -2165,13 +2179,15 @@ theorem evalSolidityStringShortPackedExists
     (baseSlot := baseSlot) (header := header) (len := len)
     hcfg hbase hload hflag hlen hvalid
   refine ⟨copy, ?_, hcopy⟩
-  simp [evalExpr?, hresolve, hread, EvalResult.bind, bind]
+  simp only [evalExpr?, hresolve, EvalResult.bind, bind]
+  rw [backendReadStorage?_of_none hbackend, hread]
 
 theorem evalSolidityStringLongExists
     {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
     {solm : Frame} {evm : EVM.State} {ref : StorageRef} {er : EvaledStorageRef}
     {baseSlot header len : UInt256}
     (hcfg : cfg.storage = solidityStorageLayout layout)
+    (hbackend : cfg.storageBackend? = none)
     (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, .string))
     (hbase :
       ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
@@ -2187,7 +2203,8 @@ theorem evalSolidityStringLongExists
     (baseSlot := baseSlot) (header := header) (len := len)
     hcfg hbase hload hflag hlen hvalid
   refine ⟨copy, ?_, hcopy⟩
-  simp [evalExpr?, hresolve, hread, EvalResult.bind, bind]
+  simp only [evalExpr?, hresolve, EvalResult.bind, bind]
+  rw [backendReadStorage?_of_none hbackend, hread]
 
 theorem storageLoad_storageStore_same_present (evm : EVM.State) (addr : AccountAddress)
     {acc : Account} (hacc : evm.accountMap.find? addr = some acc) (slot val : UInt256) :

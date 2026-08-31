@@ -337,4 +337,294 @@ def defaultValues? : List StorageType -> EvalResult (List Value)
   termination_by ts => (sizeOf ts, 0)
 end
 
+/-! ## Operation-owned storage backends
+
+The definitions above are the compatibility implementation for the historical slot layout.  New
+semantics enter through `configuredStorageBackend`; the adapter below is the only place where the
+generic executor falls back to interpreting `StorageLoc`s. -/
+
+private def storageOnlyExternalABI : ExternalCallABI where
+  encode? := fun _ _ => none
+  decode? := fun _ _ => none
+
+private def storageOnlyConfig (layout : StorageLayout) : Config :=
+  { storage := layout
+    externalABI := storageOnlyExternalABI
+    selfDeployment := fun _ _ => none }
+
+def legacyPushStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef)
+    (ty : StorageType) (value : Option Value) : EvalResult EVM.State :=
+  match ty with
+  | .dynamicArray elemTy => do
+      let lenLoc <- EvalResult.ofOption .storageError
+        (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
+      match storageLocLoad evm lenLoc with
+      | .int len => do
+          let evmLen <- EvalResult.ofOption .storageError
+            (storageLocStore evm lenLoc (.int (len + 1)))
+          match value with
+          | some v =>
+              writeStorage? cfg evmLen
+                { er with steps := er.steps ++ [.aindex (.int len)] } elemTy v
+          | none => pure evmLen
+      | _ => .error .storageError
+  | .bytes | .string => do
+      match (← readStorage? cfg evm er ty) with
+      | .bytes ba =>
+          match value with
+          | none => writeStorage? cfg evm er ty (.bytes (ba.push 0))
+          | some (.fixedBytes n bs) =>
+              if n.val = 0 ∧ bs.length = 1 then
+                writeStorage? cfg evm er ty (.bytes (ba ++ ByteArray.mk bs.toArray))
+              else .error .typeError
+          | some _ => .error .typeError
+      | _ => .error .storageError
+  | _ => .error .storageError
+
+def legacyPopStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef)
+    (ty : StorageType) : EvalResult EVM.State :=
+  match ty with
+  | .dynamicArray elemTy => do
+      let lenLoc <- EvalResult.ofOption .storageError
+        (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
+      match storageLocLoad evm lenLoc with
+      | .int len =>
+          if len ≤ 0 then .revert
+          else do
+            let evm1 <- clearStorage? cfg evm
+              { er with steps := er.steps ++ [.aindex (.int (len - 1))] } elemTy
+            EvalResult.ofOption .storageError
+              (storageLocStore evm1 lenLoc (.int (len - 1)))
+      | _ => .error .storageError
+  | .bytes | .string => do
+      match (← readStorage? cfg evm er ty) with
+      | .bytes ba =>
+          if ba.size = 0 then .revert
+          else writeStorage? cfg evm er ty (.bytes (ba.extract 0 (ba.size - 1)))
+      | _ => .error .storageError
+  | _ => .error .storageError
+
+@[simp] def legacyStorageLength? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef)
+    (ty : StorageType) : EvalResult Nat := do
+  match ← readStorageArrayLength? cfg evm er ty with
+  | .int n => if n < 0 then .error .storageError else pure n.toNat
+  | _ => .error .storageError
+
+/-- Wrap a historical slot layout as a complete executable backend. -/
+def StorageLayout.toBackend (layout : StorageLayout) : StorageBackend :=
+  let cfg := storageOnlyConfig layout
+  { read := fun er ty evm => readStorage? cfg evm er ty
+    write := fun er ty value evm =>
+      match value with
+      | .struct _ _ | .array _ | .bytes _ => writeStorage? cfg evm er ty value
+      | _ => do
+          let loc <- EvalResult.ofOption .storageError (layout.layout er evm)
+          EvalResult.ofOption .storageError (storageLocStore evm loc value)
+    clear := fun er ty evm => clearStorage? cfg evm er ty
+    length := fun er ty evm => legacyStorageLength? cfg evm er ty
+    push := fun er ty value evm => legacyPushStorage? cfg evm er ty value
+    pop := fun er ty evm => legacyPopStorage? cfg evm er ty
+    locate? := layout.layout }
+
+@[simp] theorem StorageLayout.toBackend_read_elem (layout : StorageLayout)
+    (er : EvaledStorageRef) (ty : ElemType) (evm : EVM.State) (loc : StorageLoc)
+    (hloc : layout.layout er evm = some loc) :
+    layout.toBackend.read er (.elem ty) evm = .ok (storageLocLoad evm loc) := by
+  simp [StorageLayout.toBackend, storageOnlyConfig, readStorage?, hloc]
+
+@[simp] theorem StorageLayout.toBackend_write_scalar (layout : StorageLayout)
+    (er : EvaledStorageRef) (ty : StorageType) (value : Value)
+    (evm evm' : EVM.State) (loc : StorageLoc)
+    (hloc : layout.layout er evm = some loc)
+    (hscalar : match value with | .struct _ _ | .array _ | .bytes _ => False | _ => True)
+    (hstore : storageLocStore evm loc value = some evm') :
+    layout.toBackend.write er ty value evm = .ok evm' := by
+  cases value <;>
+    simp_all [StorageLayout.toBackend, EvalResult.ofOption, EvalResult.bind, bind]
+
+/-- Compatibility backend retaining the original `Config` definitionally. This makes the staged
+    path transparent to existing proofs while `StorageLayout.toBackend` remains available to new
+    generated configurations. -/
+def Config.legacyStorageBackend (cfg : Config) : StorageBackend :=
+  { read := fun er ty evm => readStorage? cfg evm er ty
+    write := fun er ty value evm =>
+      match value with
+      | .struct _ _ | .array _ | .bytes _ => writeStorage? cfg evm er ty value
+      | _ => do
+          let loc <- EvalResult.ofOption .storageError (cfg.storage.layout er evm)
+          EvalResult.ofOption .storageError (storageLocStore evm loc value)
+    clear := fun er ty evm => clearStorage? cfg evm er ty
+    length := fun er ty evm => legacyStorageLength? cfg evm er ty
+    push := fun er ty value evm => legacyPushStorage? cfg evm er ty value
+    pop := fun er ty evm => legacyPopStorage? cfg evm er ty
+    locate? := cfg.storage.layout }
+
+/-- Select explicitly configured behavior, or the staged compatibility adapter. -/
+abbrev configuredStorageBackend (cfg : Config) : StorageBackend :=
+  cfg.storageBackend?.getD cfg.legacyStorageBackend
+
+@[inline] abbrev backendReadStorage? (cfg : Config) (evm : EVM.State)
+    (er : EvaledStorageRef) (ty : StorageType) : EvalResult Value :=
+  (configuredStorageBackend cfg).read er ty evm
+
+@[inline] abbrev backendWriteStorage? (cfg : Config) (evm : EVM.State)
+    (er : EvaledStorageRef) (ty : StorageType) (value : Value) : EvalResult EVM.State :=
+  (configuredStorageBackend cfg).write er ty value evm
+
+@[inline] abbrev backendClearStorage? (cfg : Config) (evm : EVM.State)
+    (er : EvaledStorageRef) (ty : StorageType) : EvalResult EVM.State :=
+  (configuredStorageBackend cfg).clear er ty evm
+
+@[inline] abbrev backendStorageLength? (cfg : Config) (evm : EVM.State)
+    (er : EvaledStorageRef) (ty : StorageType) : EvalResult Nat :=
+  (configuredStorageBackend cfg).length er ty evm
+
+@[inline] abbrev backendPushStorage? (cfg : Config) (evm : EVM.State)
+    (er : EvaledStorageRef) (ty : StorageType) (value : Option Value) : EvalResult EVM.State :=
+  (configuredStorageBackend cfg).push er ty value evm
+
+@[inline] abbrev backendPopStorage? (cfg : Config) (evm : EVM.State)
+    (er : EvaledStorageRef) (ty : StorageType) : EvalResult EVM.State :=
+  (configuredStorageBackend cfg).pop er ty evm
+
+/-- Dispatch equations keep old proof scripts transparent: once a concrete legacy config is
+    unfolded, `none` reduces directly to the historical implementation. -/
+@[simp] theorem backendReadStorage?_eq (cfg : Config) (evm : EVM.State)
+    (er : EvaledStorageRef) (ty : StorageType) :
+    backendReadStorage? cfg evm er ty =
+      match cfg.storageBackend? with
+      | some backend => backend.read er ty evm
+      | none => readStorage? cfg evm er ty := by
+  cases h : cfg.storageBackend? <;>
+    simp [backendReadStorage?, configuredStorageBackend, h, Config.legacyStorageBackend]
+
+@[simp] theorem backendWriteStorage?_eq (cfg : Config) (evm : EVM.State)
+    (er : EvaledStorageRef) (ty : StorageType) (value : Value) :
+    backendWriteStorage? cfg evm er ty value =
+      (match cfg.storageBackend? with
+      | some backend => backend.write er ty value evm
+      | none =>
+          match value with
+          | .struct _ _ | .array _ | .bytes _ => writeStorage? cfg evm er ty value
+          | _ => do
+              let loc <- EvalResult.ofOption .storageError (cfg.storage.layout er evm)
+              EvalResult.ofOption .storageError (storageLocStore evm loc value)) := by
+  cases h : cfg.storageBackend? <;>
+    simp [backendWriteStorage?, configuredStorageBackend, h, Config.legacyStorageBackend]
+
+@[simp] theorem backendClearStorage?_eq (cfg : Config) (evm : EVM.State)
+    (er : EvaledStorageRef) (ty : StorageType) :
+    backendClearStorage? cfg evm er ty =
+      match cfg.storageBackend? with
+      | some backend => backend.clear er ty evm
+      | none => clearStorage? cfg evm er ty := by
+  cases h : cfg.storageBackend? <;>
+    simp [backendClearStorage?, configuredStorageBackend, h, Config.legacyStorageBackend]
+
+@[simp] theorem backendStorageLength?_eq (cfg : Config) (evm : EVM.State)
+    (er : EvaledStorageRef) (ty : StorageType) :
+    backendStorageLength? cfg evm er ty =
+      match cfg.storageBackend? with
+      | some backend => backend.length er ty evm
+      | none => legacyStorageLength? cfg evm er ty := by
+  cases h : cfg.storageBackend? <;>
+    simp [backendStorageLength?, configuredStorageBackend, h, Config.legacyStorageBackend]
+
+@[simp] theorem backendPushStorage?_eq (cfg : Config) (evm : EVM.State)
+    (er : EvaledStorageRef) (ty : StorageType) (value : Option Value) :
+    backendPushStorage? cfg evm er ty value =
+      match cfg.storageBackend? with
+      | some backend => backend.push er ty value evm
+      | none => legacyPushStorage? cfg evm er ty value := by
+  cases h : cfg.storageBackend? <;>
+    simp [backendPushStorage?, configuredStorageBackend, h, Config.legacyStorageBackend]
+
+@[simp] theorem backendPopStorage?_eq (cfg : Config) (evm : EVM.State)
+    (er : EvaledStorageRef) (ty : StorageType) :
+    backendPopStorage? cfg evm er ty =
+      match cfg.storageBackend? with
+      | some backend => backend.pop er ty evm
+      | none => legacyPopStorage? cfg evm er ty := by
+  cases h : cfg.storageBackend? <;>
+    simp [backendPopStorage?, configuredStorageBackend, h, Config.legacyStorageBackend]
+
+@[simp] theorem backendReadStorage?_of_none {cfg : Config} (h : cfg.storageBackend? = none)
+    (evm : EVM.State) (er : EvaledStorageRef) (ty : StorageType) :
+    backendReadStorage? cfg evm er ty = readStorage? cfg evm er ty := by
+  simp [backendReadStorage?, configuredStorageBackend, h, Config.legacyStorageBackend]
+
+@[simp] theorem backendWriteStorage?_aggregate_of_none {cfg : Config}
+    (h : cfg.storageBackend? = none) (evm : EVM.State) (er : EvaledStorageRef)
+    (ty : StorageType) (value : Value)
+    (haggregate : match value with | .struct _ _ | .array _ | .bytes _ => True | _ => False) :
+    backendWriteStorage? cfg evm er ty value = writeStorage? cfg evm er ty value := by
+  unfold backendWriteStorage? configuredStorageBackend
+  simp only [h, Option.getD_none, Config.legacyStorageBackend]
+  cases value <;> simp_all
+
+@[simp] theorem backendClearStorage?_of_none {cfg : Config} (h : cfg.storageBackend? = none)
+    (evm : EVM.State) (er : EvaledStorageRef) (ty : StorageType) :
+    backendClearStorage? cfg evm er ty = clearStorage? cfg evm er ty := by
+  simp [backendClearStorage?, configuredStorageBackend, h, Config.legacyStorageBackend]
+
+@[simp] theorem backendStorageLength?_of_none {cfg : Config}
+    (h : cfg.storageBackend? = none) (evm : EVM.State) (er : EvaledStorageRef)
+    (ty : StorageType) :
+    backendStorageLength? cfg evm er ty = legacyStorageLength? cfg evm er ty := by
+  simp [backendStorageLength?, configuredStorageBackend, h, Config.legacyStorageBackend]
+
+theorem backendReadStorage?_elem {cfg : Config} {evm : EVM.State}
+    {er : EvaledStorageRef} {ty : ElemType} {loc : StorageLoc}
+    (hloc : cfg.storage.layout er evm = some loc) :
+    backendReadStorage? cfg evm er (.elem ty) = .ok (storageLocLoad evm loc) := by
+  unfold backendReadStorage? configuredStorageBackend
+  cases hbackend : cfg.storageBackend? with
+  | none =>
+      simp [Config.legacyStorageBackend, readStorage?, hloc]
+  | some backend =>
+      simpa [hbackend] using
+        cfg.storageBackend_read_scalar backend er ty evm loc hbackend hloc
+
+theorem backendWriteStorage?_scalar {cfg : Config} {evm evm' : EVM.State}
+    {er : EvaledStorageRef} {ty : StorageType} {value : Value} {loc : StorageLoc}
+    (hloc : cfg.storage.layout er evm = some loc)
+    (hscalar : match value with | .struct _ _ | .array _ | .bytes _ => False | _ => True)
+    (hstore : storageLocStore evm loc value = some evm') :
+    backendWriteStorage? cfg evm er ty value = .ok evm' := by
+  unfold backendWriteStorage? configuredStorageBackend
+  cases hbackend : cfg.storageBackend? with
+  | none =>
+      simp only [Option.getD_none, Config.legacyStorageBackend]
+      cases value <;> simp_all [EvalResult.ofOption, EvalResult.bind, bind]
+  | some backend =>
+      simpa [hbackend] using
+        cfg.storageBackend_write_scalar backend er ty value evm evm' loc hbackend hloc hscalar hstore
+
+private def backendArrayIndexInBoundsWith? (backend : StorageBackend) (evm : EVM.State)
+    (decls : List StorageDecl) (base : Ident) (pre : List EvaledStorageRefStep)
+    (i : KeyValue) : EvalResult Unit :=
+  match storageTypeAt? decls { base := base, steps := pre }, i with
+  | some (.array _ n), .int iv =>
+      if 0 ≤ iv ∧ iv < n then .ok () else .revert
+  | some (.array _ _), _ => .error .typeError
+  | some ty@(.dynamicArray _), .int iv
+  | some ty@(.bytes), .int iv
+  | some ty@(.string), .int iv =>
+      match backend.length { base := base, steps := pre } ty evm with
+      | .ok len => if 0 ≤ iv ∧ iv < len then .ok () else .revert
+      | .revert => .revert
+      | .error e => .error e
+  | some (.dynamicArray _), _ | some (.bytes), _ | some (.string), _ => .error .typeError
+  | some _, _ => .error .typeError
+  | none, _ => .error .storageError
+
+/-- Bounds checks use backend-owned lengths when a backend is configured. The legacy branch is
+    definitionally the historical checker so existing slot-layout proofs remain source-compatible. -/
+@[simp] def backendArrayIndexInBounds? (cfg : Config) (evm : EVM.State)
+    (decls : List StorageDecl) (base : Ident) (pre : List EvaledStorageRefStep)
+    (i : KeyValue) : EvalResult Unit :=
+  match cfg.storageBackend? with
+  | some backend => backendArrayIndexInBoundsWith? backend evm decls base pre i
+  | none => arrayIndexInBounds? cfg evm decls base pre i
+
 end Solm

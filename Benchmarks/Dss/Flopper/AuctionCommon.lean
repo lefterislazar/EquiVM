@@ -733,6 +733,7 @@ theorem deleteStorage_auction_bid (evm : EVM.State) (locals : Store) (id : UInt2
   rw [deleteStorage?]
   rw [resolveStorageRef_auction_bid evm locals id hget hbase]
   simp only [EvalResult.bind, bind]
+  rw [backendClearStorage?_of_none (cfg := config) rfl]
   rw [Solm.clearStorage?.eq_def]
   simp only [BidStructTy]
   rw [Solm.clearFields?.eq_def]

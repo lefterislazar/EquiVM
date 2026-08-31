@@ -802,8 +802,8 @@ theorem evalExpr_storage_scalar {cfg : Config} {solm : Frame} {evm : EVM.State} 
     (hloc : cfg.storage.layout er = fun _ => some loc) :
     evalExpr? cfg solm evm (.storage slot) = .ok (storageLocLoad evm loc) := by
   rw [evalExpr?]
-  simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind,
-    readStorage?_elem hloc]
+  simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind]
+  exact backendReadStorage?_elem (congrFun hloc evm)
 
 /-- A scalar storage read with an already-normalized `storageLocLoad` value. -/
 theorem evalExpr_storage_scalar_value {cfg : Config} {solm : Frame} {evm : EVM.State}
@@ -829,9 +829,9 @@ theorem assignStorageRef_storage_scalar_value {cfg : Config} {solm : Frame} {evm
     (hstore : storageLocStore evm loc value = some evm') :
     assignStorageRef? cfg solm evm .storage slot value = .ok (solm, evm') := by
   rw [assignStorageRef?]
-  simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind, EvalResult.ofOption,
-    hloc, hstore, pure]
-  cases value <;> simp at hscalar ⊢
+  simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind]
+  rw [backendWriteStorage?_scalar (congrFun hloc evm) hscalar hstore]
+  rfl
 
 /-- A scalar integer storage write collapses to a single `storageLocStore`. -/
 theorem assignStorageRef_storage_scalar {cfg : Config} {solm : Frame} {evm evm' : EVM.State}

@@ -159,9 +159,11 @@ theorem evalStorageRef_bidsField_ok (evm : EVM.State) (I : ExecutionEnv) (field 
     rw [evalExpr?]
     simp only [bidsStore, EvalResult.ofOption]
     rw [store_get_self]
+  have hlegacy : blindAuctionConfig.storageBackend? = none := rfl
   simp only [bidF, evalStorageRef, evalStorageRefSteps.eq_def, evalStorageRefStep.eq_def,
     ha, hi, bidsAddressValue, bidsIndexValue, bidsAddressKey, bidsIndexKey, valueToKey?,
     EvalResult.ofOption, EvalResult.bind, bind, pure, List.nil_append]
+  simp only [backendArrayIndexInBounds?, hlegacy]
   rw [hboundsOk']
   simp [bidsEvaledRef, bidsAddressKey, bidsIndexKey]
 
@@ -188,9 +190,11 @@ theorem evalStorageRef_bidsField_oob (evm : EVM.State) (I : ExecutionEnv) (field
     rw [evalExpr?]
     simp only [bidsStore, EvalResult.ofOption]
     rw [store_get_self]
+  have hlegacy : blindAuctionConfig.storageBackend? = none := rfl
   simp only [bidF, evalStorageRef, evalStorageRefSteps.eq_def, evalStorageRefStep.eq_def,
     ha, hi, bidsAddressValue, bidsIndexValue, bidsAddressKey, bidsIndexKey, valueToKey?,
     EvalResult.ofOption, EvalResult.bind, bind, pure, List.nil_append]
+  simp only [backendArrayIndexInBounds?, hlegacy]
   rw [hboundsRevert']
 
 theorem blindAuctionBidsBodyReturns (evm : EVM.State) (I : ExecutionEnv)

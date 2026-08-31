@@ -125,7 +125,8 @@ theorem liftPushArray_ok {cA gh bl σ σ₀ A I} {g : Sat256}
           (liftSrcsLenWord σ I) (liftKey I)) := by
   unfold pushArray? resolveStorageRef? evalStorageRef evalStorageRefSteps
     evalStorageRefStep srcsRef storageTypeAt? storageTypeStep? contract storageDecls
-    config storageLayout solidityStorageLayout storageLayoutRaw liftLocals addrSt
+    config storageLayout solidityStorageLayout storageLayoutRaw backendPushStorage?
+    configuredStorageBackend Config.legacyStorageBackend legacyPushStorage? liftLocals addrSt
     liftAfterSrcsLengthState liftAfterSrcsElemState liftSrcsLenWord cureSlotWord solcSlotWord
   simp [EvalResult.bind, bind, pure, EvalResult.ofOption, initState, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]

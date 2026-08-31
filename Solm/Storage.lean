@@ -1,6 +1,7 @@
 import EVM.Types
 import EVM.Lemmas
 import Solm.Value
+import Solm.Result
 
 -- TODO: get rid of these maybe
 import Ethereum.Semantics
@@ -175,6 +176,18 @@ structure StorageLayout where
   -- Note: The above definition may need to also carry some assumptions if
   -- we want have a type system on top of these semantics,
   -- e.g. access within array bounds returns `.some v`
+
+/-- Complete storage behavior used by the Solm semantics.  A backend owns representation-sensitive
+    reads and mutations; `locate?` is optional proof/debug information and is never consulted by
+    generic execution. -/
+structure StorageBackend where
+  read : EvaledStorageRef -> StorageType -> EVM.State -> EvalResult Value
+  write : EvaledStorageRef -> StorageType -> Value -> EVM.State -> EvalResult EVM.State
+  clear : EvaledStorageRef -> StorageType -> EVM.State -> EvalResult EVM.State
+  length : EvaledStorageRef -> StorageType -> EVM.State -> EvalResult Nat
+  push : EvaledStorageRef -> StorageType -> Option Value -> EVM.State -> EvalResult EVM.State
+  pop : EvaledStorageRef -> StorageType -> EVM.State -> EvalResult EVM.State
+  locate? : EvaledStorageRef -> EVM.State -> Option StorageLoc := fun _ _ => none
 
 
 def intTypeSize (t : IntType) : Fin 33 :=

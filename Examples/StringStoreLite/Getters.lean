@@ -568,7 +568,10 @@ theorem currentLengthBodyReturns {evm : EVM.State} {n : Nat}
       (.returned { contract := stringStoreLiteContract, locals := ∅ } evm (some [(.int n)])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true hwv)).returns (by
-      simp only [evalExpr?, hresolve, readStorageArrayLength?, EvalResult.bind, bind, hlen, pure])
+      have hnone : stringStoreLiteConfig.storageBackend? = none := rfl
+      have hn : ¬(n : Int) < 0 := by omega
+      simp [evalExpr?, hresolve, hnone, legacyStorageLength?,
+        readStorageArrayLength?, EvalResult.bind, bind, hlen, hn, pure])
 
 theorem currentLengthBodyReverts {evm : EVM.State}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -581,7 +584,9 @@ theorem currentLengthBodyReverts {evm : EVM.State}
   exact ExecFuncBody.execBlockRevert <|
     (ABlock.start.requireStep (evalCallvalueEq_true hwv)).run
       (ExecBlock.consRevert (ExecStmt.returnRevert (by
-        simp only [Solm.evalExprs?.eq_def, evalExpr?, hresolve, readStorageArrayLength?,
+        have hnone : stringStoreLiteConfig.storageBackend? = none := rfl
+        simp [Solm.evalExprs?.eq_def, evalExpr?, hresolve, hnone,
+          legacyStorageLength?, readStorageArrayLength?,
           EvalResult.bind, bind, hlen, pure])))
 
 theorem currentLengthBodyReturnsOfLength {evm : EVM.State} {n : Nat}
@@ -735,7 +740,8 @@ theorem assignCurrentOfWrite {evm evmCurrent : EVM.State} {value : ByteArray}
     simp [resolveStorageRef?, evalStorageRef, evalStorageRefSteps, currentRef,
       storageTypeAt?, stringStoreLiteConfig, stringStoreLiteContract, storageDecls, stringSt,
       EvalResult.ofOption, EvalResult.bind, bind, pure]
-  simp [assignStorageRef?, hresolve, hwrite, EvalResult.bind, bind, pure]
+  have hnone : stringStoreLiteConfig.storageBackend? = none := rfl
+  simp [assignStorageRef?, hresolve, hnone, hwrite, EvalResult.bind, bind, pure]
 
 theorem setBodyReturnsOfWrite {evm evmCurrent : EVM.State} {value : ByteArray}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -832,7 +838,8 @@ theorem setBodyRevertsOfWrite {evm : EVM.State} {value : ByteArray}
   have hassign :
       assignStorageRef? stringStoreLiteConfig solm1 evm .storage currentRef (.bytes value) =
         .revert := by
-    simp [assignStorageRef?, hresolve, hwrite, EvalResult.bind, bind, pure]
+    have hnone : stringStoreLiteConfig.storageBackend? = none := rfl
+    simp [assignStorageRef?, hresolve, hnone, hwrite, EvalResult.bind, bind, pure]
   exact ExecFuncBody.execBlockRevert <|
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
       ExecBlock.consNormal (ExecStmt.letDecl hvalue) <|
@@ -873,7 +880,7 @@ theorem deleteCurrentShortZero {evm : EVM.State}
     (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
     (solm := solm)
     (evm := evm) (ref := currentRef) (er := { base := "current", steps := [] })
-    (baseSlot := ⟨0⟩) rfl hresolve currentLengthBaseSlot hload
+    (baseSlot := ⟨0⟩) rfl rfl hresolve currentLengthBaseSlot hload
 
 theorem deleteCurrentShortPacked {evm : EVM.State} {header len : UInt256} {copy : ByteArray}
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = header)
@@ -899,7 +906,7 @@ theorem deleteCurrentShortPacked {evm : EVM.State} {header len : UInt256} {copy 
     (solm := solm)
     (evm := evm) (ref := currentRef) (er := { base := "current", steps := [] })
     (baseSlot := ⟨0⟩) (header := header) (len := len)
-    rfl hresolve currentLengthBaseSlot hload hpacked hflag hlen hvalid
+    rfl rfl hresolve currentLengthBaseSlot hload hpacked hflag hlen hvalid
 
 theorem deleteCurrentLongPrepared {evm : EVM.State} {header len : UInt256} {copy : ByteArray}
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = header)
@@ -926,7 +933,7 @@ theorem deleteCurrentLongPrepared {evm : EVM.State} {header len : UInt256} {copy
     (solm := solm)
     (evm := evm) (ref := currentRef) (er := { base := "current", steps := [] })
     (baseSlot := ⟨0⟩) (header := header) (len := len)
-    rfl hresolve currentLengthBaseSlot hload hflag hlen hvalid
+    rfl rfl hresolve currentLengthBaseSlot hload hflag hlen hvalid
 
 theorem writeCurrentShortPacked {evm : EVM.State} {header len : UInt256}
     {value : ByteArray}
@@ -1104,7 +1111,7 @@ theorem assignCurrentEmptyFromZero {evm : EVM.State}
     (cfg := stringStoreLiteConfig) (layout := stringStoreLiteLayout)
     (solm := solm)
     (evm := evm) (ref := currentRef) (er := { base := "current", steps := [] })
-    (baseSlot := ⟨0⟩) rfl hresolve currentLengthBaseSlot hload
+    (baseSlot := ⟨0⟩) rfl rfl hresolve currentLengthBaseSlot hload
 
 theorem setLengthWord_eq_abi
     (cd : ByteArray)
@@ -1664,7 +1671,7 @@ theorem readCurrentShortPackedExists {evm : EVM.State} {header len : UInt256}
     (solm := { contract := stringStoreLiteContract, locals := ∅ })
     (evm := evm) (ref := currentRef) (er := { base := "current", steps := [] })
     (baseSlot := ⟨0⟩) (header := header) (len := len)
-    rfl (currentLengthResolve evm) currentLengthBaseSlot hload hflag hlen hvalid
+    rfl rfl (currentLengthResolve evm) currentLengthBaseSlot hload hflag hlen hvalid
 
 theorem readCurrentLongExists {evm : EVM.State} {header len : UInt256}
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩ = header)
@@ -1679,7 +1686,7 @@ theorem readCurrentLongExists {evm : EVM.State} {header len : UInt256}
     (solm := { contract := stringStoreLiteContract, locals := ∅ })
     (evm := evm) (ref := currentRef) (er := { base := "current", steps := [] })
     (baseSlot := ⟨0⟩) (header := header) (len := len)
-    rfl (currentLengthResolve evm) currentLengthBaseSlot hload hflag hlen hvalid
+    rfl rfl (currentLengthResolve evm) currentLengthBaseSlot hload hflag hlen hvalid
 
 theorem currentLengthZeroAllocMem_eq :
     currentLengthZeroAllocMem =

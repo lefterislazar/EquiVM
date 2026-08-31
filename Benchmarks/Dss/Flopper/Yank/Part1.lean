@@ -86,6 +86,7 @@ theorem deleteStorage_yankSuck_bid (evm : EVM.State) (I : ExecutionEnv) :
   rw [deleteStorage?]
   rw [resolveStorageRef_yankSuck_bid]
   simp only [EvalResult.bind, bind]
+  rw [backendClearStorage?_of_none (cfg := config) rfl]
   rw [Solm.clearStorage?.eq_def]
   simp only [BidStructTy]
   rw [Solm.clearFields?.eq_def]

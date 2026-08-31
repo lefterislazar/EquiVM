@@ -578,7 +578,8 @@ theorem dropPopArray_ok (evm : EVM.State) (locals : Store) (len : UInt256)
       .ok (dropAfterPopState evm len) := by
   unfold popArray? resolveStorageRef? evalStorageRef evalStorageRefSteps srcsRef
     storageTypeAt? storageTypeStep? contract storageDecls config storageLayout
-    solidityStorageLayout storageLayoutRaw clearStorage? dropAfterPopState
+    solidityStorageLayout storageLayoutRaw backendPopStorage? configuredStorageBackend
+    Config.legacyStorageBackend legacyPopStorage? clearStorage? dropAfterPopState
     dropAfterPopClearState dropSrcsLastSlot
   simp [hbase, EvalResult.bind, bind, pure, EvalResult.ofOption, wordLoc, addrSt]
   have hlenLoad :
@@ -606,7 +607,8 @@ theorem dropPopArray_revert_zero (evm : EVM.State) (locals : Store)
     popArray? config { contract := contract, locals := locals } evm srcsRef = .revert := by
   unfold popArray? resolveStorageRef? evalStorageRef evalStorageRefSteps srcsRef
     storageTypeAt? storageTypeStep? contract storageDecls config storageLayout
-    solidityStorageLayout storageLayoutRaw clearStorage?
+    solidityStorageLayout storageLayoutRaw backendPopStorage? configuredStorageBackend
+    Config.legacyStorageBackend legacyPopStorage? clearStorage?
   simp [hbase, EvalResult.bind, bind, pure, EvalResult.ofOption, wordLoc, addrSt]
   have hlenLoad :
       storageLocLoad evm
@@ -749,7 +751,8 @@ theorem dropDeletePos_ok (evm : EVM.State) (locals : Store) (I : ExecutionEnv)
       .ok (dropAfterDeletePosState evm I) := by
   unfold deleteStorage? resolveStorageRef? evalStorageRef evalStorageRefSteps evalStorageRefStep
     posRef storageTypeAt? storageTypeStep? contract storageDecls config storageLayout
-    solidityStorageLayout storageLayoutRaw clearStorage? dropAfterDeletePosState dropPosSlotFor
+    solidityStorageLayout storageLayoutRaw backendClearStorage? configuredStorageBackend
+    Config.legacyStorageBackend clearStorage? dropAfterDeletePosState dropPosSlotFor
   simp [hbase, hsrc, evalExpr?, EvalResult.bind, bind, pure, EvalResult.ofOption, valueToKey?,
     wordLoc]
   change
@@ -771,7 +774,8 @@ theorem dropDeleteAmt_ok (evm : EVM.State) (locals : Store) (I : ExecutionEnv)
       .ok (dropAfterDeleteAmtState evm I) := by
   unfold deleteStorage? resolveStorageRef? evalStorageRef evalStorageRefSteps evalStorageRefStep
     amtRef storageTypeAt? storageTypeStep? contract storageDecls config storageLayout
-    solidityStorageLayout storageLayoutRaw clearStorage? dropAfterDeleteAmtState dropAmtSlotFor
+    solidityStorageLayout storageLayoutRaw backendClearStorage? configuredStorageBackend
+    Config.legacyStorageBackend clearStorage? dropAfterDeleteAmtState dropAmtSlotFor
   simp [hbase, hsrc, evalExpr?, EvalResult.bind, bind, pure, EvalResult.ofOption, valueToKey?,
     wordLoc]
   change

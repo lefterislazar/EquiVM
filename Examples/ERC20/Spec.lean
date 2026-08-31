@@ -1,5 +1,6 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # ERC20 — Solm specification for `ERC20.sol`
@@ -82,6 +83,32 @@ def erc20StorageLayout : StorageLayout where
         some (erc20Uint256Loc (erc20AllowanceSlot owner spender))
     | "totalSupply", [] => some (erc20Uint256Loc ⟨2⟩)
     | _, _ => none
+
+/-- Generated counterpart of the original hand-written layout.  The pointwise checks below keep
+    this representative benchmark as an executable conformance test for static and nested mapping
+    storage. -/
+def erc20GeneratedStorageLayout : StorageLayout :=
+  solidityLayout! [([] : List StructDecl)] [erc20StorageDecls]
+
+def erc20GeneratedStorageBackend : StorageBackend :=
+  erc20GeneratedStorageLayout.toBackend
+
+example (evm : EVM.State) :
+    erc20GeneratedStorageLayout.layout { base := "totalSupply" } evm =
+      erc20StorageLayout.layout { base := "totalSupply" } evm := by
+  rfl
+
+example (owner : KeyValue) (evm : EVM.State) :
+    erc20GeneratedStorageLayout.layout { base := "balanceOf", steps := [.mindex owner] } evm =
+      erc20StorageLayout.layout { base := "balanceOf", steps := [.mindex owner] } evm := by
+  rfl
+
+example (owner spender : KeyValue) (evm : EVM.State) :
+    erc20GeneratedStorageLayout.layout
+        { base := "allowance", steps := [.mindex owner, .mindex spender] } evm =
+      erc20StorageLayout.layout
+        { base := "allowance", steps := [.mindex owner, .mindex spender] } evm := by
+  rfl
 
 @[simp] theorem erc20StorageLayout_totalSupply :
     erc20StorageLayout.layout { base := "totalSupply", steps := [] } = fun _ => some (erc20Uint256Loc ⟨2⟩) :=
@@ -197,7 +224,18 @@ def erc20Contract : ContractDecl :=
 end ERC20
 
 def erc20Config : Config :=
-  { storage := ERC20.erc20StorageLayout
+  { storage := ERC20.erc20GeneratedStorageLayout
+    storageBackend? := some ERC20.erc20GeneratedStorageBackend
+    storageBackend_read_scalar := by
+      intro backend er ty evm loc hbackend hloc
+      cases hbackend
+      exact StorageLayout.toBackend_read_elem
+        ERC20.erc20GeneratedStorageLayout er ty evm loc hloc
+    storageBackend_write_scalar := by
+      intro backend er ty value evm evm' loc hbackend hloc hscalar hstore
+      cases hbackend
+      exact StorageLayout.toBackend_write_scalar
+        ERC20.erc20GeneratedStorageLayout er ty value evm evm' loc hloc hscalar hstore
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment ERC20.erc20Contract.ctor.params }
 

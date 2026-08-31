@@ -125,7 +125,10 @@ theorem weth9SolmAssignBytes (evm : EVM.State) (frame : Frame) (slotRef : Storag
         some (weth9WriteBytesValue? storageLayoutRaw { base := slotRef.base, steps := [] } bs evm)
         from rfl, hbytes, storagePrepareResultToEval]
   rw [assignStorageRef?]
-  simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind, pure, hwrite]
+  simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind]
+  rw [backendWriteStorage?_aggregate_of_none (cfg := config) rfl evm
+    { base := slotRef.base, steps := [] } .string (.bytes bs) (by trivial), hwrite]
+  rfl
 
 /-! ## The Solm constructor final state -/
 

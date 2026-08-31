@@ -1,4 +1,5 @@
 import Benchmarks.WETH9.Correct
+import Benchmarks.WETH9.GeneratedLayout
 import Benchmarks.Dss.Dai.Correct
 import Benchmarks.Dss.Jug.Correct
 import Benchmarks.Dss.Vat.Correct

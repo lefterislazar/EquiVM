@@ -257,6 +257,13 @@ def solidityStorageLayout
 
 mutual
 
+/-- Only elementary values and contract addresses participate in Solidity's cross-declaration
+    byte packing. Arrays, structs, mappings, and dynamically-sized values start on a fresh slot and
+    leave the following declaration on a fresh slot. -/
+def solidityTypeIsPackable : StorageType -> Bool
+  | .elem _ | .contract _ => true
+  | _ => false
+
 -- Returns the node corresponding to the type, plus its size
 def slotTypeSolidityStorageNode (structs : List StructDecl)
                                 (st : StorageType)
@@ -379,7 +386,9 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
             -- TODO: maybe go directly to nat?
             let idxNat := idxWord.toNat
             { slot := Ethereum.uInt256OfByteArray (ffi.KEC word.toByteArray) + Ethereum.UInt256.ofNat (idxNat/elemsPerWord)
-              offset := .ofNat 32 (idxNat%elemsPerWord * elemSize)
+              -- Solidity stores byte 0 in the most-significant byte of each data word.  StorageLoc
+              -- offsets are little-endian, hence the reversal.
+              offset := .ofNat 32 (31 - idxNat % elemsPerWord)
               size := elemSize
               bitOffset := .none
             }
@@ -420,15 +429,24 @@ def solidityStructLayout (structs : List StructDecl)
   match decls with
   | decl :: decls' => do
     let (size, node) <- slotTypeSolidityStorageNode structs decl.2
-    let slot' := if offset + size >= 32 then slot + ⟨1⟩ else slot
-    let offset' := if offset + size >= 32 then 0 else offset
-    let nextStorageRef := if offset' + size >= 32 then slot' + ⟨1⟩ else slot'
-    let nextOffset := if h : offset' + size >= 32 then 0 else ⟨offset' + size, by omega⟩
+    let packable := solidityTypeIsPackable decl.2
+    let crossesSlot := offset.val + size > 32
+    let slot' := if packable then (if crossesSlot then slot + ⟨1⟩ else slot)
+                 else (if offset.val = 0 then slot else slot + ⟨1⟩)
+    let offset' : Fin 32 :=
+      if packable ∧ ¬crossesSlot then offset else 0
+    let endOffset := offset'.val + size
+    let words := (size + 31) / 32
+    let nextStorageRef :=
+      if packable then (if endOffset = 32 then slot' + ⟨1⟩ else slot')
+      else slot' + Ethereum.UInt256.ofNat words
+    let nextOffset : Fin 32 :=
+      if h : packable ∧ endOffset < 32 then ⟨endOffset, by omega⟩ else 0
     let (structSize, rest) <- solidityStructLayout structs decls' nextStorageRef nextOffset
     pure (structSize, λ name ↦ if name == decl.1 then .some ⟨{slot := slot', offset := offset', size, bitOffset := .none}, node⟩ else rest name)
   | [] =>
-    let size := if offset == 0 then slot else slot+⟨1⟩
-    pure (size.toNat, λ _ ↦ .none)
+    let slots := if offset == 0 then slot else slot+⟨1⟩
+    pure (slots.toNat * 32, λ _ ↦ .none)
 
 def solidityTupleLayout (structs : List StructDecl)
                                 (elems : List StorageType)
@@ -439,15 +457,24 @@ def solidityTupleLayout (structs : List StructDecl)
   match elems with
   | elem :: elems' => do
     let (size, node) <- slotTypeSolidityStorageNode structs elem
-    let slot' := if offset + size >= 32 then slot + ⟨1⟩ else slot
-    let offset' := if offset + size >= 32 then 0 else offset
-    let nextStorageRef := if offset' + size >= 32 then slot' + ⟨1⟩ else slot'
-    let nextOffset := if h : offset' + size >= 32 then 0 else ⟨offset' + size, by omega⟩
+    let packable := solidityTypeIsPackable elem
+    let crossesSlot := offset.val + size > 32
+    let slot' := if packable then (if crossesSlot then slot + ⟨1⟩ else slot)
+                 else (if offset.val = 0 then slot else slot + ⟨1⟩)
+    let offset' : Fin 32 :=
+      if packable ∧ ¬crossesSlot then offset else 0
+    let endOffset := offset'.val + size
+    let words := (size + 31) / 32
+    let nextStorageRef :=
+      if packable then (if endOffset = 32 then slot' + ⟨1⟩ else slot')
+      else slot' + Ethereum.UInt256.ofNat words
+    let nextOffset : Fin 32 :=
+      if h : packable ∧ endOffset < 32 then ⟨endOffset, by omega⟩ else 0
     let (structSize, rest) <- solidityTupleLayout structs elems' (currElem + 1) nextStorageRef nextOffset
     pure (structSize, λ n ↦ if n == currElem then .some ⟨{slot := slot', offset := offset', size, bitOffset := .none}, node⟩ else rest n)
   | [] =>
-    let size := if offset == 0 then slot else slot+⟨1⟩
-    pure (size.toNat, λ _ ↦ .none)
+    let slots := if offset == 0 then slot else slot+⟨1⟩
+    pure (slots.toNat * 32, λ _ ↦ .none)
 
 end
 
@@ -489,6 +516,15 @@ def followSteps (evm : EVM.State) (loc : IntermediateStorageLoc) (steps : List E
     match node with
     | .atomic t => if h : loc.offset.val + loc.size - 1 < 32 then pure (interToLoc loc t h) else .none
     | _ => .none
+
+/-- Follow a path from an already allocated base using the Solidity schema carried by its
+    `StorageType`.  The metaprogrammed frontend precomputes base allocation and calls this helper
+    only for the selected declaration. -/
+def followSolidityType (structs : List StructDecl) (evm : EVM.State)
+    (loc : IntermediateStorageLoc) (steps : List EvaledStorageRefStep)
+    (ty : StorageType) : Option StorageLoc := do
+  let (_, node) <- slotTypeSolidityStorageNode structs ty
+  followSteps evm loc steps node
 
 
 -- can we avoid either Option?

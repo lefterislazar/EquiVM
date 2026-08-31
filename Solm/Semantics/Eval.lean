@@ -113,7 +113,7 @@ def evalStorageRefStep (cfg : Config) (solm : Frame) (evm : EVM.State)
     let indexKey <- EvalResult.ofOption .typeError (valueToKey? index)
     -- check this index in bounds against the array reached by `pre`, *before* descending —
     -- interleaved with index evaluation exactly as solc emits it
-    let _ <- arrayIndexInBounds? cfg evm solm.contract.storage base pre indexKey
+    let _ <- backendArrayIndexInBounds? cfg evm solm.contract.storage base pre indexKey
     pure (.aindex indexKey)
   termination_by (slotStepEvalSize step, 0)
   decreasing_by
@@ -267,16 +267,8 @@ def assignStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
     | none => .error .unboundVariable
   | .storage => do
     let (evaledStorageRef, ty) <- resolveStorageRef? cfg solm evm slot
-    match value with
-    | .struct _ _ | .array _ | .bytes _ => do
-      -- whole-array / whole-struct assignment: write every slot by the declared type
-      let evm' <- writeStorage? cfg evm evaledStorageRef ty value
-      pure (solm, evm')
-    | _ => do
-      -- scalar leaf: a single whole/partial-slot store
-      let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef evm)
-      let evm' <- EvalResult.ofOption .storageError (storageLocStore evm loc value)
-      pure (solm, evm')
+    let evm' <- backendWriteStorage? cfg evm evaledStorageRef ty value
+    pure (solm, evm')
 
 def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
     Expr -> EvalResult Value
@@ -318,12 +310,13 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | .env var => pure (envValue evm var)
   | .storage slot => do
       let (evaledStorageRef, ty) <- resolveStorageRef? cfg solm evm slot
-      readStorage? cfg evm evaledStorageRef ty
+      backendReadStorage? cfg evm evaledStorageRef ty
   | .arrayLength origin slot => do
       match origin with
       | .storage => do
           let (er, ty) <- resolveStorageRef? cfg solm evm slot
-          readStorageArrayLength? cfg evm er ty
+          let len <- backendStorageLength? cfg evm er ty
+          pure (.int len)
       | .localVar =>
           match solm.locals.get? slot.base with
           | some root => do
@@ -340,7 +333,7 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
       | .storageRef er ty => do
           let step := EvaledStorageRefStep.field name
           let ty' <- EvalResult.ofOption .typeError (storageTypeStep? ty step)
-          readStorage? cfg evm { er with steps := er.steps ++ [step] } ty'
+          backendReadStorage? cfg evm { er with steps := er.steps ++ [step] } ty'
       | _ => EvalResult.ofOption .typeError (lookupField? baseValue name)
   | .cast expr ty => do /- TODO do we really need to have casting? -/
       let value <- evalExpr? cfg solm evm expr
