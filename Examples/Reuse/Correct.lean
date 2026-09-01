@@ -399,16 +399,16 @@ theorem RD.cPanicOverflowRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k
   have rd168 := rd168₀
   rw [hsel] at rd168
   have rd171 := evm_run rd168 with [
-    raw mstore 0 (cPanicMem0 mem) (UInt256.ofNat 3)
+    raw rawMstore 0 (cPanicMem0 mem) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨17⟩, push1 ⟨4⟩ ]
   have rd176 := evm_run rd171 with [
-    raw mstore 0 (cPanicMem mem) (UInt256.ofNat 3)
+    raw rawMstore 0 (cPanicMem mem) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨36⟩, push0 ]
-  exact rd176.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd176.rawRev 0 (by decide) mem_cost (by evm_ov)
 
 /-- Reuse's solc checked multiply routine at pc 181, specialized to `v * 2`. -/
 theorem RD.cCheckedMul2 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
@@ -552,19 +552,19 @@ theorem RD.cEncodeReturn {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : �
     RDret cBytecode g s0 acc (UInt256.toByteArray val) :=
   evm_run h with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
     swap1, dup2,
-    raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide) mem_cost
+    raw rawMstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide) mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide) mem_cost
       (solcReturnMem_mload64 val)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray val) (by decide) mem_cost
+    raw rawRet 0 (UInt256.toByteArray val) (by decide) mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
         show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32 from by decide,
         solcReturnMem_read128])
@@ -699,7 +699,7 @@ theorem cX_g_success {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd102⟩ := cX_g_internalCall_to102 rd127
   obtain ⟨_, _, rd134⟩ := RD.cFRoutine rd102 hbound (by jump_dest) (by evm_ov)
   have rd136 := evm_run rd134 with [ jumpdest, push0 ]
-  obtain ⟨_, _, rd137⟩ := RD.sstore rd136 hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd137⟩ := RD.rawSstore rd136 hperm (by decide) (by evm_ov)
   have rd100 := evm_run rd137 with [ pop, jump (by jump_dest), jumpdest ]
   exact rd100.stop (by decide) (by evm_ov)
 
@@ -1198,13 +1198,13 @@ theorem cInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {g
     raw push2 ⟨271⟩ cInitcodeDecode0 (by evm_ov),
     raw push1 ⟨12⟩ cInitcodeDecode3 (by evm_ov),
     raw push0 cInitcodeDecode5 (by evm_ov),
-    raw codecopy 27 cInitReturnMem (UInt256.ofNat 9) cInitcodeDecode6
+    raw rawCodecopy 27 cInitReturnMem (UInt256.ofNat 9) cInitcodeDecode6
       mem_cost
       rfl
       (by decide) (by evm_ov),
     raw push2 ⟨271⟩ cInitcodeDecode7 (by evm_ov),
     raw push0 cInitcodeDecode10 (by evm_ov),
-    raw ret 0 cBytecode cInitcodeDecode11
+    raw rawRet 0 cBytecode cInitcodeDecode11
       mem_cost
       cFinal_read
       (by evm_ov)]

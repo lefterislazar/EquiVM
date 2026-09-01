@@ -560,7 +560,7 @@ theorem erc6909X_isOperator {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd373 := evm_run rd343 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap2, dup3, and,
     push0, swap1, dup2,
-    raw mstore 0 (isOperatorOwnerMem (isOperatorOwnerWord I)) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (isOperatorOwnerMem (isOperatorOwnerWord I)) (UInt256.ofNat 3) (by decide)
       mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -569,17 +569,17 @@ theorem erc6909X_isOperator {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, swap1, dup2,
-    raw mstore 0 (isOperatorInnerHashMem (isOperatorOwnerWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (isOperatorInnerHashMem (isOperatorOwnerWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup4,
-    raw keccak256 0 (isOperatorInnerSlot (isOperatorOwnerWord I)) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (isOperatorInnerSlot (isOperatorOwnerWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap4, swap1 ]
   have rd374 := RD.swap5 rd373 (by decide) (by evm_ov)
   have rd382 := evm_run rd374 with [
     and, dup3,
-    raw mstore 0 (isOperatorSpenderMem (isOperatorOwnerWord I) (isOperatorSpenderWord I))
+    raw rawMstore 0 (isOperatorSpenderMem (isOperatorOwnerWord I) (isOperatorSpenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -588,12 +588,12 @@ theorem erc6909X_isOperator {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         rfl)
       (by decide) (by evm_ov),
     swap2, swap1, swap2,
-    raw mstore 0 (isOperatorOuterHashMem (isOperatorOwnerWord I) (isOperatorSpenderWord I))
+    raw rawMstore 0 (isOperatorOuterHashMem (isOperatorOwnerWord I) (isOperatorSpenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
-    raw keccak256 0 (isOperatorSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (isOperatorSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hslot (by decide) (by evm_ov) ]
-  obtain ⟨_, _, rd383⟩ := rd382.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd383⟩ := rd382.rawSload (by decide) (by evm_ov)
   have rd193 := evm_run rd383 with [
     push1 ⟨255⟩, and, swap1, jump (by jump_dest) ]
   have hmaskComm : UInt256.land ⟨255⟩ (isOperatorStorageWord σ I) =
@@ -601,12 +601,12 @@ theorem erc6909X_isOperator {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     exact Reasoning.Theory.u256_land_comm ⟨255⟩ (isOperatorStorageWord σ I)
   have rd165 := evm_run rd193 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (isOperatorOuterHashMem_mload64 (isOperatorOwnerWord I) (isOperatorSpenderWord I))
       (by decide) (by evm_ov),
     swap1, iszero, iszero, dup2,
-    raw mstore 6 (isOperatorReturnMem (isOperatorOwnerWord I) (isOperatorSpenderWord I)
+    raw rawMstore 6 (isOperatorReturnMem (isOperatorOwnerWord I) (isOperatorSpenderWord I)
         (isOperatorMaskedWord σ I))
       (UInt256.ofNat 5) (by decide) mem_cost
       (by
@@ -618,13 +618,13 @@ theorem erc6909X_isOperator {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   simpa [isOperatorReturnWord, isOperatorMaskedWord, hmaskComm] using
     (evm_run rd165 with [
       jumpdest, push1 ⟨64⟩,
-      raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
         mem_cost
         (isOperatorReturnMem_mload64 (isOperatorOwnerWord I) (isOperatorSpenderWord I)
           (isOperatorMaskedWord σ I))
         (by decide) (by evm_ov),
       dup1, swap2, sub, swap1,
-      raw ret 0 (UInt256.toByteArray (isOperatorReturnWord σ I)) (by decide)
+      raw rawRet 0 (UInt256.toByteArray (isOperatorReturnWord σ I)) (by decide)
         mem_cost
         (by
           rw [show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32

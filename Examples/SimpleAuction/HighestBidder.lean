@@ -81,7 +81,7 @@ theorem simpleAuctionX_highestBidder {cA gh bl σ σ₀ A I} {g : Sat256} {sel :
     jumpdest, callvalue, dup1, iszero, push2 ⟨285⟩,
     jumpiT (by rw [hwv]; decide) (by jump_dest)]
   have rd289 := evm_run rd285 with [jumpdest, pop, push1 ⟨2⟩]
-  obtain ⟨_, _, rd290⟩ := rd289.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd290⟩ := rd289.rawSload (by decide) (by evm_ov)
   have rd174 := evm_run rd290 with [
     push2 ⟨174⟩, swap1, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩,
     shl, sub, and, dup2, jump (by jump_dest)]

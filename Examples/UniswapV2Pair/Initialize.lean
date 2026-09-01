@@ -331,21 +331,21 @@ theorem RD.uniswapInitializeForbiddenRevert {g : Sat256} {s0 : State} {ee : Exec
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd3162 := evm_run h with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov)]
   have rd3166 := rd3162.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
     (by decide) (by decide) (by evm_ov)
   have rd3185 := evm_run rd3166 with [
     push1 ⟨229⟩, shl, dup2,
-    raw mstore 6 (UniswapV2Pair.uniswapErrorStringMem0 solcFreePtrMem) (UInt256.ofNat 5)
+    raw rawMstore 6 (UniswapV2Pair.uniswapErrorStringMem0 solcFreePtrMem) (UInt256.ofNat 5)
       (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
-    raw mstore 3 (UniswapV2Pair.uniswapErrorStringMem1 solcFreePtrMem) (UInt256.ofNat 6)
+    raw rawMstore 3 (UniswapV2Pair.uniswapErrorStringMem1 solcFreePtrMem) (UInt256.ofNat 6)
       (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨20⟩, push1 ⟨36⟩, dup3, add,
-    raw mstore 3
+    raw rawMstore 3
       (UniswapV2Pair.uniswapErrorStringMem2 (⟨20⟩ : UInt256) solcFreePtrMem)
       (UInt256.ofNat 7) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov)]
@@ -354,19 +354,19 @@ theorem RD.uniswapInitializeForbiddenRevert {g : Sat256} {s0 : State} {ee : Exec
     (width := 20) (op := .PUSH20) (by decide) (by decide) (by evm_ov)
   exact evm_run rd3206 with [
     push1 ⟨97⟩, shl, push1 ⟨68⟩, dup3, add,
-    raw mstore 3
+    raw rawMstore 3
       (UniswapV2Pair.uniswapErrorStringMem3 (⟨20⟩ : UInt256)
         UniswapV2Pair.uniswapForbiddenStringWord solcFreePtrMem)
       (UInt256.ofNat 8) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
       mem_cost
       (UniswapV2Pair.uniswapErrorStringMem3_mload64 (⟨20⟩ : UInt256)
         UniswapV2Pair.uniswapForbiddenStringWord solcFreePtrMem_size solcFreePtrMem_read64)
       (by decide) (by evm_ov),
     swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov)]
+    raw rawRev 0 (by decide) mem_cost (by evm_ov)]
 
 /-- The optimized external wrapper for `initialize(address,address)` accepts canonical calldata and
     jumps to the initialize routine at pc 3139 with continuation pc 570. -/
@@ -423,7 +423,7 @@ theorem uniswapX_initialize_success {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
   obtain ⟨_, _, rd3139⟩ := uniswapInitializeX_decoded (g := g)
     hsz68 hsize hreach
   have rd3142 := evm_run rd3139 with [jumpdest, push1 ⟨5⟩]
-  obtain ⟨_, _, rd3143₀⟩ := rd3142.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd3143₀⟩ := rd3142.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd3143⟩ : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨3143⟩
       [initializeFactoryWord σ I, initializeToken1MaskedWord I, initializeToken0MaskedWord I,
@@ -450,7 +450,7 @@ theorem uniswapX_initialize_success {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     decide
   have rd3225 := rd3154.jumpiT (by decide) hcallerEq (by jump_dest) (by evm_ov)
   have rd3229 := evm_run rd3225 with [jumpdest, push1 ⟨6⟩, dup1]
-  obtain ⟨_, _, rd3230₀⟩ := rd3229.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd3230₀⟩ := rd3229.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd3230⟩ : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨3230⟩
       [initializeToken0OldWord σ I, ⟨6⟩, initializeToken1MaskedWord I,
@@ -474,14 +474,14 @@ theorem uniswapX_initialize_success {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
   have rd3256 := rd3256₀
   rw [hmask] at rd3256
   rw [hset0] at rd3256
-  obtain ⟨_, _, rd3257₀⟩ := rd3256.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd3257₀⟩ := rd3256.rawSstore hperm (by decide) (by evm_ov)
   obtain ⟨_, _, rd3257⟩ : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨3257⟩
       [UInt256.lnot solcAddrMask, initializeToken1MaskedWord I, solcAddrMask, ⟨570⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, initializeToken0Map σ I) k C := by
     exact ⟨_, _, by simpa [initializeToken0Map] using rd3257₀⟩
   have rd3260 := evm_run rd3257 with [push1 ⟨7⟩, dup1]
-  obtain ⟨_, _, rd3261₀⟩ := rd3260.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd3261₀⟩ := rd3260.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd3261⟩ : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨3261⟩
       [initializeToken1OldWord σ I, ⟨7⟩, UInt256.lnot solcAddrMask,
@@ -500,7 +500,7 @@ theorem uniswapX_initialize_success {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     rw [u256_land_comm solcAddrMask (initializeToken1MaskedWord I)]
   have rd3269 := rd3268₀
   rw [hset1] at rd3269
-  obtain ⟨_, _, rd3270₀⟩ := rd3269.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd3270₀⟩ := rd3269.rawSstore hperm (by decide) (by evm_ov)
   obtain ⟨_, _, rd3270⟩ : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨3270⟩ [⟨570⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, initializePostMap σ I) k C := by
@@ -519,7 +519,7 @@ theorem uniswapX_initialize_forbidden {cA gh bl σ σ₀ A I} {g : Sat256} {sel 
   obtain ⟨_, _, rd3139⟩ := uniswapInitializeX_decoded (g := g)
     hsz68 hsize hreach
   have rd3142 := evm_run rd3139 with [jumpdest, push1 ⟨5⟩]
-  obtain ⟨_, _, rd3143₀⟩ := rd3142.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd3143₀⟩ := rd3142.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd3143⟩ : ∃ k C, RD uniswapV2PairBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨3143⟩
       [initializeFactoryWord σ I, initializeToken1MaskedWord I, initializeToken0MaskedWord I,

@@ -91,7 +91,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfExtcodesize
     uniswapSyncRuntimeLockEntered
       (g := g) hcode hsize hwv hsel hperm hunlocked
   have rd6099 := evm_run rd6097 with [push1 ⟨6⟩]
-  obtain ⟨k6100, C6100, rd6100₀⟩ := rd6099.sload (by native_decide) (by evm_ov)
+  obtain ⟨k6100, C6100, rd6100₀⟩ := rd6099.rawSload (by native_decide) (by evm_ov)
   have rd6100 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6100⟩
       [token0Word, ⟨570⟩, uniswapSelWord I]
@@ -99,19 +99,19 @@ theorem uniswapSyncRuntimeFirstBalanceOfExtcodesize
     simpa [σLock, token0Word, uniswapSlotWord] using rd6100₀
   have rd6113 := evm_run rd6100 with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push4 balanceOfSelectorWord, push1 ⟨224⟩, shl, dup2]
-  have rd6114 := rd6113.mstore 6 balanceOfThisSelectorMem (UInt256.ofNat 5)
+  have rd6114 := rd6113.rawMstore 6 balanceOfThisSelectorMem (UInt256.ofNat 5)
     (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)
   have rd6119 := evm_run rd6114 with [
     address, push1 ⟨4⟩, dup3, add]
-  have rd6120 := rd6119.mstore 3
+  have rd6120 := rd6119.rawMstore 3
     (balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)) (UInt256.ofNat 6)
     (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)
   have rd6125 := evm_run rd6120 with [
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost (balanceOfThisCalldataMem_mload64 (UInt256.ofNat I.codeOwner.val))
       (by decide) (by evm_ov),
     push2 ⟨6363⟩, swap3]
@@ -573,7 +573,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfToken1Sloaded
   intro hz ho32
   obtain ⟨_, _, rd6217⟩ := hdecoded hz ho32
   have rd6219 := evm_run rd6217 with [push1 ⟨7⟩]
-  obtain ⟨k', C', rd6220⟩ := rd6219.sload (by native_decide) (by evm_ov)
+  obtain ⟨k', C', rd6220⟩ := rd6219.rawSload (by native_decide) (by evm_ov)
   exact ⟨k', C', by simpa [σLock, token0Word, token0Clean, uniswapSlotWord] using rd6220⟩
 
 set_option maxHeartbeats 1000000 in
@@ -635,7 +635,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfSelectorReady
   obtain ⟨_, _, rd6220⟩ := hsload hz ho32
   have rd6232 := evm_run rd6220 with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords (by decide)
+    raw rawMload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords (by decide)
       mem_cost
       (balanceOfThisStaticcallMem_mload64_of_size_ge
         (UInt256.ofNat I.codeOwner.val) o ho32 hoSize)
@@ -703,14 +703,14 @@ theorem uniswapSyncRuntimeSecondBalanceOfCalldataRebuilt
   refine ⟨cA', σ', z, o, A_in, callGas, k, C, hΘ, rd6176, ?_, hoSize⟩
   intro hz ho32
   obtain ⟨_, _, rd6233⟩ := hready hz ho32
-  have rd6234 := rd6233.mstore 0
+  have rd6234 := rd6233.rawMstore 0
     ((UInt256.toByteArray balanceOfSelectorShifted).write 0
       (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o) 128 32)
     balanceOfThisStaticcallActiveWords
     (by native_decide) mem_cost (by rfl) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd6239 := evm_run rd6234 with [address, push1 ⟨4⟩, dup3, add]
-  have rd6240 := rd6239.mstore 0
+  have rd6240 := rd6239.rawMstore 0
     (balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o)
     balanceOfThisStaticcallActiveWords
     (by native_decide) mem_cost (by rfl) (by native_decide)
@@ -775,7 +775,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfToken1Cleaned
   obtain ⟨_, _, rd6240⟩ := hrebuilt hz ho32
   have rd6242 := evm_run rd6240 with [
     swap1,
-    raw mload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords (by decide)
+    raw rawMload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords (by decide)
       mem_cost
       (balanceOfThisRebuiltCalldataMem_mload64_of_size_ge
         (UInt256.ofNat I.codeOwner.val) o ho32 hoSize)
@@ -1298,7 +1298,7 @@ theorem uniswapSyncReserveSlotUnpack {g : Sat256} {s0 : State} {ee : ExecutionEn
         balance1 :: balance0 :: R)
       mem aw rdata (cA, σ) k' C' := by
   have rd6338 := evm_run h with [push1 ⟨8⟩]
-  obtain ⟨_, _, rd6339⟩ := rd6338.sload (by native_decide)
+  obtain ⟨_, _, rd6339⟩ := rd6338.rawSload (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd6362 := evm_run rd6339 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup1, dup3, and, swap2,
@@ -1770,7 +1770,7 @@ theorem RD.uniswapSyncAfterUpdateToReturn {g : Sat256} {s0 : State}
     RDret UniswapV2Pair.uniswapV2PairBytecode g s0
       (cA, sstoreAccountMap ee.codeOwner σ ⟨12⟩ ⟨1⟩) ByteArray.empty := by
   have rd6368 := evm_run h with [jumpdest, push1 ⟨1⟩, push1 ⟨12⟩]
-  obtain ⟨_, _, rd6369⟩ := rd6368.sstore hperm (by native_decide)
+  obtain ⟨_, _, rd6369⟩ := rd6368.rawSstore hperm (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd570 := evm_run rd6369 with [jump (by jump_dest), jumpdest]
   exact rd570.stop (by native_decide) (by evm_ov)

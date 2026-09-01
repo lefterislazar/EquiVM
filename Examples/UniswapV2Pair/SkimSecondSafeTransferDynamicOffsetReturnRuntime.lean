@@ -1171,7 +1171,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck_dynamic_offset
     simpa [awLoad64, aw0] using
       UInt256_mload64_same_of_toNat_ge13 (skimSecondSafeTransferDynamicWordsCall2 out1)
         (skimSecondSafeTransferDynamicWordsCall2_toNat_ge13 out1 hout1Size)
-  have rd6611₀ := RD.mload
+  have rd6611₀ := RD.rawMload
     (Cₘ awLoad64 - Cₘ aw0) (skimSecondSafeTransferDynamicCallPtr out1) awLoad64
     rd6610 (by native_decide)
     (by
@@ -1192,7 +1192,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck_dynamic_offset
   have rd6626pre := evm_run rd6611 with [
     swap2, pop, push1 ⟨31⟩, not, push1 ⟨63⟩, returndatasize, add, and,
     dup3, add, push1 ⟨64⟩]
-  have rd6626₀ := RD.mstore
+  have rd6626₀ := RD.rawMstore
     (Cₘ awLoad64 - Cₘ aw0) mem2 awLoad64 rd6626pre (by native_decide)
     (by
       intro s haw hstk
@@ -1210,7 +1210,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck_dynamic_offset
         (skimSecondSafeTransferDynamicCallPtr out1).toNat 32)
   have rd6629 := evm_run rd6626 with [
     returndatasize, dup3,
-    raw mstore
+    raw rawMstore
       (Cₘ awSize - Cₘ (skimSecondSafeTransferDynamicWordsCall2 out1))
       mem3 awSize
       (by native_decide)
@@ -1242,7 +1242,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck_dynamic_offset
         skimSecondSafeTransferDynamicReturnDataActiveWords out1 out := by
     simp [skimSecondSafeTransferDynamicReturnDataActiveWords, copyDest, copyLen, awSize,
       hcopyDest_eq, hcopyLen_toNat]
-  have rd6637 := RD.returndatacopy
+  have rd6637 := RD.rawReturndatacopy
     (Cₘ (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out) -
       Cₘ awSize)
     mem4
@@ -1310,7 +1310,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueStatusToLengthLoaded_dynamic
       out1 out hout1Small houtSmall
   have rd6661 := evm_run rd6652 with [
     dup2, dup1, iszero, push2 ⟨6692⟩, jumpiNT (by native_decide), pop, dup1]
-  have rd6662 := RD.mload
+  have rd6662 := RD.rawMload
     0 (UInt256.ofNat out.size) (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out)
     rd6661 (by native_decide)
     (by
@@ -1321,7 +1321,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueStatusToLengthLoaded_dynamic
   have rd6675 := evm_run rd6662 with [
     iszero, dup1, push2 ⟨6692⟩, jumpiNT hsizeIsZero, pop, dup1, dup1,
     push1 ⟨32⟩, add, swap1]
-  have rd6676 := RD.mload
+  have rd6676 := RD.rawMload
     0 (UInt256.ofNat out.size) (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out)
     rd6675 (by native_decide)
     (by
@@ -1385,7 +1385,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
     else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 64 32))
   let aw1 : UInt256 := UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32)
   have rd6701 := evm_run h with [push1 ⟨64⟩, dup1]
-  have rd6701' := RD.mload
+  have rd6701' := RD.rawMload
     (Cₘ aw1 - Cₘ aw) fp0 aw1 rd6701 (by native_decide)
     (by
       intro s haw hstk
@@ -1398,7 +1398,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
   have rd6708 := evm_run rd6705 with [push1 ⟨229⟩, shl, dup2]
   let err0 : ByteArray := (UInt256.toByteArray uniswapErrorStringSelector).write 0 mem fp0.toNat 32
   let aw2 : UInt256 := UInt256.ofNat (MachineState.M aw1.toNat fp0.toNat 32)
-  have rd6710 := RD.mstore
+  have rd6710 := RD.rawMstore
     (Cₘ aw2 - Cₘ aw1) err0 aw2 rd6708 (by native_decide)
     (by
       intro s haw hstk
@@ -1410,7 +1410,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
   let off1 : UInt256 := fp0 + ⟨4⟩
   let err1 : ByteArray := (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 err0 off1.toNat 32
   let aw3 : UInt256 := UInt256.ofNat (MachineState.M aw2.toNat off1.toNat 32)
-  have rd6717 := RD.mstore
+  have rd6717 := RD.rawMstore
     (Cₘ aw3 - Cₘ aw2) err1 aw3 rd6716 (by native_decide)
     (by
       intro s haw hstk
@@ -1422,7 +1422,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
   let off2 : UInt256 := fp0 + ⟨36⟩
   let err2 : ByteArray := (UInt256.toByteArray (⟨26⟩ : UInt256)).write 0 err1 off2.toNat 32
   let aw4 : UInt256 := UInt256.ofNat (MachineState.M aw3.toNat off2.toNat 32)
-  have rd6724 := RD.mstore
+  have rd6724 := RD.rawMstore
     (Cₘ aw4 - Cₘ aw3) err2 aw4 rd6723 (by native_decide)
     (by
       intro s haw hstk
@@ -1437,7 +1437,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
   let err3 : ByteArray := (UInt256.toByteArray uniswapSafeTransferFailedStringWord).write 0
     err2 off3.toNat 32
   let aw5 : UInt256 := UInt256.ofNat (MachineState.M aw4.toNat off3.toNat 32)
-  have rd6762 := RD.mstore
+  have rd6762 := RD.rawMstore
     (Cₘ aw5 - Cₘ aw4) err3 aw5 rd6760 (by native_decide)
     (by
       intro s haw hstk
@@ -1451,7 +1451,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
       ⟨0⟩
     else UInt256.ofNat (fromByteArrayBigEndian (err3.readWithPadding 64 32))
   let aw6 : UInt256 := UInt256.ofNat (MachineState.M aw5.toNat (⟨64⟩ : UInt256).toNat 32)
-  have rd6764 := RD.mload
+  have rd6764 := RD.rawMload
     (Cₘ aw6 - Cₘ aw5) fp1 aw6 rd6763 (by native_decide)
     (by
       intro s haw hstk
@@ -1461,7 +1461,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd6772 := evm_run rd6764 with [
     swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1]
-  exact RD.rev
+  exact RD.rawRev
     (Cₘ (UInt256.ofNat
       (MachineState.M aw6.toNat fp1.toNat ((⟨100⟩ : UInt256) + fp0.sub fp1).toNat)) -
       Cₘ aw6)
@@ -1507,7 +1507,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyFalseReverts_dynamic_offset
   have hawRet :=
     skimSecondSafeTransferDynamicReturnDataActiveWords_mloadRetPtr_same
       out1 out hout1Small houtSmall hout32
-  have rd6692₀ := RD.mload
+  have rd6692₀ := RD.rawMload
     0 (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)))
     (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out) rd6691 (by native_decide)
     (by
@@ -1570,7 +1570,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueToRet_dynamic_offset
   have hawRet :=
     skimSecondSafeTransferDynamicReturnDataActiveWords_mloadRetPtr_same
       out1 out hout1Small houtSmall hout32
-  have rd6692₀ := RD.mload
+  have rd6692₀ := RD.rawMload
     0 (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)))
     (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out) rd6691 (by native_decide)
     (by
@@ -1629,7 +1629,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyReturnToRet_dynamic_offset
         omega)
   have rd6668 := evm_run rd6658 with [
     pop, dup1,
-    raw mload 0 ⟨0⟩ (skimSecondSafeTransferDynamicWordsCall2 out1) (by native_decide)
+    raw rawMload 0 ⟨0⟩ (skimSecondSafeTransferDynamicWordsCall2 out1) (by native_decide)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw96])

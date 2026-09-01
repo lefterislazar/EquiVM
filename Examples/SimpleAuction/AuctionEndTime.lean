@@ -44,7 +44,7 @@ theorem simpleAuctionX_auctionEndTime {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, callvalue, dup1, iszero, push2 ⟨250⟩,
     jumpiT (by rw [hwv]; decide) (by jump_dest),
     jumpdest, pop, push2 ⟨260⟩, push1 ⟨1⟩ ]
-  obtain ⟨_, _, rd258₀⟩ := rd257.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd258₀⟩ := rd257.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd258⟩ :
       ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨258⟩
         [auctionEndTimeWord σ I, ⟨260⟩, simpleAuctionSelWord I]
@@ -54,24 +54,24 @@ theorem simpleAuctionX_auctionEndTime {cA gh bl σ σ₀ A I} {g : Sat256}
     dup2, jump (by jump_dest) ]
   have rd194 := evm_run rd260 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
     swap1, dup2,
-    raw mstore 6 (solcReturnMem (auctionEndTimeWord σ I)) (UInt256.ofNat 5)
+    raw rawMstore 6 (solcReturnMem (auctionEndTimeWord σ I)) (UInt256.ofNat 5)
       (by decide) mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨194⟩, jump (by jump_dest) ]
   exact evm_run rd194 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (solcReturnMem_mload64 (auctionEndTimeWord σ I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (auctionEndTimeWord σ I)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (auctionEndTimeWord σ I)) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,

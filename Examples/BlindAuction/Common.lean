@@ -238,7 +238,7 @@ theorem blindAuctionPayablePrologueRD {cA gh bl σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) 3 18 := by
   exact evm_run (RD.initState hcode) with [
     push1 ⟨128⟩, push1 ⟨64⟩,
-    raw mstore 9 solcFreePtrMem (UInt256.ofNat 3) (by decide)
+    raw rawMstore 9 solcFreePtrMem (UInt256.ofNat 3) (by decide)
       mem_cost
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by decide) ]
@@ -531,13 +531,13 @@ theorem blindAuctionRoutineEncodeAddress308 {g : Sat256} {s0 : State} {ee : Exec
       (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5) rdata acc k' C' := by
   let rd := evm_run h with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
     swap1, swap2, and, dup2,
-    raw mstore 6 (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5)
+    raw rawMstore 6 (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5)
       (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -557,12 +557,12 @@ theorem blindAuctionRoutineEncodeWord373 {g : Sat256} {s0 : State} {ee : Executi
       (solcReturnMem val) (UInt256.ofNat 5) rdata acc k' C' := by
   let rd := evm_run h with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
     swap1, dup2,
-    raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide)
       mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
@@ -578,12 +578,12 @@ theorem blindAuctionReturnOneWord206 {g : Sat256} {s0 : State} {ee : ExecutionEn
     RDret blindAuctionBytecode g s0 acc (UInt256.toByteArray val) := by
   exact evm_run h with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (solcReturnMem_mload64 val)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray val) (by decide)
+    raw rawRet 0 (UInt256.toByteArray val) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,

@@ -458,21 +458,21 @@ theorem bidPanicOverflowRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k 
   have rd977 := rd977₀
   rw [hsel] at rd977
   have rd982 := evm_run rd977 with [
-    raw mstore 0
+    raw rawMstore 0
       ((UInt256.toByteArray
         (⟨35408467139433450592217433187231851964531694900788300625387963629091585785856⟩ :
           UInt256)).write 0 mem 0 32)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨17⟩, push1 ⟨4⟩]
   have rd986 := evm_run rd982 with [
-    raw mstore 0
+    raw rawMstore 0
       ((UInt256.toByteArray (⟨17⟩ : UInt256)).write 0
         ((UInt256.toByteArray
           (⟨35408467139433450592217433187231851964531694900788300625387963629091585785856⟩ :
             UInt256)).write 0 mem 0 32) 4 32)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨36⟩, push0]
-  exact rd986.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd986.rawRev 0 (by decide) mem_cost (by evm_ov)
 
 theorem bidCheckedAddOverflow {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {a b ret : UInt256} {R : List UInt256} {mem : ByteArray}
@@ -535,7 +535,7 @@ theorem simpleAuctionX_bid_timeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd326⟩ := simpleAuctionX_bidToBody (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hreach
   have rd329 := evm_run rd326 with [jumpdest, push1 ⟨1⟩]
-  obtain ⟨_, _, rd330₀⟩ := rd329.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd330₀⟩ := rd329.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd330⟩ : ∃ k C, RD simpleAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨330⟩
       [bidAuctionEndWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
@@ -553,10 +553,10 @@ theorem simpleAuctionX_bid_timeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   let errSel : UInt256 := UInt256.shiftLeft (⟨0xd02e774d⟩ : UInt256) ⟨224⟩
   have rd350 := evm_run rd337 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push4 ⟨0xd02e774d⟩, push1 ⟨224⟩, shl, dup2,
-    raw mstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
@@ -564,10 +564,10 @@ theorem simpleAuctionX_bid_timeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov)]
   have rd360 := evm_run rd350 with [
     push1 ⟨4⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost (solcReturnMem_mload64 errSel) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
-  exact rd360.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd360.rawRev 0 (by decide) mem_cost (by evm_ov)
 
 theorem simpleAuctionX_bid_afterTime {cA gh bl σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨114⟩
@@ -579,7 +579,7 @@ theorem simpleAuctionX_bid_afterTime {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd326⟩ := simpleAuctionX_bidToBody (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hreach
   have rd329 := evm_run rd326 with [jumpdest, push1 ⟨1⟩]
-  obtain ⟨_, _, rd330₀⟩ := rd329.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd330₀⟩ := rd329.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd330⟩ : ∃ k C, RD simpleAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨330⟩
       [bidAuctionEndWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
@@ -604,7 +604,7 @@ theorem simpleAuctionX_bid_bidRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd361⟩ := simpleAuctionX_bid_afterTime (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hreach htime
   have rd364 := evm_run rd361 with [jumpdest, push1 ⟨3⟩]
-  obtain ⟨_, _, rd365₀⟩ := rd364.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd365₀⟩ := rd364.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd365⟩ : ∃ k C, RD simpleAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨365⟩
       [bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
@@ -617,7 +617,7 @@ theorem simpleAuctionX_bid_bidRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   rw [hgt] at rd367
   have rd371 := evm_run rd367 with [push2 ⟨410⟩, jumpiNT (by decide)]
   have rd374 := evm_run rd371 with [push1 ⟨3⟩]
-  obtain ⟨_, _, rd374₀⟩ := rd374.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd374₀⟩ := rd374.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd374'⟩ : ∃ k C, RD simpleAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨374⟩
       [bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
@@ -625,10 +625,10 @@ theorem simpleAuctionX_bid_bidRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [bidHighestBidWord, initState] using rd374₀⟩
   have rd387 := evm_run rd374' with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push4 ⟨0x4e12c1bb⟩, push1 ⟨224⟩, shl, dup2,
-    raw mstore 6 (solcReturnMem bidNotHighEnoughSelector) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (solcReturnMem bidNotHighEnoughSelector) (UInt256.ofNat 5) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
@@ -636,15 +636,15 @@ theorem simpleAuctionX_bid_bidRevert {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov)]
   have rd401 := evm_run rd387 with [
     push1 ⟨4⟩, add, push2 ⟨401⟩, swap2, dup2,
-    raw mstore 3 (bidNotHighEnoughMem (bidHighestBidWord σ I)) (UInt256.ofNat 6)
+    raw rawMstore 3 (bidNotHighEnoughMem (bidHighestBidWord σ I)) (UInt256.ofNat 6)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, swap1, jump (by jump_dest), jumpdest]
   have rd409 := evm_run rd401 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost (bidNotHighEnoughMem_mload64 (bidHighestBidWord σ I)) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
-  exact rd409.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd409.rawRev 0 (by decide) mem_cost (by evm_ov)
 
 theorem simpleAuctionX_bid_afterBid {cA gh bl σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨114⟩
@@ -657,7 +657,7 @@ theorem simpleAuctionX_bid_afterBid {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd361⟩ := simpleAuctionX_bid_afterTime (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hreach htime
   have rd364 := evm_run rd361 with [jumpdest, push1 ⟨3⟩]
-  obtain ⟨_, _, rd365₀⟩ := rd364.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd365₀⟩ := rd364.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd365⟩ : ∃ k C, RD simpleAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨365⟩
       [bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
@@ -682,7 +682,7 @@ theorem simpleAuctionX_bid_afterNoPending {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd410⟩ := simpleAuctionX_bid_afterBid (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hreach htime hbid
   have rd413 := evm_run rd410 with [jumpdest, push1 ⟨3⟩]
-  obtain ⟨_, _, rd414₀⟩ := rd413.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd414₀⟩ := rd413.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd414⟩ : ∃ k C, RD simpleAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨414⟩
       [bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
@@ -707,7 +707,7 @@ theorem simpleAuctionX_bid_pendingToCheckedAdd {cA gh bl σ σ₀ A I} {g : Sat2
   obtain ⟨_, _, rd410⟩ := simpleAuctionX_bid_afterBid (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hreach htime hbid
   have rd413 := evm_run rd410 with [jumpdest, push1 ⟨3⟩]
-  obtain ⟨_, _, rd414₀⟩ := rd413.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd414₀⟩ := rd413.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd414⟩ : ∃ k C, RD simpleAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨414⟩
       [bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
@@ -718,14 +718,14 @@ theorem simpleAuctionX_bid_pendingToCheckedAdd {cA gh bl σ σ₀ A I} {g : Sat2
   rw [isZero_eq_zero_of_ne hnz] at rd415
   have rd419 := evm_run rd415 with [push2 ⟨468⟩, jumpiNT (by decide)]
   have rd421 := evm_run rd419 with [push1 ⟨3⟩]
-  obtain ⟨_, _, rd422₀⟩ := rd421.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd422₀⟩ := rd421.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd422⟩ : ∃ k C, RD simpleAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨422⟩
       [bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
     exact ⟨_, _, by simpa [bidHighestBidWord, initState] using rd422₀⟩
   have rd424 := evm_run rd422 with [push1 ⟨2⟩]
-  obtain ⟨_, _, rd425₀⟩ := rd424.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd425₀⟩ := rd424.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd425⟩ : ∃ k C, RD simpleAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨425⟩
       [bidHighestBidderRawWord σ I, bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I]
@@ -738,11 +738,11 @@ theorem simpleAuctionX_bid_pendingToCheckedAdd {cA gh bl σ σ₀ A I} {g : Sat2
   have rd435 := rd435₀
   rw [hmask, u256_land_comm solcAddrMask (bidHighestBidderRawWord σ I)] at rd435
   have rd438 := evm_run rd435 with [
-    raw mstore 0 (bidPendingKeyMem (bidHighestBidderWord σ I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (bidPendingKeyMem (bidHighestBidderWord σ I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨4⟩, push1 ⟨32⟩]
   have rd443 := evm_run rd438 with [
-    raw mstore 0 (bidPendingHashMem (bidHighestBidderWord σ I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (bidPendingHashMem (bidHighestBidderWord σ I)) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by
         change (UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
@@ -752,10 +752,10 @@ theorem simpleAuctionX_bid_pendingToCheckedAdd {cA gh bl σ σ₀ A I} {g : Sat2
       (by decide) (by evm_ov),
     push1 ⟨64⟩, dup2]
   have rd447 := evm_run rd443 with [
-    raw keccak256 0 (bidPendingSlot σ I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (bidPendingSlot σ I) (UInt256.ofNat 3) (by decide)
       mem_cost (bidPendingKeccak σ I) (by decide) (by evm_ov),
     dup1]
-  obtain ⟨_, _, rd448₀⟩ := rd447.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd448₀⟩ := rd447.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd449⟩ : ∃ k C, RD simpleAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨449⟩
       [bidPendingReturnsWord σ I, bidPendingSlot σ I, ⟨0⟩, bidHighestBidWord σ I,
@@ -785,7 +785,7 @@ theorem simpleAuctionX_bid_afterPending {cA gh bl σ σ₀ A I} {g : Sat256}
     hreach htime hbid hnz
   obtain ⟨_, _, rd462⟩ := bidCheckedAddOk rd956 hfit (by jump_dest) (by evm_ov)
   have rd465 := evm_run rd462 with [jumpdest, swap1, swap2]
-  obtain ⟨_, _, rd466₀⟩ := rd465.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd466₀⟩ := rd465.rawSstore hperm (by decide) (by evm_ov)
   obtain ⟨_, _, rd466⟩ : ∃ k C, RD simpleAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨466⟩
       [⟨0⟩, bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I]
@@ -824,7 +824,7 @@ theorem simpleAuctionX_bid_successNoPending {cA gh bl σ σ₀ A I} {g : Sat256}
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     decide
   have rd472 := evm_run rd468 with [jumpdest, push1 ⟨2⟩, dup1]
-  obtain ⟨_, _, rd473₀⟩ := rd472.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd473₀⟩ := rd472.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd473⟩ : ∃ k C, RD simpleAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨473⟩
       [bidHighestBidderRawWord σ I, ⟨2⟩, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
@@ -836,32 +836,32 @@ theorem simpleAuctionX_bid_successNoPending {cA gh bl σ σ₀ A I} {g : Sat256}
   rw [hmask] at rd486
   have rd487 := RD.or rd486 (by decide) (by evm_ov)
   have rd489 := evm_run rd487 with [swap1, swap2]
-  obtain ⟨_, _, rd490⟩ := rd489.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd490⟩ := rd489.rawSstore hperm (by decide) (by evm_ov)
   have rd495 := evm_run rd490 with [callvalue, push1 ⟨3⟩, dup2, swap1]
-  obtain ⟨_, _, rd496⟩ := rd495.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd496⟩ := rd495.rawSstore hperm (by decide) (by evm_ov)
   have rd499 := evm_run rd496 with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov)]
   have rd502 := evm_run rd499 with [
     swap3, dup4,
-    raw mstore 6 (bidEventMemCaller I) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (bidEventMemCaller I) (UInt256.ofNat 5) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd510 := evm_run rd502 with [
     push1 ⟨32⟩, dup4, add, swap2, swap1, swap2,
-    raw mstore 3 (bidEventMem I) (UInt256.ofNat 6) (by decide)
+    raw rawMstore 3 (bidEventMem I) (UInt256.ofNat 6) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd544 := rd510.pushConst bidHighestBidIncreasedTopic (width := 32) (op := .PUSH32)
     (by decide) (by decide) (by evm_ov)
   have rd553 := evm_run rd544 with [
     swap2, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost (bidEventMem_mload64 I) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   have hlen64 : ((⟨128⟩ : UInt256) + ⟨64⟩).sub ⟨128⟩ = ⟨64⟩ := by decide
   have rd553' := rd553
   rw [hlen64] at rd553'
-  have rd554 := RD.log1 0 (UInt256.ofNat 6) rd553' (by decide) hperm
+  have rd554 := RD.rawLog1 0 (UInt256.ofNat 6) rd553' (by decide) hperm
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -888,7 +888,7 @@ theorem simpleAuctionX_bid_successWithPending {cA gh bl σ σ₀ A I} {g : Sat25
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     decide
   have rd472 := evm_run rd468 with [jumpdest, push1 ⟨2⟩, dup1]
-  obtain ⟨_, _, rd473₀⟩ := rd472.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd473₀⟩ := rd472.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd473⟩ : ∃ k C, RD simpleAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨473⟩
       [bidHighestBidderRawWord (bidPendingMap σ I) I, ⟨2⟩, ⟨122⟩, simpleAuctionSelWord I]
@@ -901,32 +901,32 @@ theorem simpleAuctionX_bid_successWithPending {cA gh bl σ σ₀ A I} {g : Sat25
   rw [hmask] at rd486
   have rd487 := RD.or rd486 (by decide) (by evm_ov)
   have rd489 := evm_run rd487 with [swap1, swap2]
-  obtain ⟨_, _, rd490⟩ := rd489.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd490⟩ := rd489.rawSstore hperm (by decide) (by evm_ov)
   have rd495 := evm_run rd490 with [callvalue, push1 ⟨3⟩, dup2, swap1]
-  obtain ⟨_, _, rd496⟩ := rd495.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd496⟩ := rd495.rawSstore hperm (by decide) (by evm_ov)
   have rd499 := evm_run rd496 with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (bidPendingHashMem_mload64 (bidHighestBidderWord σ I)) (by decide) (by evm_ov)]
   have rd502 := evm_run rd499 with [
     swap3, dup4,
-    raw mstore 6 (bidPendingEventMemCaller σ I) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (bidPendingEventMemCaller σ I) (UInt256.ofNat 5) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd510 := evm_run rd502 with [
     push1 ⟨32⟩, dup4, add, swap2, swap1, swap2,
-    raw mstore 3 (bidPendingEventMem σ I) (UInt256.ofNat 6) (by decide)
+    raw rawMstore 3 (bidPendingEventMem σ I) (UInt256.ofNat 6) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd544 := rd510.pushConst bidHighestBidIncreasedTopic (width := 32) (op := .PUSH32)
     (by decide) (by decide) (by evm_ov)
   have rd553 := evm_run rd544 with [
     swap2, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost (bidPendingEventMem_mload64 σ I) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   have hlen64 : ((⟨128⟩ : UInt256) + ⟨64⟩).sub ⟨128⟩ = ⟨64⟩ := by decide
   have rd553' := rd553
   rw [hlen64] at rd553'
-  have rd554 := RD.log1 0 (UInt256.ofNat 6) rd553' (by decide) hperm
+  have rd554 := RD.rawLog1 0 (UInt256.ofNat 6) rd553' (by decide) hperm
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]

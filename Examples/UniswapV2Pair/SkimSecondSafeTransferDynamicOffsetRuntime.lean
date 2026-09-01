@@ -2254,7 +2254,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       ∧ out.size < UInt256.size := by
   have rd6375 := evm_run h with [
     jumpdest, push1 ⟨64⟩, dup1,
-    raw mload 0 (skimSafeTransferReturnDataPtr out1)
+    raw rawMload 0 (skimSafeTransferReturnDataPtr out1)
       (skimSecondSafeTransferDynamicWords0 out1) (by native_decide)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
@@ -2270,7 +2270,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by evm_ov)]
   have rd6380 := evm_run rd6375 with [
     dup1, dup3, add, dup3,
-    raw mstore 0 (skimSecondSafeTransferDynamicMem0 self o toWord prevValue out1 out2)
+    raw rawMstore 0 (skimSecondSafeTransferDynamicMem0 self o toWord prevValue out1 out2)
       (skimSecondSafeTransferDynamicWords0 out1)
       (by native_decide)
       (fun s haws hstks => by
@@ -2290,7 +2290,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by evm_ov)]
   have rd6384 := evm_run rd6380 with [
     push1 ⟨25⟩, dup2,
-    raw mstore 0 (skimSecondSafeTransferDynamicMem1 self o toWord prevValue out1 out2)
+    raw rawMstore 0 (skimSecondSafeTransferDynamicMem1 self o toWord prevValue out1 out2)
       (skimSecondSafeTransferDynamicWords0 out1)
       (by native_decide)
       (fun s haws hstks => by
@@ -2309,7 +2309,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     (by native_decide) (by native_decide) (by evm_ov)
   have rd6423 := evm_run rd6417 with [
     push1 ⟨32⟩, swap2, dup3, add,
-    raw mstore
+    raw rawMstore
       (Cₘ (skimSecondSafeTransferDynamicWordsMem2 out1) -
         Cₘ (skimSecondSafeTransferDynamicWords0 out1))
       (skimSecondSafeTransferDynamicMem2 self o toWord prevValue out1 out2)
@@ -2333,7 +2333,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by evm_ov)]
   have rd6425 := evm_run rd6423 with [
     dup2,
-    raw mload 0 (skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩)
+    raw rawMload 0 (skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩)
       (skimSecondSafeTransferDynamicWordsMem2 out1)
       (by native_decide)
       (fun s haws hstks => by
@@ -2349,7 +2349,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
   have rd6441 := evm_run rd6425 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, dup2, and,
     push1 ⟨36⟩, dup4, add,
-    raw mstore
+    raw rawMstore
       (Cₘ (skimSecondSafeTransferDynamicWordsMem3 out1) -
         Cₘ (skimSecondSafeTransferDynamicWordsMem2 out1))
       (skimSecondSafeTransferDynamicMem3 self o toWord prevValue out1 out2)
@@ -2373,7 +2373,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by evm_ov)]
   have rd6449 := evm_run rd6441 with [
     push1 ⟨68⟩, dup1, dup4, add, dup7, swap1,
-    raw mstore
+    raw rawMstore
       (Cₘ (skimSecondSafeTransferDynamicWordsMem4 out1) -
         Cₘ (skimSecondSafeTransferDynamicWordsMem3 out1))
       (skimSecondSafeTransferDynamicMem4 self o toWord prevValue out1 out2 value)
@@ -2397,7 +2397,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by evm_ov)]
   have rd6451 := evm_run rd6449 with [
     dup5,
-    raw mload 0 (skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩)
+    raw rawMload 0 (skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩)
       (skimSecondSafeTransferDynamicWordsMem4 out1)
       (by native_decide)
       (fun s haws hstks => by
@@ -2412,7 +2412,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by evm_ov)]
   have rd6459 := evm_run rd6451 with [
     dup1, dup5, sub, swap1, swap2, add, dup2,
-    raw mstore 0 (skimSecondSafeTransferDynamicMem5 self o toWord prevValue out1 out2 value)
+    raw rawMstore 0 (skimSecondSafeTransferDynamicMem5 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsMem4 out1)
       (by native_decide)
       (fun s haws hstks => by
@@ -2429,7 +2429,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by evm_ov)]
   have rd6466 := evm_run rd6459 with [
     push1 ⟨100⟩, swap1, swap3, add, dup5,
-    raw mstore 0 (skimSecondSafeTransferDynamicMem6 self o toWord prevValue out1 out2 value)
+    raw rawMstore 0 (skimSecondSafeTransferDynamicMem6 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsMem4 out1)
       (by native_decide)
       (fun s haws hstks => by
@@ -2447,7 +2447,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by evm_ov)]
   have rd6471 := evm_run rd6466 with [
     swap2, dup2, add, dup1,
-    raw mload 0
+    raw rawMload 0
       (skimSecondSafeTransferDynamicWord96 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsMem4 out1)
       (by native_decide)
@@ -2486,7 +2486,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     (by native_decide) (by native_decide) (by evm_ov)
   have rd6491 := evm_run rd6485 with [
     push1 ⟨224⟩, shl, or, dup2,
-    raw mstore 0 (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value)
+    raw rawMstore 0 (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsMem4 out1)
       (by native_decide)
       (fun s haws hstks => by
@@ -2521,7 +2521,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by evm_ov)]
   have rd6512 := evm_run rd6491 with [
     swap3,
-    raw mload 0 (skimSecondSafeTransferDynamicCallPtr out1)
+    raw rawMload 0 (skimSecondSafeTransferDynamicCallPtr out1)
       (skimSecondSafeTransferDynamicWordsMem4 out1) (by native_decide)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
@@ -2534,7 +2534,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (skimSecondSafeTransferDynamicWordsMem4_mload64_same out1 hout1Size)
       (by evm_ov),
     dup2,
-    raw mload 0 (⟨68⟩ : UInt256)
+    raw rawMload 0 (⟨68⟩ : UInt256)
       (skimSecondSafeTransferDynamicWordsMem4 out1) (by native_decide)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
@@ -2552,7 +2552,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by native_decide)]
   have rd6539a := evm_run rd6521a with [
     dup1,
-    raw mload 0
+    raw rawMload 0
       (skimSecondSafeTransferDynamicPatchedSelectorWord self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsMem4 out1) (by native_decide)
       (fun s haws hstks => by
@@ -2585,7 +2585,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
         exact skimSecondSafeTransferDynamicWordsMem4_mload_base96_same out1 hout1Size)
       (by evm_ov),
     dup3,
-    raw mstore
+    raw rawMstore
       (Cₘ (skimSecondSafeTransferDynamicWordsCall0 out1) -
         Cₘ (skimSecondSafeTransferDynamicWordsMem4 out1))
       (skimSecondSafeTransferDynamicCallMem0 self o toWord prevValue out1 out2 value)
@@ -2615,7 +2615,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by native_decide)]
   have rd6539b := evm_run rd6521b with [
     dup1,
-    raw mload 0
+    raw rawMload 0
       (skimSecondSafeTransferDynamicCopyWord1 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsCall0 out1) (by native_decide)
       (fun s haws hstks => by
@@ -2633,7 +2633,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
         (skimSecondSafeTransferDynamicWordsCall0_cover_base128 out1 hout1Size))
       (by evm_ov),
     dup3,
-    raw mstore
+    raw rawMstore
       (Cₘ (skimSecondSafeTransferDynamicWordsCall1 out1) -
         Cₘ (skimSecondSafeTransferDynamicWordsCall0 out1))
       (skimSecondSafeTransferDynamicCallMem1 self o toWord prevValue out1 out2 value)
@@ -2660,7 +2660,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
   have rd6575 := evm_run rd6543 with [
     jumpdest, push1 ⟨1⟩, dup4, push1 ⟨32⟩, sub, push2 ⟨256⟩, exp, sub,
     dup1, not, dup3,
-    raw mload 0
+    raw rawMload 0
       (skimSecondSafeTransferDynamicTailSourceWord self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsCall1 out1) (by native_decide)
       (fun s haws hstks => by
@@ -2678,7 +2678,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
         (skimSecondSafeTransferDynamicWordsCall1_cover_base160 out1 hout1Size))
       (by evm_ov),
     and, dup2, dup5,
-    raw mload
+    raw rawMload
       (Cₘ (skimSecondSafeTransferDynamicWordsCall2 out1) -
         Cₘ (skimSecondSafeTransferDynamicWordsCall1 out1))
       ⟨0⟩ (skimSecondSafeTransferDynamicWordsCall2 out1)
@@ -2694,7 +2694,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by unfold skimSecondSafeTransferDynamicWordsCall2; rfl)
       (by evm_ov),
     and, dup1, dup3, or, dup6,
-    raw mstore 0
+    raw rawMstore 0
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsCall2 out1)
       (by native_decide)
@@ -2717,7 +2717,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     pop, pop, pop, pop, pop, pop]
   have rd6593 := evm_run rd6575 with [
     swap1, pop, add, swap2, pop, pop, push1 ⟨0⟩, push1 ⟨64⟩,
-    raw mload 0 (skimSecondSafeTransferDynamicCallPtr out1)
+    raw rawMload 0 (skimSecondSafeTransferDynamicCallPtr out1)
       (skimSecondSafeTransferDynamicWordsCall2 out1)
       (by native_decide)
       (fun s haws hstks => by
@@ -2733,7 +2733,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
         (skimSecondSafeTransferDynamicWordsCall2_toNat_ge13 out1 hout1Size))
       (by evm_ov),
     dup1, dup4, sub, dup2, push1 ⟨0⟩, dup7]
-  obtain ⟨gasArg, rd6594⟩ := rd6593.gas (by native_decide) (by evm_ov)
+  obtain ⟨gasArg, rd6594⟩ := rd6593.rawGas (by native_decide) (by evm_ov)
   rw [skimSecondSafeTransferDynamicCallPtr_add68 out1,
     skimSecondSafeTransferDynamicRetEnd_sub_callPtr out1 hout1Size]
     at rd6594

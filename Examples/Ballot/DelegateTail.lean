@@ -1175,7 +1175,7 @@ theorem ballotDelegateX_tailAfterDelegateWeightFrom1134 {cA gh bl σ σ₀ A I}
   have rd1160 := evm_run rd1134 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and,
     push0, swap1, dup2,
-    raw mstore 0 (delegateCurrentLoopMem I w)
+    raw rawMstore 0 (delegateCurrentLoopMem I w)
       (UInt256.ofNat 3) (by decide) mem_cost (by
         change (UInt256.toByteArray (UInt256.land w solcAddrMask)).write 0
             (delegateCurrentLoopMem I w) 0 32 = delegateCurrentLoopMem I w
@@ -1184,18 +1184,18 @@ theorem ballotDelegateX_tailAfterDelegateWeightFrom1134 {cA gh bl σ σ₀ A I}
         exact delegateLoopHashMem_writeKey w (delegateSourceWord I))
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 (delegateCurrentLoopMem I w)
+    raw rawMstore 0 (delegateCurrentLoopMem I w)
       (UInt256.ofNat 3) (by decide) mem_cost (by
         unfold delegateCurrentLoopMem
         exact delegateLoopHashMem_writeBase w (delegateSourceWord I))
       (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
-    raw keccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
       (by decide) mem_cost (by
         unfold delegateCurrentLoopMem
         exact hslot) (by decide) (by evm_ov) ]
   have rd1162 := evm_run rd1160 with [dup1]
-  obtain ⟨_, _, rd1163₀⟩ := rd1162.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1163₀⟩ := rd1162.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1163⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1163⟩
       [delegateVoterWeightWord σ I w, delegateVoterSlot w, ⟨1⟩, delegateSenderSlot I,
@@ -1233,7 +1233,7 @@ theorem ballotDelegateX_tailDelegateWeightRevertFrom1134 {cA gh bl σ σ₀ A I}
   have rd1160 := evm_run rd1134 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and,
     push0, swap1, dup2,
-    raw mstore 0 (delegateCurrentLoopMem I w)
+    raw rawMstore 0 (delegateCurrentLoopMem I w)
       (UInt256.ofNat 3) (by decide) mem_cost (by
         change (UInt256.toByteArray (UInt256.land w solcAddrMask)).write 0
             (delegateCurrentLoopMem I w) 0 32 = delegateCurrentLoopMem I w
@@ -1242,18 +1242,18 @@ theorem ballotDelegateX_tailDelegateWeightRevertFrom1134 {cA gh bl σ σ₀ A I}
         exact delegateLoopHashMem_writeKey w (delegateSourceWord I))
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 (delegateCurrentLoopMem I w)
+    raw rawMstore 0 (delegateCurrentLoopMem I w)
       (UInt256.ofNat 3) (by decide) mem_cost (by
         unfold delegateCurrentLoopMem
         exact delegateLoopHashMem_writeBase w (delegateSourceWord I))
       (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
-    raw keccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
       (by decide) mem_cost (by
         unfold delegateCurrentLoopMem
         exact hslot) (by decide) (by evm_ov) ]
   have rd1162 := evm_run rd1160 with [dup1]
-  obtain ⟨_, _, rd1163₀⟩ := rd1162.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1163₀⟩ := rd1162.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1163⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1163⟩
       [delegateVoterWeightWord σ I w, delegateVoterSlot w, ⟨1⟩, delegateSenderSlot I,
@@ -1496,25 +1496,25 @@ theorem ballotDelegateX_loopExitFrom972Current {cA gh bl σ σ₀ A I} {g : Sat2
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, dup2, and,
     push0, swap1, dup2 ]
   have rd995 := evm_run rd987 with [
-    raw mstore 0 (delegateLoopKeyMem w (delegateSourceWord I))
+    raw rawMstore 0 (delegateLoopKeyMem w (delegateSourceWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by
         exact delegateCurrentLoopMem_writeKey_leftMask I old w hcanon)
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 (delegateCurrentLoopMem I w)
+    raw rawMstore 0 (delegateCurrentLoopMem I w)
       (UInt256.ofNat 3) (by decide) mem_cost (by
         unfold delegateCurrentLoopMem delegateLoopHashMem
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
-    raw keccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by
         unfold delegateCurrentLoopMem
         exact delegateLoopVoterKeccakSlot w (delegateSourceWord I) hcanon)
       (by decide) (by evm_ov),
     add ]
-  obtain ⟨_, _, rd1002₀⟩ := rd995.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1002₀⟩ := rd995.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1002⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1002⟩
       [delegateVoterPackedWord σ I w, solcAddrMask, delegateSenderSlot I, w, ⟨156⟩, sel]
@@ -1554,25 +1554,25 @@ theorem ballotDelegateX_loopContinueFrom972Current {cA gh bl σ σ₀ A I} {g : 
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, dup2, and,
     push0, swap1, dup2 ]
   have rd995 := evm_run rd987 with [
-    raw mstore 0 (delegateLoopKeyMem w (delegateSourceWord I))
+    raw rawMstore 0 (delegateLoopKeyMem w (delegateSourceWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by
         exact delegateCurrentLoopMem_writeKey_leftMask I old w hcanon)
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 (delegateCurrentLoopMem I w)
+    raw rawMstore 0 (delegateCurrentLoopMem I w)
       (UInt256.ofNat 3) (by decide) mem_cost (by
         unfold delegateCurrentLoopMem delegateLoopHashMem
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
-    raw keccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by
         unfold delegateCurrentLoopMem
         exact delegateLoopVoterKeccakSlot w (delegateSourceWord I) hcanon)
       (by decide) (by evm_ov),
     add ]
-  obtain ⟨_, _, rd1002₀⟩ := rd995.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1002₀⟩ := rd995.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1002⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1002⟩
       [delegateVoterPackedWord σ I w, solcAddrMask, delegateSenderSlot I, w, ⟨156⟩, sel]
@@ -1596,7 +1596,7 @@ theorem ballotDelegateX_loopContinueFrom972Current {cA gh bl σ σ₀ A I} {g : 
   have rd1041 := evm_run rd1013 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap2, dup3, and,
     push0, swap1, dup2,
-    raw mstore 0 (delegateCurrentLoopMem I w)
+    raw rawMstore 0 (delegateCurrentLoopMem I w)
       (UInt256.ofNat 3) (by decide) mem_cost (by
         change (UInt256.toByteArray (UInt256.land solcAddrMask w)).write 0
             (delegateCurrentLoopMem I w) 0 32 = delegateCurrentLoopMem I w
@@ -1606,20 +1606,20 @@ theorem ballotDelegateX_loopContinueFrom972Current {cA gh bl σ σ₀ A I} {g : 
         exact delegateLoopHashMem_writeKey w (delegateSourceWord I))
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 (delegateCurrentLoopMem I w)
+    raw rawMstore 0 (delegateCurrentLoopMem I w)
       (UInt256.ofNat 3) (by decide) mem_cost (by
         unfold delegateCurrentLoopMem
         exact delegateLoopHashMem_writeBase w (delegateSourceWord I))
       (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
-    raw keccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by
         unfold delegateCurrentLoopMem
         exact delegateLoopVoterKeccakSlot w (delegateSourceWord I) hcanon)
       (by decide) (by evm_ov),
     add ]
-  obtain ⟨_, _, rd1042₀⟩ := rd1041.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1042₀⟩ := rd1041.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1042⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1042⟩
       [delegateVoterPackedWord σ I w, delegateSenderSlot I, solcAddrMask, ⟨156⟩, sel]
@@ -1663,25 +1663,25 @@ theorem ballotDelegateX_loopSenderRevertTailFrom972Current {cA gh bl σ σ₀ A 
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, dup2, and,
     push0, swap1, dup2 ]
   have rd995 := evm_run rd987 with [
-    raw mstore 0 (delegateLoopKeyMem w (delegateSourceWord I))
+    raw rawMstore 0 (delegateLoopKeyMem w (delegateSourceWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by
         exact delegateCurrentLoopMem_writeKey_leftMask I old w hcanon)
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 (delegateCurrentLoopMem I w)
+    raw rawMstore 0 (delegateCurrentLoopMem I w)
       (UInt256.ofNat 3) (by decide) mem_cost (by
         unfold delegateCurrentLoopMem delegateLoopHashMem
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
-    raw keccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by
         unfold delegateCurrentLoopMem
         exact delegateLoopVoterKeccakSlot w (delegateSourceWord I) hcanon)
       (by decide) (by evm_ov),
     add ]
-  obtain ⟨_, _, rd1002₀⟩ := rd995.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1002₀⟩ := rd995.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1002⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1002⟩
       [delegateVoterPackedWord σ I w, solcAddrMask, delegateSenderSlot I, w, ⟨156⟩, sel]
@@ -1705,7 +1705,7 @@ theorem ballotDelegateX_loopSenderRevertTailFrom972Current {cA gh bl σ σ₀ A 
   have rd1041 := evm_run rd1013 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap2, dup3, and,
     push0, swap1, dup2,
-    raw mstore 0 (delegateCurrentLoopMem I w)
+    raw rawMstore 0 (delegateCurrentLoopMem I w)
       (UInt256.ofNat 3) (by decide) mem_cost (by
         change (UInt256.toByteArray (UInt256.land solcAddrMask w)).write 0
             (delegateCurrentLoopMem I w) 0 32 = delegateCurrentLoopMem I w
@@ -1715,20 +1715,20 @@ theorem ballotDelegateX_loopSenderRevertTailFrom972Current {cA gh bl σ σ₀ A 
         exact delegateLoopHashMem_writeKey w (delegateSourceWord I))
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 (delegateCurrentLoopMem I w)
+    raw rawMstore 0 (delegateCurrentLoopMem I w)
       (UInt256.ofNat 3) (by decide) mem_cost (by
         unfold delegateCurrentLoopMem
         exact delegateLoopHashMem_writeBase w (delegateSourceWord I))
       (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
-    raw keccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by
         unfold delegateCurrentLoopMem
         exact delegateLoopVoterKeccakSlot w (delegateSourceWord I) hcanon)
       (by decide) (by evm_ov),
     add ]
-  obtain ⟨_, _, rd1042₀⟩ := rd1041.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1042₀⟩ := rd1041.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1042⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1042⟩
       [delegateVoterPackedWord σ I w, delegateSenderSlot I, solcAddrMask, ⟨156⟩, sel]
@@ -1785,7 +1785,7 @@ theorem ballotDelegateX_tailAfterSenderPackedStoreFrom1134 {cA gh bl σ σ₀ A 
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel) (w := w)
       hcanon hdelegateWeight hreach
   have rd1181 := evm_run rd1174 with [jumpdest, push1 ⟨1⟩, dup3, dup2, add, dup1]
-  obtain ⟨_, _, rd1182₀⟩ := rd1181.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1182₀⟩ := rd1181.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1182⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1182⟩
       [delegateSenderPackedWord σ I, delegateSenderPackedSlot I, ⟨1⟩,
@@ -1801,7 +1801,7 @@ theorem ballotDelegateX_tailAfterSenderPackedStoreFrom1134 {cA gh bl σ σ₀ A 
   have rd1208 := evm_run rd1207 with [dup3]
   have rd1209 := RD.or rd1208 (by decide) (by evm_ov)
   have rd1210 := evm_run rd1209 with [swap1]
-  obtain ⟨_, _, rd1211⟩ := rd1210.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1211⟩ := rd1210.rawSstore hperm (by decide) (by evm_ov)
   exact ⟨_, _, by
     simpa [delegateTailAfterSenderMap, delegateTailSenderPackedStoreWord,
       delegateSenderPackedWord, delegateSenderPackedSlot, initState] using rd1211⟩
@@ -1820,7 +1820,7 @@ theorem ballotDelegateX_tailDelegateNotVotedBranchFrom1211 {cA gh bl σ σ₀ A 
       (cA, delegateTailAfterSenderMap σ I w) k C := by
   obtain ⟨_, _, rd1211⟩ := hreach
   have rd1213 := evm_run rd1211 with [dup2, add]
-  obtain ⟨_, _, rd1214₀⟩ := rd1213.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1214₀⟩ := rd1213.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1214⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1214⟩
       [delegateVoterPackedWord (delegateTailAfterSenderMap σ I w) I w,
@@ -1856,7 +1856,7 @@ theorem ballotDelegateX_tailDelegateVotedBranchFrom1211 {cA gh bl σ σ₀ A I}
       (cA, delegateTailAfterSenderMap σ I w) k C := by
   obtain ⟨_, _, rd1211⟩ := hreach
   have rd1213 := evm_run rd1211 with [dup2, add]
-  obtain ⟨_, _, rd1214₀⟩ := rd1213.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1214₀⟩ := rd1213.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1214⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1214⟩
       [delegateVoterPackedWord (delegateTailAfterSenderMap σ I w) I w,
@@ -1896,7 +1896,7 @@ theorem ballotDelegateX_tailNotVotedToCheckedAddFrom1211 {cA gh bl σ σ₀ A I}
     (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) (w := w) hdelegateNotVoted hreach
   have rd1287 := evm_run rd1285 with [jumpdest, dup2]
-  obtain ⟨_, _, rd1288₀⟩ := rd1287.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1288₀⟩ := rd1287.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1288⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1288⟩
       [delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I,
@@ -1905,7 +1905,7 @@ theorem ballotDelegateX_tailNotVotedToCheckedAddFrom1211 {cA gh bl σ σ₀ A I}
       (cA, delegateTailAfterSenderMap σ I w) k C := by
     exact ⟨_, _, by simpa [delegateSenderWeightWord, initState] using rd1288₀⟩
   have rd1289 := evm_run rd1288 with [dup2]
-  obtain ⟨_, _, rd1290₀⟩ := rd1289.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1290₀⟩ := rd1289.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1290⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1290⟩
       [delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w,
@@ -1976,7 +1976,7 @@ theorem ballotDelegateX_tailNotVotedSuccessFrom1211 {cA gh bl σ σ₀ A I}
     (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) (w := w) hdelegateNotVoted hfit hreach
   have rd1307 := evm_run rd1304 with [jumpdest, swap1, swap2]
-  obtain ⟨_, _, rd1308⟩ := rd1307.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1308⟩ := rd1307.rawSstore hperm (by decide) (by evm_ov)
   have rd156 := evm_run rd1308 with [
     pop, pop, jumpdest, pop, pop, pop, jump (by jump_dest), jumpdest ]
   have hsum :
@@ -2037,7 +2037,7 @@ theorem ballotDelegateX_tailVotedBoundsCheckFrom1211 {cA gh bl σ σ₀ A I}
     (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) (w := w) hdelegateVoted hreach
   have rd1223 := evm_run rd1222 with [dup2]
-  obtain ⟨_, _, rd1224₀⟩ := rd1223.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1224₀⟩ := rd1223.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1224⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1224⟩
       [delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I,
@@ -2046,7 +2046,7 @@ theorem ballotDelegateX_tailVotedBoundsCheckFrom1211 {cA gh bl σ σ₀ A I}
       (cA, delegateTailAfterSenderMap σ I w) k C := by
     exact ⟨_, _, by simpa [delegateSenderWeightWord, initState] using rd1224₀⟩
   have rd1229 := evm_run rd1224 with [push1 ⟨2⟩, dup3, dup2, add]
-  obtain ⟨_, _, rd1230₀⟩ := rd1229.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1230₀⟩ := rd1229.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1230⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1230⟩
       [delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w, ⟨2⟩,
@@ -2058,7 +2058,7 @@ theorem ballotDelegateX_tailVotedBoundsCheckFrom1211 {cA gh bl σ σ₀ A I}
       simpa [delegateVoterVoteWord, delegateVoterVoteSlot, initState, u256_add_comm]
         using rd1230₀⟩
   have rd1231 := evm_run rd1230 with [dup2]
-  obtain ⟨_, _, rd1232₀⟩ := rd1231.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1232₀⟩ := rd1231.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1232⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1232⟩
       [delegateTailProposalsLengthWord σ I w,
@@ -2129,14 +2129,14 @@ theorem ballotDelegateX_tailVotedToCheckedAddFrom1211 {cA gh bl σ σ₀ A I}
   have hbase := delegateProposalsDataBaseKeccak w (delegateSourceWord I)
   have rd1261 := evm_run rd1245 with [
     jumpdest, swap1, push0,
-    raw mstore 0 (delegateProposalBaseMem w (delegateSourceWord I))
+    raw rawMstore 0 (delegateProposalBaseMem w (delegateSourceWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, push0,
-    raw keccak256 0 proposalsDataBase (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 proposalsDataBase (UInt256.ofNat 3) (by decide)
       mem_cost hbase (by decide) (by evm_ov),
     swap1, push1 ⟨2⟩, mul, add, push1 ⟨1⟩, add ]
   have rd1264 := evm_run rd1261 with [push0, dup3, dup3]
-  obtain ⟨_, _, rd1265₀⟩ := rd1264.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1265₀⟩ := rd1264.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1265⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1265⟩
       [delegateTailProposalCountWord σ I w,
@@ -2216,7 +2216,7 @@ theorem ballotDelegateX_tailVotedSuccessFrom1211 {cA gh bl σ σ₀ A I}
     (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) (w := w) hdelegateVoted hbound hfit hreach
   have rd1277 := evm_run rd1274 with [jumpdest, swap1, swap2]
-  obtain ⟨_, _, rd1278⟩ := rd1277.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1278⟩ := rd1277.rawSstore hperm (by decide) (by evm_ov)
   have rd156 := evm_run rd1278 with [
     pop, push2 ⟨1310⟩, swap1, pop, jump (by jump_dest), jumpdest, pop, pop, pop,
     jump (by jump_dest), jumpdest ]

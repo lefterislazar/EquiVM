@@ -74,24 +74,24 @@ theorem accessControlX_defaultAdminRole {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, push2 ⟨200⟩, push0, dup2, jump (by jump_dest) ]
   have rd157 := evm_run rd200 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
     swap1, dup2,
-    raw mstore 6 (solcReturnMem defaultAdminRoleWord) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (solcReturnMem defaultAdminRoleWord) (UInt256.ofNat 5) (by decide)
       mem_cost
       (by rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨157⟩, jump (by jump_dest) ]
   exact evm_run rd157 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (solcReturnMem_mload64 defaultAdminRoleWord)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray defaultAdminRoleWord) (by decide)
+    raw rawRet 0 (UInt256.toByteArray defaultAdminRoleWord) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,

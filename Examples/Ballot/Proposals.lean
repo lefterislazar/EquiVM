@@ -493,7 +493,7 @@ theorem ballotX_proposals_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
   obtain ⟨_, _, rd671⟩ := ballotProposalsX_decoded (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz36 hsize hszhi hreach
   have rd676 := evm_run rd671 with [jumpdest, push1 ⟨2⟩, dup2, dup2]
-  obtain ⟨_, _, rd677⟩ := rd676.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd677⟩ := rd676.rawSload (by decide) (by evm_ov)
   have hlt : UInt256.lt (proposalsIndexWord I) (proposalsLengthWord σ I) = ⟨1⟩ :=
     ult_one hbound
   have rd686 := evm_run rd677 with [
@@ -506,35 +506,35 @@ theorem ballotX_proposals_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
       rw [hlt']; decide) (by jump_dest) ]
   have rd702 := evm_run rd686 with [
     jumpdest, push0, swap2, dup3,
-    raw mstore 0 proposalsBaseSlotMem (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMstore 0 proposalsBaseSlotMem (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, swap1, swap2,
-    raw keccak256 0 proposalsDataBase (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 proposalsDataBase (UInt256.ofNat 3) (by decide)
       mem_cost proposalsDataBaseKeccak (by decide) (by evm_ov),
     push1 ⟨2⟩, swap1, swap2, mul, add, dup1 ]
-  obtain ⟨_, _, rd704⟩ := rd702.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd704⟩ := rd702.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd710⟩ := (evm_run rd704 with [
-    push1 ⟨1⟩, swap1, swap2, add ]).sload (by decide) (by evm_ov)
+    push1 ⟨1⟩, swap1, swap2, add ]).rawSload (by decide) (by evm_ov)
   exact evm_run rd710 with [
     swap1, swap2, pop, dup3, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost proposalsBaseSlotMem_mload64 (by decide) (by evm_ov),
     swap3, dup4,
-    raw mstore 6 (proposalsReturnNameMem (proposalNameWord σ I)) (UInt256.ofNat 5)
+    raw rawMstore 6 (proposalsReturnNameMem (proposalNameWord σ I)) (UInt256.ofNat 5)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup4, add, swap2, swap1, swap2,
-    raw mstore 3 (proposalsReturnMem (proposalNameWord σ I) (proposalCountWord σ I))
+    raw rawMstore 3 (proposalsReturnMem (proposalNameWord σ I) (proposalCountWord σ I))
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     add,
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
       (proposalsReturnMem_mload64 (proposalNameWord σ I) (proposalCountWord σ I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0
+    raw rawRet 0
       (UInt256.toByteArray (proposalNameWord σ I) ++
         UInt256.toByteArray (proposalCountWord σ I))
       (by decide) mem_cost
@@ -554,7 +554,7 @@ theorem ballotX_proposals_oob {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
   obtain ⟨_, _, rd671⟩ := ballotProposalsX_decoded (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz36 hsize hszhi hreach
   have rd676 := evm_run rd671 with [jumpdest, push1 ⟨2⟩, dup2, dup2]
-  obtain ⟨_, _, rd677⟩ := rd676.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd677⟩ := rd676.rawSload (by decide) (by evm_ov)
   have hlt : UInt256.lt (proposalsIndexWord I) (proposalsLengthWord σ I) = ⟨0⟩ :=
     ult_zero (by omega)
   exact evm_run rd677 with [
@@ -565,7 +565,7 @@ theorem ballotX_proposals_oob {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
               (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) = ⟨0⟩ := by
         simpa [proposalsLengthWord] using hlt
       exact hlt'),
-    push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    push0, dup1, raw rawRev 0 (by decide) mem_cost (by evm_ov) ]
 
 /-! ## Dispatch/decode bridge -/
 

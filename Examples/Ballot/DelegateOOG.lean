@@ -9,7 +9,7 @@ namespace Reasoning.Reach
 
 /-! ## Local cost monotonicity helper -/
 
-/-- Local wrapper for `RD.sload` that preserves the consumed-cost lower bound. -/
+/-- Local wrapper for `RD.rawSload` that preserves the consumed-cost lower bound. -/
 theorem RD.sloadMono {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
@@ -76,18 +76,18 @@ theorem ballotDelegateX_loopContinueFrom972CurrentCost {cA gh bl σ σ₀ A I}
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, dup2, and,
     push0, swap1, dup2 ]
   have rd995 := evm_run rd987 with [
-    raw mstore 0 (delegateLoopKeyMem w (delegateSourceWord I))
+    raw rawMstore 0 (delegateLoopKeyMem w (delegateSourceWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by
         exact delegateCurrentLoopMem_writeKey_leftMask I old w hcanon)
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 (delegateCurrentLoopMem I w)
+    raw rawMstore 0 (delegateCurrentLoopMem I w)
       (UInt256.ofNat 3) (by decide) mem_cost (by
         unfold delegateCurrentLoopMem delegateLoopHashMem
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
-    raw keccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by
         unfold delegateCurrentLoopMem
@@ -121,7 +121,7 @@ theorem ballotDelegateX_loopContinueFrom972CurrentCost {cA gh bl σ σ₀ A I}
   have rd1041 := evm_run rd1013 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap2, dup3, and,
     push0, swap1, dup2,
-    raw mstore 0 (delegateCurrentLoopMem I w)
+    raw rawMstore 0 (delegateCurrentLoopMem I w)
       (UInt256.ofNat 3) (by decide) mem_cost (by
         change (UInt256.toByteArray (UInt256.land solcAddrMask w)).write 0
             (delegateCurrentLoopMem I w) 0 32 = delegateCurrentLoopMem I w
@@ -131,13 +131,13 @@ theorem ballotDelegateX_loopContinueFrom972CurrentCost {cA gh bl σ σ₀ A I}
         exact delegateLoopHashMem_writeKey w (delegateSourceWord I))
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 (delegateCurrentLoopMem I w)
+    raw rawMstore 0 (delegateCurrentLoopMem I w)
       (UInt256.ofNat 3) (by decide) mem_cost (by
         unfold delegateCurrentLoopMem
         exact delegateLoopHashMem_writeBase w (delegateSourceWord I))
       (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
-    raw keccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (delegateVoterSlot w) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by
         unfold delegateCurrentLoopMem

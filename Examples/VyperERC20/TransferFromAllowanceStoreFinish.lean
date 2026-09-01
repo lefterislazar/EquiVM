@@ -28,7 +28,7 @@ theorem erc20X_transferFromAfterAllowanceStore {cA gh bl σ σ₀ A I} {g : Sat2
       (cA, sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
         (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
   obtain ⟨k, C, rd492⟩ := hreach
-  obtain ⟨k1, C1, rdAfterStore⟩ := rd492.sstore hperm
+  obtain ⟨k1, C1, rdAfterStore⟩ := rd492.rawSstore hperm
     (by vyper_erc20_transferFrom_decode) (by evm_ov)
   exact ⟨_, _, rdAfterStore⟩
 

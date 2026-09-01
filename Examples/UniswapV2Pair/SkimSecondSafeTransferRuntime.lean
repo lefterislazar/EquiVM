@@ -1196,20 +1196,20 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
       ∧ out.size < UInt256.size := by
   have rd6375 := evm_run h with [
     jumpdest, push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by native_decide)
+    raw rawMload 0 ⟨292⟩ (UInt256.ofNat 13) (by native_decide)
       mem_cost
       (skimSecondBalanceStaticcallMem_mload64_of_size_ge self toWord prevValue out2
         ho32 hoSize hout32 houtSize)
       (by native_decide) (by evm_ov)]
   have rd6380 := evm_run rd6375 with [
     dup1, dup3, add, dup3,
-    raw mstore 0 (skimSecondSafeTransferMem0 self o toWord prevValue out2)
+    raw rawMstore 0 (skimSecondSafeTransferMem0 self o toWord prevValue out2)
       (UInt256.ofNat 13)
       (by native_decide) mem_cost
       (by unfold skimSecondSafeTransferMem0; rfl) (by native_decide) (by evm_ov)]
   have rd6384 := evm_run rd6380 with [
     push1 ⟨25⟩, dup2,
-    raw mstore 0 (skimSecondSafeTransferMem1 self o toWord prevValue out2)
+    raw rawMstore 0 (skimSecondSafeTransferMem1 self o toWord prevValue out2)
       (UInt256.ofNat 13)
       (by native_decide) mem_cost
       (by unfold skimSecondSafeTransferMem1; rfl) (by native_decide) (by evm_ov)]
@@ -1217,13 +1217,13 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
     (by native_decide) (by native_decide) (by evm_ov)
   have rd6423 := evm_run rd6417 with [
     push1 ⟨32⟩, swap2, dup3, add,
-    raw mstore 0 (skimSecondSafeTransferMem2 self o toWord prevValue out2)
+    raw rawMstore 0 (skimSecondSafeTransferMem2 self o toWord prevValue out2)
       (UInt256.ofNat 13)
       (by native_decide) mem_cost
       (by unfold skimSecondSafeTransferMem2; rfl) (by native_decide) (by evm_ov)]
   have rd6425 := evm_run rd6423 with [
     dup2,
-    raw mload 0 ⟨356⟩ (UInt256.ofNat 13)
+    raw rawMload 0 ⟨356⟩ (UInt256.ofNat 13)
       (by native_decide) mem_cost
       (skimSecondSafeTransferMem2_mload64 self toWord prevValue ho32 hoSize
         hout32 houtSize)
@@ -1231,7 +1231,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
   have rd6441 := evm_run rd6425 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, dup2, and,
     push1 ⟨36⟩, dup4, add,
-    raw mstore 3 (skimSecondSafeTransferMem3 self o toWord prevValue out2)
+    raw rawMstore 3 (skimSecondSafeTransferMem3 self o toWord prevValue out2)
       (UInt256.ofNat 14)
       (by native_decide) mem_cost
       (by
@@ -1241,7 +1241,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
       (by native_decide) (by evm_ov)]
   have rd6449 := evm_run rd6441 with [
     push1 ⟨68⟩, dup1, dup4, add, dup7, swap1,
-    raw mstore 3 (skimSecondSafeTransferMem4 self o toWord prevValue out2 value)
+    raw rawMstore 3 (skimSecondSafeTransferMem4 self o toWord prevValue out2 value)
       (UInt256.ofNat 15)
       (by native_decide) mem_cost
       (by
@@ -1251,26 +1251,26 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
       (by native_decide) (by evm_ov)]
   have rd6451 := evm_run rd6449 with [
     dup5,
-    raw mload 0 ⟨356⟩ (UInt256.ofNat 15)
+    raw rawMload 0 ⟨356⟩ (UInt256.ofNat 15)
       (by native_decide) mem_cost
       (skimSecondSafeTransferMem4_mload64 self toWord prevValue value ho32 hoSize
         hout32 houtSize)
       (by native_decide) (by evm_ov)]
   have rd6459 := evm_run rd6451 with [
     dup1, dup5, sub, swap1, swap2, add, dup2,
-    raw mstore 0 (skimSecondSafeTransferMem5 self o toWord prevValue out2 value)
+    raw rawMstore 0 (skimSecondSafeTransferMem5 self o toWord prevValue out2 value)
       (UInt256.ofNat 15)
       (by native_decide) mem_cost
       (by unfold skimSecondSafeTransferMem5; rfl) (by native_decide) (by evm_ov)]
   have rd6466 := evm_run rd6459 with [
     push1 ⟨100⟩, swap1, swap3, add, dup5,
-    raw mstore 0 (skimSecondSafeTransferMem6 self o toWord prevValue out2 value)
+    raw rawMstore 0 (skimSecondSafeTransferMem6 self o toWord prevValue out2 value)
       (UInt256.ofNat 15)
       (by native_decide) mem_cost
       (by unfold skimSecondSafeTransferMem6; rfl) (by native_decide) (by evm_ov)]
   have rd6471 := evm_run rd6466 with [
     swap2, dup2, add, dup1,
-    raw mload 0 (skimSecondSafeTransferWord388 self o toWord prevValue out2 value)
+    raw rawMload 0 (skimSecondSafeTransferWord388 self o toWord prevValue out2 value)
       (UInt256.ofNat 15)
       (by native_decide) mem_cost
       (skimSecondSafeTransferMem6_mload388 self toWord prevValue value ho32 hoSize
@@ -1282,7 +1282,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
     (by native_decide) (by native_decide) (by evm_ov)
   have rd6491 := evm_run rd6485 with [
     push1 ⟨224⟩, shl, or, dup2,
-    raw mstore 0 (skimSecondSafeTransferMem7 self o toWord prevValue out2 value)
+    raw rawMstore 0 (skimSecondSafeTransferMem7 self o toWord prevValue out2 value)
       (UInt256.ofNat 15)
       (by native_decide) mem_cost
       (by
@@ -1291,12 +1291,12 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
       (by native_decide) (by evm_ov)]
   have rd6512 := evm_run rd6491 with [
     swap3,
-    raw mload 0 ⟨456⟩ (UInt256.ofNat 15) (by native_decide)
+    raw rawMload 0 ⟨456⟩ (UInt256.ofNat 15) (by native_decide)
       mem_cost (skimSecondSafeTransferMem7_mload64 self toWord prevValue value
         ho32 hoSize hout32 houtSize)
       (by native_decide) (by evm_ov),
     dup2,
-    raw mload 0 ⟨68⟩ (UInt256.ofNat 15) (by native_decide)
+    raw rawMload 0 ⟨68⟩ (UInt256.ofNat 15) (by native_decide)
       mem_cost (skimSecondSafeTransferMem7_mload356 self toWord prevValue value
         ho32 hoSize hout32 houtSize)
       (by native_decide) (by evm_ov),
@@ -1306,7 +1306,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
     jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by native_decide)]
   have rd6539a := evm_run rd6521a with [
     dup1,
-    raw mload 0
+    raw rawMload 0
       (skimSecondSafeTransferPatchedSelectorWord self o toWord prevValue out2 value)
       (UInt256.ofNat 15) (by native_decide)
       mem_cost
@@ -1314,7 +1314,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
         hout32 houtSize)
       (by native_decide) (by evm_ov),
     dup3,
-    raw mstore 3 (skimSecondSafeTransferCallMem0 self o toWord prevValue out2 value)
+    raw rawMstore 3 (skimSecondSafeTransferCallMem0 self o toWord prevValue out2 value)
       (UInt256.ofNat 16)
       (by native_decide) mem_cost
       (by unfold skimSecondSafeTransferCallMem0; rfl) (by native_decide) (by evm_ov),
@@ -1329,13 +1329,13 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
     jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by native_decide)]
   have rd6539b := evm_run rd6521b with [
     dup1,
-    raw mload 0 (skimSecondSafeTransferCopyWord1 self o toWord prevValue out2 value)
+    raw rawMload 0 (skimSecondSafeTransferCopyWord1 self o toWord prevValue out2 value)
       (UInt256.ofNat 16) (by native_decide)
       mem_cost (skimSecondSafeTransferCallMem0_mload420 self toWord prevValue value
         ho32 hoSize hout32 houtSize)
       (by native_decide) (by evm_ov),
     dup3,
-    raw mstore 3 (skimSecondSafeTransferCallMem1 self o toWord prevValue out2 value)
+    raw rawMstore 3 (skimSecondSafeTransferCallMem1 self o toWord prevValue out2 value)
       (UInt256.ofNat 17)
       (by native_decide) mem_cost
       (by unfold skimSecondSafeTransferCallMem1; rfl) (by native_decide) (by evm_ov),
@@ -1352,18 +1352,18 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
   have rd6575 := evm_run rd6543 with [
     jumpdest, push1 ⟨1⟩, dup4, push1 ⟨32⟩, sub, push2 ⟨256⟩, exp, sub,
     dup1, not, dup3,
-    raw mload 0 (skimSecondSafeTransferTailSourceWord self o toWord prevValue out2 value)
+    raw rawMload 0 (skimSecondSafeTransferTailSourceWord self o toWord prevValue out2 value)
       (UInt256.ofNat 17) (by native_decide)
       mem_cost (skimSecondSafeTransferCallMem1_mload452 self toWord prevValue value
         ho32 hoSize hout32 houtSize)
       (by native_decide) (by evm_ov),
     and, dup2, dup5,
-    raw mload 3 ⟨0⟩ (UInt256.ofNat 18) (by native_decide)
+    raw rawMload 3 ⟨0⟩ (UInt256.ofNat 18) (by native_decide)
       mem_cost (skimSecondSafeTransferCallMem1_mload520 self toWord prevValue value
         ho32 hoSize hout32 houtSize)
       (by native_decide) (by evm_ov),
     and, dup1, dup3, or, dup6,
-    raw mstore 0 (skimSecondSafeTransferCallMem2 self o toWord prevValue out2 value)
+    raw rawMstore 0 (skimSecondSafeTransferCallMem2 self o toWord prevValue out2 value)
       (UInt256.ofNat 18)
       (by native_decide) mem_cost
       (by
@@ -1374,12 +1374,12 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
     pop, pop, pop, pop, pop, pop]
   have rd6593 := evm_run rd6575 with [
     swap1, pop, add, swap2, pop, pop, push1 ⟨0⟩, push1 ⟨64⟩,
-    raw mload 0 ⟨456⟩ (UInt256.ofNat 18) (by native_decide)
+    raw rawMload 0 ⟨456⟩ (UInt256.ofNat 18) (by native_decide)
       mem_cost (skimSecondSafeTransferCallMem2_mload64 self toWord prevValue value
         ho32 hoSize hout32 houtSize)
       (by native_decide) (by evm_ov),
     dup1, dup4, sub, dup2, push1 ⟨0⟩, dup7]
-  obtain ⟨gasArg, rd6594⟩ := rd6593.gas (by native_decide) (by evm_ov)
+  obtain ⟨gasArg, rd6594⟩ := rd6593.rawGas (by native_decide) (by evm_ov)
   rw [show (⟨68⟩ : UInt256) + ⟨456⟩ = ⟨524⟩ by native_decide,
     show UInt256.sub (⟨524⟩ : UInt256) ⟨456⟩ = ⟨68⟩ by native_decide]
     at rd6594

@@ -2993,27 +2993,27 @@ theorem uniswapPermitX_nonceStored {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
     simpa [permitOwnerMaskedWord, u256_land_comm] using
       solcAddrMask_result_canonical (permitOwnerWord I)
   have rd5550 := evm_run rd5547 with [jumpdest, push1 ⟨3⟩]
-  obtain ⟨_, _, rd5551⟩ := rd5550.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd5551⟩ := rd5550.rawSload (by decide) (by evm_ov)
   have rd5561₀ := evm_run rd5551 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup1, dup10, and]
   have rd5561 := rd5561₀
   rw [hmask, hownerMask] at rd5561
   have rd5579 := evm_run rd5561 with [
     push1 ⟨0⟩, dup2, dup2,
-    raw mstore 0 (wordAt0Mem (permitOwnerMaskedWord I) solcFreePtrMem)
+    raw rawMstore 0 (wordAt0Mem (permitOwnerMaskedWord I) solcFreePtrMem)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨4⟩, push1 ⟨32⟩, swap1, dup2,
-    raw mstore 0 (permitNonceHashMem I)
+    raw rawMstore 0 (permitNonceHashMem I)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup4,
-    raw keccak256 0 (mapSlot (permitOwnerMaskedWord I) ⟨4⟩)
+    raw rawKeccak256 0 (mapSlot (permitOwnerMaskedWord I) ⟨4⟩)
       (UInt256.ofNat 3) (by decide) mem_cost
       (permitNonceKeccakSlot I) (by decide) (by evm_ov),
     dup1]
-  obtain ⟨_, _, rd5581⟩ := rd5579.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd5581⟩ := rd5579.rawSload (by decide) (by evm_ov)
   have rd5588 := evm_run rd5581 with [push1 ⟨1⟩, dup1, dup3, add, swap1, swap3]
-  obtain ⟨_, _, rd5589⟩ := rd5588.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd5589⟩ := rd5588.rawSstore hperm (by decide) (by evm_ov)
   exact ⟨_, _, by
     simpa [permitDomainSeparatorWord, permitNonceWord, permitNonceNextWord,
       permitAfterNonceAccountMap, codeOwnerStorageWord] using rd5589⟩

@@ -253,7 +253,7 @@ theorem ballotX_winnerName_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
       (rdata := ByteArray.empty) solcFreePtrMem_size solcFreePtrMem_read64 (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega) rd1315
   have rd1713 := evm_run rd1711 with [jumpdest, dup2]
-  obtain ⟨_, _, rd1714⟩ := rd1713.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1714⟩ := rd1713.rawSload (by decide) (by evm_ov)
   have hlt : UInt256.lt (winningProposalResultWord σ I) (winningProposalLengthWord σ I) = ⟨1⟩ :=
     ult_one hbound
   have rd1727 := evm_run rd1714 with [
@@ -266,7 +266,7 @@ theorem ballotX_winnerName_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
   let nameBaseMem := winningProposalStoreBaseMem mem'
   have rd1734 := evm_run rd1727 with [
     jumpdest, swap1, push0,
-    raw mstore 0 nameBaseMem (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMstore 0 nameBaseMem (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, push0]
   have hnameBaseMemSize : nameBaseMem.size = 96 := by
@@ -278,10 +278,10 @@ theorem ballotX_winnerName_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
         proposalsDataBase := by
     simpa [nameBaseMem] using winningProposalStoreBaseMem_keccak mem' hmem'
   have rd1742pre := evm_run rd1734 with [
-    raw keccak256 0 proposalsDataBase (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 proposalsDataBase (UInt256.ofNat 3) (by decide)
       mem_cost hkeccak (by decide) (by evm_ov),
     swap1, push1 ⟨2⟩, mul, add, push0, add]
-  obtain ⟨_, _, rd1743⟩ := rd1742pre.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1743⟩ := rd1742pre.rawSload (by decide) (by evm_ov)
   have rd272raw := evm_run rd1743 with [swap1, pop, swap1, jump (by jump_dest)]
   have hrd272 : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨272⟩
       [winnerNameNameWord σ I, sel] nameBaseMem (UInt256.ofNat 3)
@@ -305,12 +305,12 @@ theorem ballotX_winnerName_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
         hnameBaseMemSize
   have rd194 := evm_run rd272 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (mloadFreePtrValue (by rw [hnameBaseMemSize]; decide) (by decide) hnameBaseMemRead64)
       (by decide) (by evm_ov),
     swap1, dup2,
-    raw mstore 6 retMem (UInt256.ofNat 5) (by decide) mem_cost
+    raw rawMstore 6 retMem (UInt256.ofNat 5) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨194⟩, jump (by jump_dest)]
   exact RD.ballotReturnOneWord194OfMem rd194 hmload64 hread128
@@ -334,7 +334,7 @@ theorem ballotX_winnerName_oob {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
       (rdata := ByteArray.empty) solcFreePtrMem_size solcFreePtrMem_read64 (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega) rd1315
   have rd1713 := evm_run rd1711 with [jumpdest, dup2]
-  obtain ⟨_, _, rd1714⟩ := rd1713.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1714⟩ := rd1713.rawSload (by decide) (by evm_ov)
   have hlt : UInt256.lt (winningProposalResultWord σ I) (winningProposalLengthWord σ I) = ⟨0⟩ :=
     ult_zero (Nat.le_of_not_gt hbound)
   have rd1815 := evm_run rd1714 with [

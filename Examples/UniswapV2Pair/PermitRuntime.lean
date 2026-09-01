@@ -1413,18 +1413,18 @@ theorem RD.uniswapPermitStructHash {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       hbaseRead64
   have rd5591 := evm_run h with [
     dup3,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost hbaseMload64 (by native_decide) (by evm_ov)]
   have rd5624 := rd5591.pushConst permitRuntimeTypehashWord (width := 32) (op := .PUSH32)
     (by native_decide) (by native_decide) (by evm_ov)
   have rd5627 := evm_run rd5624 with [dup2, dup7, add]
   have rd5628 := evm_run rd5627 with [
-    raw mstore 9 (permitRuntimeStructHashDataMem0 baseMem)
+    raw rawMstore 9 (permitRuntimeStructHashDataMem0 baseMem)
       (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5634 := evm_run rd5628 with [
     dup1, dup5, add, swap7, swap1, swap7,
-    raw mstore 3 (permitRuntimeStructHashDataMem1 baseMem owner)
+    raw rawMstore 3 (permitRuntimeStructHashDataMem1 baseMem owner)
       (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5638₀ := evm_run rd5634 with [swap6, dup14, and]
@@ -1432,48 +1432,48 @@ theorem RD.uniswapPermitStructHash {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   rw [hspenderMask] at rd5638
   have rd5643 := evm_run rd5638 with [
     push1 ⟨96⟩, dup7, add,
-    raw mstore 3 (permitRuntimeStructHashDataMem2 baseMem owner spender)
+    raw rawMstore 3 (permitRuntimeStructHashDataMem2 baseMem owner spender)
       (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5650 := evm_run rd5643 with [
     push1 ⟨128⟩, dup6, add, dup13, swap1,
-    raw mstore 3 (permitRuntimeStructHashDataMem3 baseMem owner spender value)
+    raw rawMstore 3 (permitRuntimeStructHashDataMem3 baseMem owner spender value)
       (UInt256.ofNat 9) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5658 := evm_run rd5650 with [
     push1 ⟨160⟩, dup6, add, swap6, swap1, swap6,
-    raw mstore 3 (permitRuntimeStructHashDataMem4 baseMem owner spender value nonce)
+    raw rawMstore 3 (permitRuntimeStructHashDataMem4 baseMem owner spender value nonce)
       (UInt256.ofNat 10) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5666 := evm_run rd5658 with [
     push1 ⟨192⟩, dup1, dup6, add, raw dup12 (by native_decide) (by evm_ov), swap1,
-    raw mstore 3 (permitRuntimeStructHashDataMem baseMem owner spender value nonce deadline)
+    raw rawMstore 3 (permitRuntimeStructHashDataMem baseMem owner spender value nonce deadline)
       (UInt256.ofNat 11) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5676 := evm_run rd5666 with [
     dup2,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 11) (by native_decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 11) (by native_decide)
       mem_cost
       (permitRuntimeStructHashDataMem_mload64 owner spender value nonce deadline hbaseSize
         hbaseRead64)
       (by native_decide) (by evm_ov),
     dup1, dup7, sub, swap1, swap2, add, dup2,
-    raw mstore 0 (permitRuntimeStructHashLenMem baseMem owner spender value nonce deadline)
+    raw rawMstore 0 (permitRuntimeStructHashLenMem baseMem owner spender value nonce deadline)
       (UInt256.ofNat 11) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5682 := evm_run rd5676 with [
     push1 ⟨224⟩, dup6, add, dup3,
-    raw mstore 0 (permitRuntimeStructHashMem baseMem owner spender value nonce deadline)
+    raw rawMstore 0 (permitRuntimeStructHashMem baseMem owner spender value nonce deadline)
       (UInt256.ofNat 11) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5688 := evm_run rd5682 with [
     dup1,
-    raw mload 0 ⟨192⟩ (UInt256.ofNat 11) (by native_decide)
+    raw rawMload 0 ⟨192⟩ (UInt256.ofNat 11) (by native_decide)
       mem_cost
       (permitRuntimeStructHashMem_mload128 owner spender value nonce deadline hbaseSize)
       (by native_decide) (by evm_ov),
     swap1, dup4, add,
-    raw keccak256 0
+    raw rawKeccak256 0
       (permitRuntimeStructHashWord baseMem owner spender value nonce deadline)
       (UInt256.ofNat 11) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
@@ -1500,42 +1500,42 @@ theorem RD.uniswapPermitDigestHash {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       (UInt256.ofNat 15) rdata (cA, σ) k' C' := by
   have rd5699 := evm_run h with [
     push2 ⟨6401⟩, push1 ⟨240⟩, shl, push2 ⟨256⟩, dup7, add,
-    raw mstore 6 (permitRuntimeDigestDataMem0 baseMem)
+    raw rawMstore 6 (permitRuntimeDigestDataMem0 baseMem)
       (UInt256.ofNat 13) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5708 := evm_run rd5699 with [
     push2 ⟨258⟩, dup6, add, swap7, swap1, swap7,
-    raw mstore 3 (permitRuntimeDigestDataMem1 baseMem domain)
+    raw rawMstore 3 (permitRuntimeDigestDataMem1 baseMem domain)
       (UInt256.ofNat 14) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5718 := evm_run rd5708 with [
     push2 ⟨290⟩, dup1, dup6, add, swap7, swap1, swap7,
-    raw mstore 3 (permitRuntimeDigestDataMem baseMem domain structHash)
+    raw rawMstore 3 (permitRuntimeDigestDataMem baseMem domain structHash)
       (UInt256.ofNat 15) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5729 := evm_run rd5718 with [
     dup1,
-    raw mload 0 ⟨352⟩ (UInt256.ofNat 15) (by native_decide)
+    raw rawMload 0 ⟨352⟩ (UInt256.ofNat 15) (by native_decide)
       mem_cost
       (permitRuntimeDigestDataMem_mload64 domain structHash hbaseSize hbaseRead64)
       (by native_decide) (by evm_ov),
     dup1, dup6, sub, swap1, swap7, add, dup7,
-    raw mstore 0 (permitRuntimeDigestLenMem baseMem domain structHash)
+    raw rawMstore 0 (permitRuntimeDigestLenMem baseMem domain structHash)
       (UInt256.ofNat 15) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5737 := evm_run rd5729 with [
     push2 ⟨322⟩, dup5, add, dup1, dup3,
-    raw mstore 0 (permitRuntimeDigestMem baseMem domain structHash)
+    raw rawMstore 0 (permitRuntimeDigestMem baseMem domain structHash)
       (UInt256.ofNat 15) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5746 := evm_run rd5737 with [
     dup7,
-    raw mload 0 ⟨66⟩ (UInt256.ofNat 15) (by native_decide)
+    raw rawMload 0 ⟨66⟩ (UInt256.ofNat 15) (by native_decide)
       mem_cost
       (permitRuntimeDigestMem_mload352 domain structHash hbaseSize)
       (by native_decide) (by evm_ov),
     swap7, dup4, add, swap7, swap1, swap7,
-    raw keccak256 0
+    raw rawKeccak256 0
       (permitRuntimeDigestWord baseMem domain structHash)
       (UInt256.ofNat 15) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
@@ -1574,17 +1574,17 @@ theorem RD.uniswapPermitEcrecoverStaticcallMade {g : Sat256} {s0 : State}
       ∧ o.size < UInt256.size := by
   have rd5749 := evm_run h with [
     swap6, dup4, swap1,
-    raw mstore 3 (permitRuntimeEcrecoverMem0 baseMem)
+    raw rawMstore 3 (permitRuntimeEcrecoverMem0 baseMem)
       (UInt256.ofNat 16) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5757 := evm_run rd5749 with [
     push2 ⟨354⟩, dup5, add, dup1, dup3,
-    raw mstore 0 (permitRuntimeEcrecoverMem1 baseMem)
+    raw rawMstore 0 (permitRuntimeEcrecoverMem1 baseMem)
       (UInt256.ofNat 16) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5760 := evm_run rd5757 with [
     dup7, swap1,
-    raw mstore 3 (permitRuntimeEcrecoverMem2 baseMem digest)
+    raw rawMstore 3 (permitRuntimeEcrecoverMem2 baseMem digest)
       (UInt256.ofNat 17) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5764₀ := evm_run rd5760 with [push1 ⟨255⟩, dup10, and]
@@ -1593,21 +1593,21 @@ theorem RD.uniswapPermitEcrecoverStaticcallMade {g : Sat256} {s0 : State}
   rw [hvMask] at rd5764
   have rd5770 := evm_run rd5764 with [
     push2 ⟨386⟩, dup6, add,
-    raw mstore 3 (permitRuntimeEcrecoverMem3 baseMem digest v)
+    raw rawMstore 3 (permitRuntimeEcrecoverMem3 baseMem digest v)
       (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5778 := evm_run rd5770 with [
     push2 ⟨418⟩, dup5, add, dup9, swap1,
-    raw mstore 3 (permitRuntimeEcrecoverMem4 baseMem digest v r)
+    raw rawMstore 3 (permitRuntimeEcrecoverMem4 baseMem digest v r)
       (UInt256.ofNat 19) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5787 := evm_run rd5778 with [
     push2 ⟨450⟩, dup5, add, dup8, swap1,
-    raw mstore 3 (permitRuntimeEcrecoverInputMem baseMem digest v r s)
+    raw rawMstore 3 (permitRuntimeEcrecoverInputMem baseMem digest v r s)
       (UInt256.ofNat 20) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   obtain ⟨gasArg, rd5813₀⟩ := evm_run rd5787 with [
-    raw mload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
+    raw rawMload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
       mem_cost
       (permitRuntimeEcrecoverInputMem_mload64 digest v r s hbaseSize)
       (by native_decide) (by evm_ov),
@@ -1653,17 +1653,17 @@ theorem RD.uniswapPermitEcrecoverStaticcallDepthReverts {g : Sat256} {s0 : State
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd5749 := evm_run h with [
     swap6, dup4, swap1,
-    raw mstore 3 (permitRuntimeEcrecoverMem0 baseMem)
+    raw rawMstore 3 (permitRuntimeEcrecoverMem0 baseMem)
       (UInt256.ofNat 16) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5757 := evm_run rd5749 with [
     push2 ⟨354⟩, dup5, add, dup1, dup3,
-    raw mstore 0 (permitRuntimeEcrecoverMem1 baseMem)
+    raw rawMstore 0 (permitRuntimeEcrecoverMem1 baseMem)
       (UInt256.ofNat 16) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5760 := evm_run rd5757 with [
     dup7, swap1,
-    raw mstore 3 (permitRuntimeEcrecoverMem2 baseMem digest)
+    raw rawMstore 3 (permitRuntimeEcrecoverMem2 baseMem digest)
       (UInt256.ofNat 17) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5764₀ := evm_run rd5760 with [push1 ⟨255⟩, dup10, and]
@@ -1672,21 +1672,21 @@ theorem RD.uniswapPermitEcrecoverStaticcallDepthReverts {g : Sat256} {s0 : State
   rw [hvMask] at rd5764
   have rd5770 := evm_run rd5764 with [
     push2 ⟨386⟩, dup6, add,
-    raw mstore 3 (permitRuntimeEcrecoverMem3 baseMem digest v)
+    raw rawMstore 3 (permitRuntimeEcrecoverMem3 baseMem digest v)
       (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5778 := evm_run rd5770 with [
     push2 ⟨418⟩, dup5, add, dup9, swap1,
-    raw mstore 3 (permitRuntimeEcrecoverMem4 baseMem digest v r)
+    raw rawMstore 3 (permitRuntimeEcrecoverMem4 baseMem digest v r)
       (UInt256.ofNat 19) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   have rd5787 := evm_run rd5778 with [
     push2 ⟨450⟩, dup5, add, dup8, swap1,
-    raw mstore 3 (permitRuntimeEcrecoverInputMem baseMem digest v r s)
+    raw rawMstore 3 (permitRuntimeEcrecoverInputMem baseMem digest v r s)
       (UInt256.ofNat 20) (by native_decide) mem_cost (by rfl)
       (by native_decide) (by evm_ov)]
   obtain ⟨gasArg, rd5813₀⟩ := evm_run rd5787 with [
-    raw mload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
+    raw rawMload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
       mem_cost
       (permitRuntimeEcrecoverInputMem_mload64 digest v r s hbaseSize)
       (by native_decide) (by evm_ov),
@@ -1746,7 +1746,7 @@ theorem RD.uniswapPermitEcrecoverReturnWordDecoded {g : Sat256} {s0 : State}
       (UInt256.ofNat 20) o acc k' C' := by
   have rd5839₀ := evm_run h with [
     pop, push1 ⟨64⟩,
-    raw mload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
+    raw rawMload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
       mem_cost
       (permitRuntimeEcrecoverStaticcallMem_mload64_of_size_ge digest v r s o
         hbaseSize ho32 hoSize)
@@ -1757,7 +1757,7 @@ theorem RD.uniswapPermitEcrecoverReturnWordDecoded {g : Sat256} {s0 : State}
   have rd5839 := rd5839₀
   rw [hoff] at rd5839
   have rd5844 := evm_run rd5839 with [
-    raw mload 0 (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)))
+    raw rawMload 0 (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)))
       (UInt256.ofNat 20) (by native_decide) mem_cost
       (permitRuntimeEcrecoverStaticcallMem_mload450_of_size_ge digest v r s o
         hbaseSize ho32 hoSize)
@@ -1785,7 +1785,7 @@ theorem RD.uniswapPermitEcrecoverReturnWordDecodedShort {g : Sat256} {s0 : State
       (UInt256.ofNat 20) o acc k' C' := by
   have rd5839₀ := evm_run h with [
     pop, push1 ⟨64⟩,
-    raw mload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
+    raw rawMload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
       mem_cost
       (permitRuntimeEcrecoverStaticcallMem_mload64_of_size_lt digest v r s o
         hbaseSize hshort hoSize)
@@ -1796,7 +1796,7 @@ theorem RD.uniswapPermitEcrecoverReturnWordDecodedShort {g : Sat256} {s0 : State
   have rd5839 := rd5839₀
   rw [hoff] at rd5839
   have rd5844 := evm_run rd5839 with [
-    raw mload 0 (UInt256.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32)))
+    raw rawMload 0 (UInt256.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32)))
       (UInt256.ofNat 20) (by native_decide) mem_cost
       (permitRuntimeEcrecoverStaticcallMem_mload450_of_size_lt digest v r s o
         hbaseSize hshort hoSize)
@@ -1918,14 +1918,14 @@ theorem RD.uniswapPermitApproveInnerHash20 {g : Sat256} {s0 : State} {ee : Execu
     raw push1 ⟨0⟩ hd12 (by evm_ov),
     raw dup2 hd14 (by evm_ov),
     raw dup2 hd15 (by evm_ov)]
-  have rdInnerKey := rdMstore0Prefix.mstore 0 (wordAt0Mem owner mem)
+  have rdInnerKey := rdMstore0Prefix.rawMstore 0 (wordAt0Mem owner mem)
     (UInt256.ofNat 20) hd16 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdInnerMemPrefix := evm_run rdInnerKey with [
     raw push1 ⟨2⟩ hd17 (by evm_ov),
     raw push1 ⟨32⟩ hd19 (by evm_ov),
     raw swap1 hd21 (by evm_ov),
     raw dup2 hd22 (by evm_ov)]
-  have rdInnerMem := rdInnerMemPrefix.mstore 0 (twoWordHashMem owner ⟨2⟩ mem)
+  have rdInnerMem := rdInnerMemPrefix.rawMstore 0 (twoWordHashMem owner ⟨2⟩ mem)
     (UInt256.ofNat 20) hd23 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdInnerHashPrefix := evm_run rdInnerMem with [
     raw push1 ⟨64⟩ hd24 (by evm_ov),
@@ -1933,7 +1933,7 @@ theorem RD.uniswapPermitApproveInnerHash20 {g : Sat256} {s0 : State} {ee : Execu
     raw dup4 hd27 (by evm_ov)]
   exact ⟨_, _, by
     simpa [solcNestedMappingStoreInnerHashOutPc] using
-      rdInnerHashPrefix.keccak256 0 (mapSlot owner ⟨2⟩)
+      rdInnerHashPrefix.rawKeccak256 0 (mapSlot owner ⟨2⟩)
         (UInt256.ofNat 20) hd28 mem_cost hslot (by native_decide) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -1977,24 +1977,24 @@ theorem RD.uniswapPermitApproveStore20 {g : Sat256} {s0 : State} {ee : Execution
   have rdOuterKeyPrefix := evm_run rdMasked with [
     raw dup1 hd3 (by evm_ov),
     raw dup5 hd4 (by evm_ov)]
-  have rdOuterKey := rdOuterKeyPrefix.mstore 0 (wordAt0Mem spender mem)
+  have rdOuterKey := rdOuterKeyPrefix.rawMstore 0 (wordAt0Mem spender mem)
     (UInt256.ofNat 20) hd5 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdOuterMemPrefix := evm_run rdOuterKey with [
     raw swap5 hd6 (by evm_ov),
     raw dup3 hd7 (by evm_ov)]
-  have rdOuterMem := rdOuterMemPrefix.mstore 0
+  have rdOuterMem := rdOuterMemPrefix.rawMstore 0
     (twoWordHashMem spender (mapSlot owner ⟨2⟩) mem)
     (UInt256.ofNat 20) hd8 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdHashPrefix := evm_run rdOuterMem with [
     raw swap2 hd9 (by evm_ov),
     raw dup3 hd10 (by evm_ov),
     raw swap1 hd11 (by evm_ov)]
-  have rdSlot := rdHashPrefix.keccak256 0 (mapSlot spender (mapSlot owner ⟨2⟩))
+  have rdSlot := rdHashPrefix.rawKeccak256 0 (mapSlot spender (mapSlot owner ⟨2⟩))
     (UInt256.ofNat 20) hd12 mem_cost hslot (by native_decide) (by evm_ov)
   have rdBeforeStore := evm_run rdSlot with [
     raw dup6 hd13 (by evm_ov),
     raw swap1 hd14 (by evm_ov)]
-  obtain ⟨_, _, rdOut⟩ := rdBeforeStore.sstore hperm hd15
+  obtain ⟨_, _, rdOut⟩ := rdBeforeStore.rawSstore hperm hd15
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa [solcNestedMappingStoreOuterSstoreOutPc] using rdOut⟩
 
@@ -2065,14 +2065,14 @@ theorem RD.uniswapPermitApproveEmitAndJump20 {g : Sat256} {s0 : State} {ee : Exe
       · native_decide
   have rd2 := evm_run h with [
     raw dup2 hd0 (by evm_ov),
-    raw mload 0 ⟨482⟩ (UInt256.ofNat 20) hd1
+    raw rawMload 0 ⟨482⟩ (UInt256.ofNat 20) hd1
       mem_cost hmload (by native_decide) (by evm_ov)]
   have rd4 := evm_run rd2 with [raw dup6 hd2 (by evm_ov), raw dup2 hd3 (by evm_ov)]
-  have rd5 := rd4.mstore 0 ((UInt256.toByteArray value).write 0 mem 482 32)
+  have rd5 := rd4.rawMstore 0 ((UInt256.toByteArray value).write 0 mem 482 32)
     (UInt256.ofNat 20) hd4 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rd7 := evm_run rd5 with [
     raw swap2 hd5 (by evm_ov),
-    raw mload 0 ⟨482⟩ (UInt256.ofNat 20) hd6
+    raw rawMload 0 ⟨482⟩ (UInt256.ofNat 20) hd6
       mem_cost hlogMload (by native_decide) (by evm_ov)]
   have rd40 := rd7.pushConst uniswapApprovalTopic (width := 32) (op := .PUSH32)
     (by decide) hd7 (by evm_ov)
@@ -2085,7 +2085,7 @@ theorem RD.uniswapPermitApproveEmitAndJump20 {g : Sat256} {s0 : State} {ee : Exe
     raw swap2 hd45 (by evm_ov),
     raw add hd46 (by evm_ov),
     raw swap1 hd47 (by evm_ov)]
-  have rd49 := rd48.log3 0 (UInt256.ofNat 20) hd48 hperm mem_cost
+  have rd49 := rd48.rawLog3 0 (UInt256.ofNat 20) hd48 hperm mem_cost
     (by native_decide) (by simp only [List.length_cons]; omega)
   have rd52 := evm_run rd49 with [
     raw pop hd49 (by evm_ov),
@@ -2176,7 +2176,7 @@ theorem RD.uniswapPermitInvalidSignatureReverts {g : Sat256} {s0 : State}
       permitRuntimeEcrecoverStaticcallMem_read64_of_size_ge digest v r s o hbaseSize ho32 hoSize
   have rd5893 := evm_run h with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
+    raw rawMload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
       mem_cost
       (permitRuntimeEcrecoverStaticcallMem_mload64_of_size_ge digest v r s o
         hbaseSize ho32 hoSize)
@@ -2190,7 +2190,7 @@ theorem RD.uniswapPermitInvalidSignatureReverts {g : Sat256} {s0 : State}
     (width := 3) (op := .PUSH3) (by native_decide) (by native_decide) (by evm_ov)
   have rd5901 := evm_run rd5897 with [
     push1 ⟨229⟩, shl, dup2,
-    raw mstore 0 mem0 (UInt256.ofNat 20)
+    raw rawMstore 0 mem0 (UInt256.ofNat 20)
       (by native_decide) mem_cost
       (by unfold mem0 solcErrorStringSelector; rfl) (by native_decide) (by evm_ov)]
   let mem1 : ByteArray := (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 mem0 486 32
@@ -2200,7 +2200,7 @@ theorem RD.uniswapPermitInvalidSignatureReverts {g : Sat256} {s0 : State}
       hmem0 (by rw [hmem0]; omega) (by omega)
   have rd5908 := evm_run rd5901 with [
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
-    raw mstore 0 mem1 (UInt256.ofNat 20)
+    raw rawMstore 0 mem1 (UInt256.ofNat 20)
       (by native_decide) mem_cost (by unfold mem1; rfl) (by native_decide) (by evm_ov)]
   let mem2 : ByteArray := (UInt256.toByteArray (⟨28⟩ : UInt256)).write 0 mem1 518 32
   have hmem2 : mem2.size = 610 := by
@@ -2209,7 +2209,7 @@ theorem RD.uniswapPermitInvalidSignatureReverts {g : Sat256} {s0 : State}
       hmem1 (by rw [hmem1]; omega) (by omega)
   have rd5915 := evm_run rd5908 with [
     push1 ⟨28⟩, push1 ⟨36⟩, dup3, add,
-    raw mstore 0 mem2 (UInt256.ofNat 20)
+    raw rawMstore 0 mem2 (UInt256.ofNat 20)
       (by native_decide) mem_cost (by unfold mem2; rfl) (by native_decide) (by evm_ov)]
   let invalidSignatureWord : UInt256 :=
     ⟨38641673103035791731704587899846419028922750264491344903186080211751768424448⟩
@@ -2246,16 +2246,16 @@ theorem RD.uniswapPermitInvalidSignatureReverts {g : Sat256} {s0 : State}
     (width := 32) (op := .PUSH32) (by native_decide) (by native_decide) (by evm_ov)
   exact evm_run rd5949 with [
     push1 ⟨68⟩, dup3, add,
-    raw mstore 0 mem3 (UInt256.ofNat 20)
+    raw rawMstore 0 mem3 (UInt256.ofNat 20)
       (by native_decide) mem_cost (by unfold mem3; rfl) (by native_decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
+    raw rawMload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
       mem_cost
       (mloadWordValue_of_readWithPadding
         (by rw [hmem3]; decide) (by native_decide) hread64_mem3)
       (by native_decide) (by evm_ov),
     swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw rawRev 0 (by native_decide) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitInvalidSignatureRevertsShort {g : Sat256} {s0 : State}
@@ -2280,7 +2280,7 @@ theorem RD.uniswapPermitInvalidSignatureRevertsShort {g : Sat256} {s0 : State}
         hoSize
   have rd5893 := evm_run h with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
+    raw rawMload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
       mem_cost
       (permitRuntimeEcrecoverStaticcallMem_mload64_of_size_lt digest v r s o
         hbaseSize hshort hoSize)
@@ -2294,7 +2294,7 @@ theorem RD.uniswapPermitInvalidSignatureRevertsShort {g : Sat256} {s0 : State}
     (width := 3) (op := .PUSH3) (by native_decide) (by native_decide) (by evm_ov)
   have rd5901 := evm_run rd5897 with [
     push1 ⟨229⟩, shl, dup2,
-    raw mstore 0 mem0 (UInt256.ofNat 20)
+    raw rawMstore 0 mem0 (UInt256.ofNat 20)
       (by native_decide) mem_cost
       (by unfold mem0 solcErrorStringSelector; rfl) (by native_decide) (by evm_ov)]
   let mem1 : ByteArray := (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 mem0 486 32
@@ -2304,7 +2304,7 @@ theorem RD.uniswapPermitInvalidSignatureRevertsShort {g : Sat256} {s0 : State}
       hmem0 (by rw [hmem0]; omega) (by omega)
   have rd5908 := evm_run rd5901 with [
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
-    raw mstore 0 mem1 (UInt256.ofNat 20)
+    raw rawMstore 0 mem1 (UInt256.ofNat 20)
       (by native_decide) mem_cost (by unfold mem1; rfl) (by native_decide) (by evm_ov)]
   let mem2 : ByteArray := (UInt256.toByteArray (⟨28⟩ : UInt256)).write 0 mem1 518 32
   have hmem2 : mem2.size = 610 := by
@@ -2313,7 +2313,7 @@ theorem RD.uniswapPermitInvalidSignatureRevertsShort {g : Sat256} {s0 : State}
       hmem1 (by rw [hmem1]; omega) (by omega)
   have rd5915 := evm_run rd5908 with [
     push1 ⟨28⟩, push1 ⟨36⟩, dup3, add,
-    raw mstore 0 mem2 (UInt256.ofNat 20)
+    raw rawMstore 0 mem2 (UInt256.ofNat 20)
       (by native_decide) mem_cost (by unfold mem2; rfl) (by native_decide) (by evm_ov)]
   let invalidSignatureWord : UInt256 :=
     ⟨38641673103035791731704587899846419028922750264491344903186080211751768424448⟩
@@ -2350,16 +2350,16 @@ theorem RD.uniswapPermitInvalidSignatureRevertsShort {g : Sat256} {s0 : State}
     (width := 32) (op := .PUSH32) (by native_decide) (by native_decide) (by evm_ov)
   exact evm_run rd5949 with [
     push1 ⟨68⟩, dup3, add,
-    raw mstore 0 mem3 (UInt256.ofNat 20)
+    raw rawMstore 0 mem3 (UInt256.ofNat 20)
       (by native_decide) mem_cost (by unfold mem3; rfl) (by native_decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
+    raw rawMload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
       mem_cost
       (mloadWordValue_of_readWithPadding
         (by rw [hmem3]; decide) (by native_decide) hread64_mem3)
       (by native_decide) (by evm_ov),
     swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw rawRev 0 (by native_decide) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitEcrecoverSignatureGuardZeroReverts {g : Sat256} {s0 : State}

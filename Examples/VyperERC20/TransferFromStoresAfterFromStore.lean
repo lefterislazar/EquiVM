@@ -28,7 +28,7 @@ theorem erc20X_transferFromAfterFromStore {cA gh bl σ σ₀ A I} {g : Sat256}
         (transferFromBalanceDebitWord
           (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)) k C := by
   obtain ⟨k, C, rd526⟩ := hreach
-  obtain ⟨k1, C1, rdAfterStore⟩ := rd526.sstore hperm
+  obtain ⟨k1, C1, rdAfterStore⟩ := rd526.rawSstore hperm
     (by vyper_erc20_transferFrom_decode) (by evm_ov)
   exact ⟨_, _, evm_run rdAfterStore with [pop]⟩
 

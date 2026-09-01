@@ -610,7 +610,7 @@ theorem uniswapSwapX_offsetHuge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     (by evm_ov)
   have rd505 := rd503.push1 ⟨0⟩ (by native_decide) (by evm_ov)
   have rd506 := rd505.dup1 (by native_decide) (by evm_ov)
-  exact rd506.rev 0 (by native_decide) mem_cost (by evm_ov)
+  exact rd506.rawRev 0 (by native_decide) mem_cost (by evm_ov)
 
 theorem uniswapSwapX_lengthShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsize : I.calldata.size < UInt256.size) (hsz132 : 132 ≤ I.calldata.size)
@@ -722,7 +722,7 @@ theorem uniswapSwapX_lengthShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     (by evm_ov)
   have rd523 := rd521.push1 ⟨0⟩ (by native_decide) (by evm_ov)
   have rd524 := rd523.dup1 (by native_decide) (by evm_ov)
-  exact rd524.rev 0 (by native_decide) mem_cost (by evm_ov)
+  exact rd524.rawRev 0 (by native_decide) mem_cost (by evm_ov)
 
 private theorem swapU256_lor_one_ne_zero_left (w : UInt256) :
     UInt256.lor ⟨1⟩ w ≠ ⟨0⟩ := by
@@ -960,7 +960,7 @@ theorem uniswapSwapX_lengthHuge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     (by evm_ov)
   have rd556 := rd554.push1 ⟨0⟩ (by native_decide) (by evm_ov)
   have rd557 := rd556.dup1 (by native_decide) (by evm_ov)
-  exact rd557.rev 0 (by native_decide) mem_cost (by evm_ov)
+  exact rd557.rawRev 0 (by native_decide) mem_cost (by evm_ov)
 
 theorem uniswapSwapX_payloadShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsize : I.calldata.size < UInt256.size) (hsz132 : 132 ≤ I.calldata.size)
@@ -1196,7 +1196,7 @@ theorem uniswapSwapX_payloadShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
     (by evm_ov)
   have rd556 := rd554.push1 ⟨0⟩ (by native_decide) (by evm_ov)
   have rd557 := rd556.dup1 (by native_decide) (by evm_ov)
-  exact rd557.rev 0 (by native_decide) mem_cost (by evm_ov)
+  exact rd557.rawRev 0 (by native_decide) mem_cost (by evm_ov)
 
 theorem uniswapSwapBodyCoreDecodeFailed_headShort
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

@@ -951,13 +951,13 @@ theorem accessControlX_hasRole_internal {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd451⟩ := hreach
   have rd465 := evm_run rd451 with [
     jumpdest, push0, swap2, dup3,
-    raw mstore 0 (revokeRoleWordAt0Mem role mem0)
+    raw rawMstore 0 (revokeRoleWordAt0Mem role mem0)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup3, dup2,
-    raw mstore 0 (revokeRoleBaseHashMemFrom role mem0) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (revokeRoleBaseHashMemFrom role mem0) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup5,
-    raw keccak256 0 (revokeRoleBaseSlot role) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (revokeRoleBaseSlot role) (UInt256.ofNat 3) (by decide)
       mem_cost
       (by
         change UInt256.ofNat (fromByteArrayBigEndian
@@ -969,7 +969,7 @@ theorem accessControlX_hasRole_internal {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov) ]
   have rd485 := evm_run rd465 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap4, swap1, swap4, and, dup5,
-    raw mstore 0 (revokeRoleHasRoleAccountMemFrom role account mem0)
+    raw rawMstore 0 (revokeRoleHasRoleAccountMemFrom role account mem0)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -978,15 +978,15 @@ theorem accessControlX_hasRole_internal {cA gh bl σ σ₀ A I} {g : Sat256}
         rfl)
       (by decide) (by evm_ov),
     swap2, swap1,
-    raw mstore 0 (revokeRoleHasRoleSlotHashMemFrom role account mem0)
+    raw rawMstore 0 (revokeRoleHasRoleSlotHashMemFrom role account mem0)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw keccak256 0
+    raw rawKeccak256 0
       (roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE role))
         (.address (AccountAddress.ofNat account.toNat)))
       (UInt256.ofNat 3) (by decide)
       mem_cost hslot (by decide) (by evm_ov) ]
-  obtain ⟨_, _, rd486⟩ := rd485.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd486⟩ := rd485.rawSload (by decide) (by evm_ov)
   have hmaskComm :
       UInt256.land ⟨255⟩
           (revokeRoleStorageWordAt σ I.codeOwner
@@ -1202,16 +1202,16 @@ theorem accessControlRevokeRoleX_adminLoaded {cA gh bl σ σ₀ A I} {g : Sat256
         revokeRoleBaseSlot (revokeRoleRoleWord I) := rfl
   have rd508pre := evm_run rd491 with [
     jumpdest, push0, dup3, dup2,
-    raw mstore 0 (revokeRoleWordAt0Mem (revokeRoleRoleWord I) solcFreePtrMem)
+    raw rawMstore 0 (revokeRoleWordAt0Mem (revokeRoleRoleWord I) solcFreePtrMem)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 (revokeRoleBaseHashMem (revokeRoleRoleWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (revokeRoleBaseHashMem (revokeRoleRoleWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1,
-    raw keccak256 0 (revokeRoleBaseSlot (revokeRoleRoleWord I)) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (revokeRoleBaseSlot (revokeRoleRoleWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost hslotRaw (by decide) (by evm_ov),
     push1 ⟨1⟩, add]
-  obtain ⟨_, _, rd509₀⟩ := rd508pre.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd509₀⟩ := rd508pre.rawSload (by decide) (by evm_ov)
   have rd509 :
       ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I)
         (⟨491⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 +
@@ -1366,10 +1366,10 @@ theorem accessControlRevokeRoleX_onlyRole_revert {cA gh bl σ σ₀ A I} {g : Sa
     jumpdest, push2 ⟨849⟩, jumpiNT (by rw [hadmin]) ]
   have rd815 := evm_run rd803 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost hloadAdmin64
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost hloadAdmin64
       (by decide) (by evm_ov),
     push4 ⟨3796991295⟩, push1 ⟨224⟩, shl, dup2,
-    raw mstore 6 (revokeRoleUnauthorizedSelectorMemFrom memAdmin)
+    raw rawMstore 6 (revokeRoleUnauthorizedSelectorMemFrom memAdmin)
       (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd830pre := evm_run rd815 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and,
@@ -1383,7 +1383,7 @@ theorem accessControlRevokeRoleX_onlyRole_revert {cA gh bl σ σ₀ A I} {g : Sa
         UInt256.land solcAddrMask (revokeRoleSourceWord I) := by
     exact u256_land_comm (revokeRoleSourceWord I) solcAddrMask
   have rd830 := evm_run rd830pre with [
-    raw mstore 3 (revokeRoleUnauthorizedAccountMemFrom (revokeRoleSourceWord I) memAdmin)
+    raw rawMstore 3 (revokeRoleUnauthorizedAccountMemFrom (revokeRoleSourceWord I) memAdmin)
       (UInt256.ofNat 6) (by decide) mem_cost
       (by
         rw [show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 by decide, hsourceMaskComm]
@@ -1391,13 +1391,13 @@ theorem accessControlRevokeRoleX_onlyRole_revert {cA gh bl σ σ₀ A I} {g : Sa
       (by decide) (by evm_ov) ]
   have rd837 := evm_run rd830 with [
     push1 ⟨36⟩, dup2, add, dup4, swap1,
-    raw mstore 3
+    raw rawMstore 3
       (revokeRoleUnauthorizedMemFrom (revokeRoleSourceWord I)
         (revokeRoleAdminStorageWord σ I) memAdmin)
       (UInt256.ofNat 7) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd848 := evm_run rd837 with [
     push1 ⟨68⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide) mem_cost
       (revokeRoleUnauthorizedMemFrom_mload64 (revokeRoleSourceWord I)
         (revokeRoleAdminStorageWord σ I) hmemAdmin hreadAdmin)
       (by decide) (by evm_ov),
@@ -1406,7 +1406,7 @@ theorem accessControlRevokeRoleX_onlyRole_revert {cA gh bl σ σ₀ A I} {g : Sa
     decide
   have rd848' := rd848
   rw [hlen68] at rd848'
-  exact rd848'.rev 0 (by decide)
+  exact rd848'.rawRev 0 (by decide)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -1569,10 +1569,10 @@ theorem accessControlRevokeRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat25
     jumpdest, iszero, push2 ⟨676⟩, jumpiNT (isZero_eq_zero_of_ne htarget) ]
   have rd713pre := evm_run rd700 with [
     push0, dup4, dup2,
-    raw mstore 0 (revokeRoleWordAt0Mem (revokeRoleRoleWord I) memTarget)
+    raw rawMstore 0 (revokeRoleWordAt0Mem (revokeRoleRoleWord I) memTarget)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup2, dup2,
-    raw mstore 0 (revokeRoleBaseHashMemFrom (revokeRoleRoleWord I) memTarget)
+    raw rawMstore 0 (revokeRoleBaseHashMemFrom (revokeRoleRoleWord I) memTarget)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup4]
   have hbaseSlotRaw :
@@ -1583,7 +1583,7 @@ theorem accessControlRevokeRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat25
     unfold revokeRoleBaseSlot
     rw [revokeRoleBaseHashMemFrom_read0_64 _ hmemTarget, revokeRoleBaseHashMem_read0_64]
   have rd723pre := evm_run rd713pre with [
-    raw keccak256 0 (revokeRoleBaseSlot (revokeRoleRoleWord I)) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (revokeRoleBaseSlot (revokeRoleRoleWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost hbaseSlotRaw (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup7, and]
   have haddrMask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1599,22 +1599,22 @@ theorem accessControlRevokeRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat25
   rw [haddrMask, haccountCleanRight] at rd723pre
   have rd731pre := evm_run rd723pre with [
     dup1, dup6,
-    raw mstore 0
+    raw rawMstore 0
       (revokeRoleHasRoleAccountMemFrom (revokeRoleRoleWord I) (revokeRoleAccountWord I)
         memTarget)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap3,
-    raw mstore 0
+    raw rawMstore 0
       (revokeRoleHasRoleSlotHashMemFrom (revokeRoleRoleWord I) (revokeRoleAccountWord I)
         memTarget)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     dup1, dup4]
   have hslotWrite := revokeRoleTargetKeccakSlotFrom I memTarget hsz68 hmemTarget hcanonAccount
   have rd732 := evm_run rd731pre with [
-    raw keccak256 0 (revokeRoleTargetSlot I) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (revokeRoleTargetSlot I) (UInt256.ofNat 3)
       (by decide) mem_cost hslotWrite (by decide) (by evm_ov),
     dup1]
-  obtain ⟨_, _, rd733₀⟩ := rd732.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd733₀⟩ := rd732.rawSload (by decide) (by evm_ov)
   have rd733 :
       ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨734⟩
         [revokeRoleTargetStorageWord σ I, revokeRoleTargetSlot I, ⟨64⟩,
@@ -1635,7 +1635,7 @@ theorem accessControlRevokeRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat25
       (revokeRoleTargetStorageWord σ I)
   have rd739pre := evm_run rd733 with [push1 ⟨255⟩, not, and, swap1]
   rw [hclearComm] at rd739pre
-  obtain ⟨_, _, rd740₀⟩ := rd739pre.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd740₀⟩ := rd739pre.rawSstore hperm (by decide) (by evm_ov)
   have rd740 :
       ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨740⟩
         [⟨64⟩, revokeRoleAccountWord I, ⟨0⟩, ⟨0⟩, revokeRoleAccountWord I,
@@ -1655,7 +1655,7 @@ theorem accessControlRevokeRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat25
         memTarget).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     exact revokeRoleHasRoleSlotHashMemFrom_read64 _ _ hmemTarget hreadTarget
   have rd745pre := evm_run rd740 with [
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
       (revokeRoleHasRoleSlotHashMemFrom_mload64 (revokeRoleRoleWord I)
         (revokeRoleAccountWord I) hmemTarget hreadTarget)
       (by decide) (by evm_ov),
@@ -1663,7 +1663,7 @@ theorem accessControlRevokeRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat25
   have rd745 := rd745pre.pushConst revokeRoleRevokedTopic (width := 32) (op := .PUSH32)
     (by decide) (by decide) (by evm_ov)
   have rd780 := evm_run rd745 with [swap2, swap1]
-  have rd781 := RD.log4 0 (UInt256.ofNat 3) rd780 (by decide) hperm
+  have rd781 := RD.rawLog4 0 (UInt256.ofNat 3) rd780 (by decide) hperm
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]

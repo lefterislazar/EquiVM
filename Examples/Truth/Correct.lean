@@ -190,7 +190,7 @@ theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, push1 ⟨48⟩, push1 ⟨68⟩, jump (by jump_dest),
     jumpdest, push0, push1 ⟨1⟩, swap1, pop, swap1, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
@@ -200,7 +200,7 @@ theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, push1 ⟨94⟩, dup2, push1 ⟨76⟩, jump (by jump_dest),
     jumpdest, push0, dup2, iszero, iszero, swap1, pop, swap2, swap1, pop, jump (by jump_dest),
     jumpdest, dup3,
-    raw mstore 6 (solcReturnMem ⟨1⟩) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (solcReturnMem ⟨1⟩) (UInt256.ofNat 5) (by decide)
       mem_cost
       (by rw [show ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 from by decide,
           show UInt256.isZero (UInt256.isZero ⟨1⟩) = ⟨1⟩ from by decide]; rfl)
@@ -208,12 +208,12 @@ theorem truthX_cvz_success {cA gh bl σ σ₀ A I} {g : Sat256}
     pop, pop, jump (by jump_dest),
     jumpdest, swap3, swap2, pop, pop, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (solcReturnMem_mload64 ⟨1⟩)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray ⟨1⟩) (by decide)
+    raw rawRet 0 (UInt256.toByteArray ⟨1⟩) (by decide)
       mem_cost
       (by rw [show (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩).toNat = 32 from by decide,
           show ((⟨128⟩ : UInt256).toNat) = 128 from by decide, solcReturnMem_read128])
@@ -310,7 +310,7 @@ theorem truthInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀ A I
   exact evm_run rd0 with [
     raw push1 ⟨128⟩ ctorTruthDecode0 (by evm_ov),
     raw push1 ⟨64⟩ ctorTruthDecode2 (by evm_ov),
-    raw mstore 9 solcFreePtrMem (UInt256.ofNat 3) ctorTruthDecode4
+    raw rawMstore 9 solcFreePtrMem (UInt256.ofNat 3) ctorTruthDecode4
       mem_cost
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by evm_ov),
@@ -318,12 +318,12 @@ theorem truthInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀ A I
     raw dup1 ctorTruthDecode7 (by evm_ov),
     raw push1 ⟨15⟩ ctorTruthDecode8 (by evm_ov),
     raw push0 ctorTruthDecode10 (by evm_ov),
-    raw codecopy 3 truthInitReturnMem (UInt256.ofNat 4) ctorTruthDecode11
+    raw rawCodecopy 3 truthInitReturnMem (UInt256.ofNat 4) ctorTruthDecode11
       mem_cost
       truthInitcode_codecopy_mem
       (by decide) (by evm_ov),
     raw push0 ctorTruthDecode12 (by evm_ov),
-    raw ret 0 truthBytecode ctorTruthDecode13
+    raw rawRet 0 truthBytecode ctorTruthDecode13
       mem_cost
       truthFinal_read
       (by evm_ov)]

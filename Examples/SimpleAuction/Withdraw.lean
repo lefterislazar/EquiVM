@@ -1561,13 +1561,13 @@ theorem simpleAuctionX_withdraw_loadAmount {cA gh bl σ σ₀ A I} {g : Sat256}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach
   have rd814₀ := evm_run rd809 with [
     jumpdest, caller, push0, swap1, dup2,
-    raw mstore 0 ((UInt256.toByteArray (withdrawSenderWord I)).write 0 solcFreePtrMem 0 32)
+    raw rawMstore 0 ((UInt256.toByteArray (withdrawSenderWord I)).write 0 solcFreePtrMem 0 32)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         simp [withdrawSenderWord])
       (by decide) (by evm_ov),
     push1 ⟨4⟩, push1 ⟨32⟩,
-    raw mstore 0 (withdrawPendingHashMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (withdrawPendingHashMem I) (UInt256.ofNat 3) (by decide)
       mem_cost
       (by
         change (UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
@@ -1576,9 +1576,9 @@ theorem simpleAuctionX_withdraw_loadAmount {cA gh bl σ σ₀ A I} {g : Sat256}
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨64⟩, dup2,
-    raw keccak256 0 (withdrawPendingSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (withdrawPendingSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost (withdrawPendingKeccak I) (by decide) (by evm_ov)]
-  obtain ⟨_, _, rd825₀⟩ := rd814₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd825₀⟩ := rd814₀.rawSload (by decide) (by evm_ov)
   exact ⟨_, _, by simpa [withdrawAmountWord, initState] using rd825₀⟩
 
 set_option maxHeartbeats 1000000 in
@@ -1606,22 +1606,22 @@ theorem simpleAuctionX_withdraw_toCall {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd849₀ := evm_run rd831 with [
     push2 ⟨948⟩, jumpiNT (by decide),
     caller, push0, dup2, dup2,
-    raw mstore 0 ((UInt256.toByteArray (withdrawSenderWord I)).write 0
+    raw rawMstore 0 ((UInt256.toByteArray (withdrawSenderWord I)).write 0
         (withdrawPendingHashMem I) 0 32) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨4⟩, push1 ⟨32⟩,
-    raw mstore 0 (withdrawRehashMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (withdrawRehashMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup3,
-    raw keccak256 0 (withdrawPendingSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (withdrawPendingSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost (withdrawRehashKeccak I) (by decide) (by evm_ov),
     dup3, swap1]
-  obtain ⟨_, _, rd849₀'⟩ := rd849₀.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd849₀'⟩ := rd849₀.rawSstore hperm (by decide) (by evm_ov)
   have rd862₀ := evm_run rd849₀' with [
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (withdrawRehashMem_mload64 I) (by decide) (by evm_ov),
     swap1, swap2, swap1, dup4, swap1, dup4, dup2, dup2, dup2, dup6, dup8]
-  obtain ⟨gasArg, rd862⟩ := rd862₀.gas (by decide) (by evm_ov)
+  obtain ⟨gasArg, rd862⟩ := rd862₀.rawGas (by decide) (by evm_ov)
   exact ⟨gasArg, _, _, by simpa [withdrawZeroMap] using rd862⟩
 
 set_option maxHeartbeats 1000000 in
@@ -1794,16 +1794,16 @@ theorem simpleAuctionX_withdraw_postCallNonempty_toBranch {cA gh bl σ σ₀ A I
     (UInt256.toByteArray (UInt256.add ⟨128⟩ rounded)).write 0 (withdrawRehashMem I) 64 32
   have rd894 := evm_run rd876 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (withdrawRehashMem_mload64 I) (by decide) (by evm_ov),
     swap2, pop, push1 ⟨31⟩, not, push1 ⟨63⟩, returndatasize, add, and, dup3, add,
     push1 ⟨64⟩,
-    raw mstore 0 mem2 (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 mem2 (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   let mem3 : ByteArray := (UInt256.toByteArray rdsz).write 0 mem2 128 32
   have rd897 := evm_run rd894 with [
     returndatasize, dup3,
-    raw mstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
+    raw rawMstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
       mem3 (UInt256.ofNat 5) (by decide)
       (fun s haw hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -1827,7 +1827,7 @@ theorem simpleAuctionX_withdraw_postCallNonempty_toBranch {cA gh bl σ σ₀ A I
         withdrawReturnDataActiveWords o := by
     simp [withdrawReturnDataActiveWords, copyDest, copyLen, hcopyDest_toNat,
       hcopyLen_toNat]
-  have rd904 := RD.returndatacopy
+  have rd904 := RD.rawReturndatacopy
     (Cₘ (withdrawReturnDataActiveWords o) - Cₘ (UInt256.ofNat 5))
     mem4
     (withdrawReturnDataActiveWords o)
@@ -1878,16 +1878,16 @@ theorem simpleAuctionX_withdraw_postCallNonempty_huge_oog {cA gh bl σ σ₀ A I
     (UInt256.toByteArray (UInt256.add ⟨128⟩ rounded)).write 0 (withdrawRehashMem I) 64 32
   have rd894 := evm_run rd876 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (withdrawRehashMem_mload64 I) (by decide) (by evm_ov),
     swap2, pop, push1 ⟨31⟩, not, push1 ⟨63⟩, returndatasize, add, and, dup3, add,
     push1 ⟨64⟩,
-    raw mstore 0 mem2 (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 mem2 (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   let mem3 : ByteArray := (UInt256.toByteArray rdsz).write 0 mem2 128 32
   have rd897 := evm_run rd894 with [
     returndatasize, dup3,
-    raw mstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
+    raw rawMstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
       mem3 (UInt256.ofNat 5) (by decide)
       (fun s haw hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -1926,20 +1926,20 @@ theorem simpleAuctionX_withdraw_successEmpty_return {cA gh bl σ σ₀ A I} {g :
     jumpdest, push1 ⟨1⟩, swap2, pop, pop, swap1, jump (by jump_dest)]
   have rd235 := evm_run rd223 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (withdrawRehashMem_mload64 I) (by decide) (by evm_ov),
     swap1, iszero, iszero, dup2,
-    raw mstore 6 ((UInt256.toByteArray (⟨1⟩ : UInt256)).write 0
+    raw rawMstore 6 ((UInt256.toByteArray (⟨1⟩ : UInt256)).write 0
         (withdrawRehashMem I) 128 32) (UInt256.ofNat 5) (by decide)
       mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨194⟩, jump (by jump_dest)]
   exact evm_run rd235 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost (withdrawRehashBoolReturnMem_mload64 I ⟨1⟩) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -1962,7 +1962,7 @@ theorem simpleAuctionX_withdraw_successNonempty_return {cA gh bl σ σ₀ A I} {
     jumpdest, pop,
     jumpdest, push1 ⟨1⟩, swap2, pop, pop, swap1, jump (by jump_dest)]
   have rd225 := evm_run rd223 with [jumpdest, push1 ⟨64⟩]
-  have rd226 := RD.mload 0 (withdrawReturnDataPtr o) (withdrawReturnDataActiveWords o)
+  have rd226 := RD.rawMload 0 (withdrawReturnDataPtr o) (withdrawReturnDataActiveWords o)
     rd225 (by decide)
     (by
       intro s haw hstk
@@ -1974,7 +1974,7 @@ theorem simpleAuctionX_withdraw_successNonempty_return {cA gh bl σ σ₀ A I} {
     (withdrawReturnDataActiveWords_mem64_same o hosz)
     (by evm_ov)
   have rdBeforeMstore := evm_run rd226 with [swap1, iszero, iszero, dup2]
-  have rdMstore := RD.mstore
+  have rdMstore := RD.rawMstore
     (Cₘ (withdrawReturnDataBoolActiveWords o) - Cₘ (withdrawReturnDataActiveWords o))
     (withdrawReturnDataBoolMem I o ⟨1⟩)
     (withdrawReturnDataBoolActiveWords o)
@@ -1988,7 +1988,7 @@ theorem simpleAuctionX_withdraw_successNonempty_return {cA gh bl σ σ₀ A I} {
     (by evm_ov)
   have rd235 := evm_run rdMstore with [push1 ⟨32⟩, add, push2 ⟨194⟩,
     jump (by jump_dest), jumpdest, push1 ⟨64⟩]
-  have rd236 := RD.mload 0 (withdrawReturnDataPtr o) (withdrawReturnDataBoolActiveWords o)
+  have rd236 := RD.rawMload 0 (withdrawReturnDataPtr o) (withdrawReturnDataBoolActiveWords o)
     rd235 (by decide)
     (by
       intro s haw hstk
@@ -2000,7 +2000,7 @@ theorem simpleAuctionX_withdraw_successNonempty_return {cA gh bl σ σ₀ A I} {
     (withdrawReturnDataBoolActiveWords_mem64_same o hosz)
     (by evm_ov)
   have rdBeforeRet := evm_run rd236 with [dup1, swap2, sub, swap1]
-  exact RD.ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) rdBeforeRet (by decide)
+  exact RD.rawRet 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) rdBeforeRet (by decide)
     (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -2027,34 +2027,34 @@ theorem simpleAuctionX_withdraw_failureEmpty_return {cA gh bl σ σ₀ A I} {g :
   have rd941₀ := evm_run rd with [
     dup1, push2 ⟨946⟩, jumpiNT (by decide), pop,
     caller, push0, swap1, dup2,
-    raw mstore 0 ((UInt256.toByteArray (withdrawSenderWord I)).write 0
+    raw rawMstore 0 ((UInt256.toByteArray (withdrawSenderWord I)).write 0
         (withdrawRehashMem I) 0 32) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨4⟩, push1 ⟨32⟩,
-    raw mstore 0 (withdrawRestoreHashMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (withdrawRestoreHashMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup2,
-    raw keccak256 0 (withdrawPendingSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (withdrawPendingSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost (withdrawRestoreHashKeccak I) (by decide) (by evm_ov),
     swap2, swap1, swap2]
-  obtain ⟨_, _, rd942₀⟩ := rd941₀.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd942₀⟩ := rd941₀.rawSstore hperm (by decide) (by evm_ov)
   have rd223 := evm_run rd942₀ with [swap2, swap1, pop, jump (by jump_dest)]
   have rd235 := evm_run rd223 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (withdrawRestoreHashMem_mload64 I) (by decide) (by evm_ov),
     swap1, iszero, iszero, dup2,
-    raw mstore 6 ((UInt256.toByteArray (⟨0⟩ : UInt256)).write 0
+    raw rawMstore 6 ((UInt256.toByteArray (⟨0⟩ : UInt256)).write 0
         (withdrawRestoreHashMem I) 128 32) (UInt256.ofNat 5) (by decide)
       mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨194⟩, jump (by jump_dest)]
   exact evm_run rd235 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost (withdrawRestoreBoolReturnMem_mload64 I ⟨0⟩) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (⟨0⟩ : UInt256)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (⟨0⟩ : UInt256)) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -2076,7 +2076,7 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {cA gh bl σ σ₀ A I} {
   have rdBeforeStoreKey := evm_run rd with [
     dup1, push2 ⟨946⟩, jumpiNT (by decide), pop,
     caller, push0, swap1, dup2]
-  have rdStoreKey := RD.mstore
+  have rdStoreKey := RD.rawMstore
     (Cₘ (withdrawReturnDataActiveWords o) - Cₘ (withdrawReturnDataActiveWords o))
     (withdrawReturnDataRestoreKeyMem I o)
     (withdrawReturnDataActiveWords o) rdBeforeStoreKey (by decide)
@@ -2089,7 +2089,7 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {cA gh bl σ σ₀ A I} {
     (withdrawReturnDataActiveWords_mstore0_same o hosz)
     (by evm_ov)
   have rdBeforeStoreHash := evm_run rdStoreKey with [push1 ⟨4⟩, push1 ⟨32⟩]
-  have rdStoreHash := RD.mstore
+  have rdStoreHash := RD.rawMstore
     (Cₘ (withdrawReturnDataActiveWords o) - Cₘ (withdrawReturnDataActiveWords o))
     (withdrawReturnDataRestoreHashMem I o)
     (withdrawReturnDataActiveWords o) rdBeforeStoreHash (by decide)
@@ -2103,7 +2103,7 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {cA gh bl σ σ₀ A I} {
     (withdrawReturnDataActiveWords_mstore32_same o hosz)
     (by evm_ov)
   have rdBeforeKeccak := evm_run rdStoreHash with [push1 ⟨64⟩, dup2]
-  have rdKeccak := RD.keccak256
+  have rdKeccak := RD.rawKeccak256
     (Cₘ (withdrawReturnDataActiveWords o) - Cₘ (withdrawReturnDataActiveWords o))
     (withdrawPendingSlot I)
     (withdrawReturnDataActiveWords o) rdBeforeKeccak (by decide)
@@ -2117,10 +2117,10 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {cA gh bl σ σ₀ A I} {
     (withdrawReturnDataActiveWords_keccak0_64_same o hosz)
     (by evm_ov)
   have rd941₀ := evm_run rdKeccak with [swap2, swap1, swap2]
-  obtain ⟨_, _, rd942₀⟩ := rd941₀.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd942₀⟩ := rd941₀.rawSstore hperm (by decide) (by evm_ov)
   have rd223 := evm_run rd942₀ with [swap2, swap1, pop, jump (by jump_dest)]
   have rd225 := evm_run rd223 with [jumpdest, push1 ⟨64⟩]
-  have rd226 := RD.mload
+  have rd226 := RD.rawMload
     (Cₘ (withdrawReturnDataActiveWords o) - Cₘ (withdrawReturnDataActiveWords o))
     (withdrawReturnDataPtr o) (withdrawReturnDataActiveWords o)
     rd225 (by decide)
@@ -2134,7 +2134,7 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {cA gh bl σ σ₀ A I} {
     (withdrawReturnDataActiveWords_mem64_same o hosz)
     (by evm_ov)
   have rdBeforeMstore := evm_run rd226 with [swap1, iszero, iszero, dup2]
-  have rdMstore := RD.mstore
+  have rdMstore := RD.rawMstore
     (Cₘ (withdrawReturnDataBoolActiveWords o) - Cₘ (withdrawReturnDataActiveWords o))
     (withdrawReturnDataRestoreBoolMem I o ⟨0⟩)
     (withdrawReturnDataBoolActiveWords o)
@@ -2148,7 +2148,7 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {cA gh bl σ σ₀ A I} {
     (by evm_ov)
   have rd235 := evm_run rdMstore with [push1 ⟨32⟩, add, push2 ⟨194⟩,
     jump (by jump_dest), jumpdest, push1 ⟨64⟩]
-  have rd236 := RD.mload
+  have rd236 := RD.rawMload
     (Cₘ (withdrawReturnDataBoolActiveWords o) - Cₘ (withdrawReturnDataBoolActiveWords o))
     (withdrawReturnDataPtr o) (withdrawReturnDataBoolActiveWords o)
     rd235 (by decide)
@@ -2162,7 +2162,7 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {cA gh bl σ σ₀ A I} {
     (withdrawReturnDataBoolActiveWords_mem64_same o hosz)
     (by evm_ov)
   have rdBeforeRet := evm_run rd236 with [dup1, swap2, sub, swap1]
-  exact RD.ret
+  exact RD.rawRet
     (Cₘ (withdrawReturnDataBoolActiveWords o) - Cₘ (withdrawReturnDataBoolActiveWords o))
     (UInt256.toByteArray (⟨0⟩ : UInt256)) rdBeforeRet (by decide)
     (by
@@ -2227,20 +2227,20 @@ theorem simpleAuctionX_withdraw_zero {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, push1 ⟨1⟩, swap2, pop, pop, swap1, jump (by jump_dest)]
   have rd235 := evm_run rd223 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (withdrawPendingHashMem_mload64 I) (by decide) (by evm_ov),
     swap1, iszero, iszero, dup2,
-    raw mstore 6 ((UInt256.toByteArray (⟨1⟩ : UInt256)).write 0
+    raw rawMstore 6 ((UInt256.toByteArray (⟨1⟩ : UInt256)).write 0
         (withdrawPendingHashMem I) 128 32) (UInt256.ofNat 5) (by decide)
       mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨194⟩, jump (by jump_dest)]
   exact evm_run rd235 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost (withdrawBoolReturnMem_mload64 I ⟨1⟩) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,

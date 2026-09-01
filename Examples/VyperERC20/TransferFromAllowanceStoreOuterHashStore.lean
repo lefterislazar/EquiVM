@@ -26,7 +26,7 @@ theorem erc20X_transferFromAllowanceStoreAfterOuterHashStore {cA gh bl σ σ₀ 
       (cA, σ) k C := by
   obtain ⟨k, C, rd484⟩ := hreach
   have rd485 := rd484.push0 (by native_decide) (by evm_ov)
-  have rd486 := rd485.mstore 0
+  have rd486 := rd485.rawMstore 0
     (transferFromAllowanceScratchMemI σ I)
     (UInt256.ofNat 5)
     (by native_decide) mem_cost rfl (by decide) (by evm_ov)

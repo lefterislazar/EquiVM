@@ -52,7 +52,7 @@ theorem blindAuctionX_highestBidder {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, callvalue, dup1, iszero, push2 ⟨429⟩,
     jumpiT (by rw [hwv]; decide) (by jump_dest),
     jumpdest, pop, push1 ⟨5⟩]
-  obtain ⟨_, _, rd434₀⟩ := rd431.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd434₀⟩ := rd431.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd434⟩ :
       ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨434⟩
         [highestBidderWord σ I, blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3)

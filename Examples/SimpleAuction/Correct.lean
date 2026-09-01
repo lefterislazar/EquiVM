@@ -480,20 +480,20 @@ theorem simpleAuctionInitcodeOverflowRevert
       callvalue, dup1, iszero, push1 ⟨9⟩,
       jumpiT (by rw [hwv]; decide) (by simple_ctor_jd),
       jumpdest, pop, push1 ⟨32⟩, push2 ⟨1194⟩, push0,
-      raw codecopy 3 (simpleAuctionBeneficiaryMem biddingTime beneficiaryAddress) (UInt256.ofNat 1)
+      raw rawCodecopy 3 (simpleAuctionBeneficiaryMem biddingTime beneficiaryAddress) (UInt256.ofNat 1)
         (by simple_ctor_decode)
         mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mload 0 (EVM.word beneficiaryAddress) (UInt256.ofNat 1)
+    raw rawMload 0 (EVM.word beneficiaryAddress) (UInt256.ofNat 1)
       (by simple_ctor_decode)
         mem_cost
         (simpleAuctionBeneficiaryMem_mload biddingTime beneficiaryAddress)
         (by decide) (by evm_ov),
       dup1, push20 solcAddrMask, and, push0]
     obtain ⟨kSload, CSload, rdAfterSload⟩ :=
-      rdBeforeSload.sload (by simple_ctor_decode) (by evm_ov)
+      rdBeforeSload.rawSload (by simple_ctor_decode) (by evm_ov)
     have rdBeforeStore := simple_ctor_run rdAfterSload with [
       push20 solcAddrMask, not, and, or, swap1, pop, push0]
     have hpacked :
@@ -505,16 +505,16 @@ theorem simpleAuctionInitcodeOverflowRevert
         u256_land_comm solcAddrMask (EVM.word beneficiaryAddress)]
     rw [hpacked] at rdBeforeStore
     obtain ⟨k', C', rdAfterStore⟩ :=
-      rdBeforeStore.sstore hperm (by simple_ctor_decode) (by evm_ov)
+      rdBeforeStore.rawSstore hperm (by simple_ctor_decode) (by evm_ov)
     have rdBeforeLt := simple_ctor_run rdAfterStore with [
       push1 ⟨32⟩, push2 ⟨1162⟩, push0,
-    raw codecopy 0 (simpleAuctionBiddingMem biddingTime beneficiaryAddress) (UInt256.ofNat 1)
+    raw rawCodecopy 0 (simpleAuctionBiddingMem biddingTime beneficiaryAddress) (UInt256.ofNat 1)
       (by simple_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mload 0 biddingTime (UInt256.ofNat 1)
+    raw rawMload 0 biddingTime (UInt256.ofNat 1)
       (by simple_ctor_decode)
       mem_cost
       (simpleAuctionBiddingMem_mload biddingTime beneficiaryAddress)
@@ -567,20 +567,20 @@ theorem simpleAuctionInitcodeSuccess
     callvalue, dup1, iszero, push1 ⟨9⟩,
     jumpiT (by rw [hwv]; decide) (by simple_ctor_jd),
     jumpdest, pop, push1 ⟨32⟩, push2 ⟨1194⟩, push0,
-    raw codecopy 3 (simpleAuctionBeneficiaryMem biddingTime beneficiaryAddress) (UInt256.ofNat 1)
+    raw rawCodecopy 3 (simpleAuctionBeneficiaryMem biddingTime beneficiaryAddress) (UInt256.ofNat 1)
       (by simple_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mload 0 (EVM.word beneficiaryAddress) (UInt256.ofNat 1)
+    raw rawMload 0 (EVM.word beneficiaryAddress) (UInt256.ofNat 1)
       (by simple_ctor_decode)
       mem_cost
       (simpleAuctionBeneficiaryMem_mload biddingTime beneficiaryAddress)
       (by decide) (by evm_ov),
     dup1, push20 solcAddrMask, and, push0]
   obtain ⟨kSload, CSload, rdAfterSload⟩ :=
-    rdBeforeSload.sload (by simple_ctor_decode) (by evm_ov)
+    rdBeforeSload.rawSload (by simple_ctor_decode) (by evm_ov)
   have rdBeforeStore := simple_ctor_run rdAfterSload with [
     push20 solcAddrMask, not, and, or, swap1, pop, push0]
   have hpacked :
@@ -592,16 +592,16 @@ theorem simpleAuctionInitcodeSuccess
       u256_land_comm solcAddrMask (EVM.word beneficiaryAddress)]
   rw [hpacked] at rdBeforeStore
   obtain ⟨k', C', rdAfterBeneficiaryStore⟩ :=
-    rdBeforeStore.sstore hperm (by simple_ctor_decode) (by evm_ov)
+    rdBeforeStore.rawSstore hperm (by simple_ctor_decode) (by evm_ov)
   have rdBeforeLt := simple_ctor_run rdAfterBeneficiaryStore with [
     push1 ⟨32⟩, push2 ⟨1162⟩, push0,
-    raw codecopy 0 (simpleAuctionBiddingMem biddingTime beneficiaryAddress) (UInt256.ofNat 1)
+    raw rawCodecopy 0 (simpleAuctionBiddingMem biddingTime beneficiaryAddress) (UInt256.ofNat 1)
       (by simple_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mload 0 biddingTime (UInt256.ofNat 1)
+    raw rawMload 0 biddingTime (UInt256.ofNat 1)
       (by simple_ctor_decode)
       mem_cost
       (simpleAuctionBiddingMem_mload biddingTime beneficiaryAddress)
@@ -614,24 +614,24 @@ theorem simpleAuctionInitcodeSuccess
   have rdBeforeAuctionEndStore := simple_ctor_run rdBeforeJump with [
     swap1, pop, push1 ⟨111⟩, jumpiNT (by decide),
     push0,
-    raw mload 0 biddingTime (UInt256.ofNat 1)
+    raw rawMload 0 biddingTime (UInt256.ofNat 1)
       (by simple_ctor_decode)
       mem_cost
       (simpleAuctionBiddingMem_mload biddingTime beneficiaryAddress)
       (by decide) (by evm_ov),
     timestamp, add, push1 ⟨1⟩]
   obtain ⟨k'', C'', rdAfterAuctionEndStore⟩ :=
-    rdBeforeAuctionEndStore.sstore hperm (by simple_ctor_decode) (by evm_ov)
+    rdBeforeAuctionEndStore.rawSstore hperm (by simple_ctor_decode) (by evm_ov)
   have rdBeforeReturn := simple_ctor_run rdAfterAuctionEndStore with [
     push2 ⟨1047⟩, push1 ⟨115⟩, push0,
-    raw codecopy 98 (simpleAuctionReturnMem biddingTime beneficiaryAddress) (UInt256.ofNat 33)
+    raw rawCodecopy 98 (simpleAuctionReturnMem biddingTime beneficiaryAddress) (UInt256.ofNat 33)
       (by simple_ctor_decode)
       mem_cost
       (simpleAuctionRuntime_codecopy_mem biddingTime beneficiaryAddress)
       (by decide) (by evm_ov),
     push2 ⟨1047⟩, push0]
   simpa [beneficiaryStoreWord, oldBeneficiarySlot, u256_add_comm] using
-    rdBeforeReturn.ret 0 simpleAuctionBytecode
+    rdBeforeReturn.rawRet 0 simpleAuctionBytecode
       (by simple_ctor_decode)
       mem_cost
       (simpleAuctionReturnMem_read biddingTime beneficiaryAddress)

@@ -30,7 +30,7 @@ theorem erc20X_transferFromAfterBalanceLoad {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdBeforeLoad := evm_run rd423 with [
     push1 ⟨68⟩, calldataload,
     push0, push1 ⟨64⟩,
-    raw mload 0 (transferFromFromWord I) (UInt256.ofNat 5)
+    raw rawMload 0 (transferFromFromWord I) (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
@@ -45,27 +45,27 @@ theorem erc20X_transferFromAfterBalanceLoad {cA gh bl σ σ₀ A I} {g : Sat256}
             (transferFromCurrentAllowanceRaw σ I)))
       (by decide) (by evm_ov),
     push1 ⟨32⟩,
-    raw mstore 0
+    raw rawMstore 0
       (transferFromFromBalanceKeyMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
         (transferFromCurrentAllowanceRaw σ I))
       (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost rfl (by decide) (by evm_ov),
     push0,
-    raw mstore 0
+    raw rawMstore 0
       (transferFromFromBalanceHashMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
         (transferFromCurrentAllowanceRaw σ I))
       (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (transferFromFromSlot I)
+    raw rawKeccak256 0 (transferFromFromSlot I)
       (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost
       (by
         simpa using hslot)
       (by decide) (by evm_ov)]
-  obtain ⟨k1, C1, rdAfterLoad⟩ := rdBeforeLoad.sload
+  obtain ⟨k1, C1, rdAfterLoad⟩ := rdBeforeLoad.rawSload
     (by vyper_erc20_transferFrom_decode) (by evm_ov)
   exact ⟨_, _, by simpa [transferFromFromBalanceRaw, transferFromValueWord] using rdAfterLoad⟩
 

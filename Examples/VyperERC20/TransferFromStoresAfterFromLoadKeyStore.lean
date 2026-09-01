@@ -22,7 +22,7 @@ theorem erc20X_transferFromAfterFromLoadKeyStore {cA gh bl σ σ₀ A I} {g : Sa
       (cA, transferFromAccountMapAfterAllowanceI σ I
         (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)) k C := by
   obtain ⟨k, C, rd499⟩ := hreach
-  have rd500 := rd499.mstore 0
+  have rd500 := rd499.rawMstore 0
     (wordAt32Mem (transferFromFromWord I) (transferFromAllowanceScratchMemI σ I))
     (UInt256.ofNat 5)
     (by native_decide) mem_cost rfl (by decide) (by evm_ov)

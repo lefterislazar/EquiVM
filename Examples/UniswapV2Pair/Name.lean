@@ -68,41 +68,41 @@ theorem uniswapX_name {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have h2814 := evm_run h572 with [jumpdest, push2 ⟨580⟩, push2 ⟨2814⟩, jump (by jump_dest)]
   have h2825 := evm_run h2814 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     dup1, push1 ⟨64⟩, add, push1 ⟨64⟩]
   have h2825store := evm_run h2825 with [
-    raw mstore 0 nameObjectMem0 (UInt256.ofNat 3) (by native_decide)
+    raw rawMstore 0 nameObjectMem0 (UInt256.ofNat 3) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h2830 := evm_run h2825store with [dup1, push1 ⟨10⟩, dup2]
   have h2830store := evm_run h2830 with [
-    raw mstore 6 nameObjectMem1 (UInt256.ofNat 5) (by native_decide)
+    raw rawMstore 6 nameObjectMem1 (UInt256.ofNat 5) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h2849a := evm_run h2830store with [push1 ⟨32⟩, add]
   have h2844 := h2849a.pushConst (⟨201718945720142287350553⟩ : UInt256)
     (width := 10) (op := .PUSH10) (by decide) (by native_decide) (by evm_ov)
   have h2849 := evm_run h2844 with [push1 ⟨177⟩, shl, dup2]
   have h2849store := evm_run h2849 with [
-    raw mstore 3 nameObjectMem (UInt256.ofNat 6) (by native_decide)
+    raw rawMstore 3 nameObjectMem (UInt256.ofNat 6) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h580 := evm_run h2849store with [pop, dup2, jump (by jump_dest)]
   have h590 := evm_run h580 with [
     jumpdest, push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨192⟩ (UInt256.ofNat 6) (by native_decide)
+    raw rawMload 0 ⟨192⟩ (UInt256.ofNat 6) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup1, dup3,
-    raw mstore 3 nameAbiMem0 (UInt256.ofNat 7) (by native_decide)
+    raw rawMstore 3 nameAbiMem0 (UInt256.ofNat 7) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h596 := evm_run h590 with [
     dup4,
-    raw mload 0 ⟨10⟩ (UInt256.ofNat 7) (by native_decide)
+    raw rawMload 0 ⟨10⟩ (UInt256.ofNat 7) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     dup2, dup4, add,
-    raw mstore 3 nameAbiMem1 (UInt256.ofNat 8) (by native_decide)
+    raw rawMstore 3 nameAbiMem1 (UInt256.ofNat 8) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h614 := evm_run h596 with [
     dup4,
-    raw mload 0 ⟨10⟩ (UInt256.ofNat 8) (by native_decide)
+    raw rawMload 0 ⟨10⟩ (UInt256.ofNat 8) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     swap2, swap3, dup4, swap3, swap1, dup4, add, swap2, dup6, add, swap1,
     dup1, dup4, dup4, push1 ⟨0⟩]
@@ -110,10 +110,10 @@ theorem uniswapX_name {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, dup4, dup2, lt, iszero, push2 ⟨638⟩, jumpiNT (by decide)]
   have h637 := evm_run h623 with [
     dup2, dup2, add,
-    raw mload 0 nameLiteralWord (UInt256.ofNat 8) (by native_decide)
+    raw rawMload 0 nameLiteralWord (UInt256.ofNat 8) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     dup4, dup3, add,
-    raw mstore 3 nameAbiMem2 (UInt256.ofNat 9) (by native_decide)
+    raw rawMstore 3 nameAbiMem2 (UInt256.ofNat 9) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨614⟩, jump (by jump_dest)]
   have h638 := evm_run h637 with [
@@ -123,19 +123,19 @@ theorem uniswapX_name {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     push1 ⟨31⟩, and, dup1, iszero, push2 ⟨683⟩, jumpiNT (by decide)]
   have h683 := evm_run h658 with [
     dup1, dup3, sub, dup1,
-    raw mload 0 nameLiteralWord (UInt256.ofNat 9) (by native_decide)
+    raw rawMload 0 nameLiteralWord (UInt256.ofNat 9) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨1⟩, dup4, push1 ⟨32⟩, sub, push2 ⟨256⟩, exp, sub, not, and, dup2,
-    raw mstore 0 nameAbiMem3 (UInt256.ofNat 9) (by native_decide)
+    raw rawMstore 0 nameAbiMem3 (UInt256.ofNat 9) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, swap2, pop]
   have h696 := evm_run h683 with [
     jumpdest, pop, swap3, pop, pop, pop, push1 ⟨64⟩,
-    raw mload 0 ⟨192⟩ (UInt256.ofNat 9) (by native_decide)
+    raw rawMload 0 ⟨192⟩ (UInt256.ofNat 9) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   exact evm_run h696 with [
-    raw ret 0 nameReturnBytes (by native_decide)
+    raw rawRet 0 nameReturnBytes (by native_decide)
       mem_cost nameReturnRead (by evm_ov)]
 
 /-- `name()` body core, parameterized by dispatcher/decode facts owned by `Correct`. -/

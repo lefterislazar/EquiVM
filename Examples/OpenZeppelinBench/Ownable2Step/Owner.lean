@@ -42,7 +42,7 @@ theorem ownable2StepX_owner {cA gh bl σ σ₀ A I} {g : Sat256}
       (UInt256.toByteArray (ownerReturnWord σ I)) := by
   obtain ⟨_, _, rd107⟩ := hreach
   have rd108 := evm_run rd107 with [jumpdest, push0]
-  obtain ⟨_, _, rd109⟩ := rd108.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd109⟩ := rd108.rawSload (by decide) (by evm_ov)
   have rd119 := evm_run rd109 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and ]
   have hclean :

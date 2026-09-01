@@ -2362,11 +2362,11 @@ theorem erc20X_transferFromReach {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨1⟩, shl, push2 ⟨805⟩, add, push1 ⟨30⟩]
   have rdBeforeCopy := by
     simpa [hword, transferFromSelectorWord] using rdBeforeCopy0
-  have rdAfterCopy := rdBeforeCopy.codecopy 3 transferFromDispatchMem (UInt256.ofNat 1)
+  have rdAfterCopy := rdBeforeCopy.rawCodecopy 3 transferFromDispatchMem (UInt256.ofNat 1)
     (by native_decide) mem_cost (by native_decide) (by decide) (by evm_ov)
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
-    raw mload 0 ⟨331⟩ (UInt256.ofNat 1)
+    raw rawMload 0 ⟨331⟩ (UInt256.ofNat 1)
       (by native_decide)
       mem_cost
       transferFromDispatchMem_mload0
@@ -2454,7 +2454,7 @@ theorem erc20TransferFromX_noncanon_to {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
     jumpiNT (by simpa [transferFromFromWord, calldataWord] using hcanonFromGuard),
     push1 ⟨64⟩,
-    raw mstore 6
+    raw rawMstore 6
       ((UInt256.toByteArray (transferFromFromWord I)).write 0 transferFromDispatchMem 64 32)
       (UInt256.ofNat 3)
       (by vyper_erc20_transferFrom_decode) mem_cost rfl (by decide) (by evm_ov),

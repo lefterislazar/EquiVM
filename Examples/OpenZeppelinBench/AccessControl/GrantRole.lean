@@ -680,16 +680,16 @@ theorem accessControlGrantRoleX_adminLoaded {cA gh bl σ σ₀ A I} {g : Sat256}
         revokeRoleBaseSlot (grantRoleRoleWord I) := rfl
   have rd370pre := evm_run rd353 with [
     jumpdest, push0, dup3, dup2,
-    raw mstore 0 (revokeRoleWordAt0Mem (grantRoleRoleWord I) solcFreePtrMem)
+    raw rawMstore 0 (revokeRoleWordAt0Mem (grantRoleRoleWord I) solcFreePtrMem)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 (revokeRoleBaseHashMem (grantRoleRoleWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (revokeRoleBaseHashMem (grantRoleRoleWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1,
-    raw keccak256 0 (revokeRoleBaseSlot (grantRoleRoleWord I)) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (revokeRoleBaseSlot (grantRoleRoleWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost hslotRaw (by decide) (by evm_ov),
     push1 ⟨1⟩, add]
-  obtain ⟨_, _, rd371₀⟩ := rd370pre.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd371₀⟩ := rd370pre.rawSload (by decide) (by evm_ov)
   have rd371 :
       ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨371⟩
         [grantRoleAdminStorageWord σ I, grantRoleAccountWord I, grantRoleRoleWord I,
@@ -835,10 +835,10 @@ theorem accessControlGrantRoleX_onlyRole_revert {cA gh bl σ σ₀ A I} {g : Sat
     jumpdest, push2 ⟨849⟩, jumpiNT (by rw [hadmin]) ]
   have rd815 := evm_run rd803 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost hloadAdmin64
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost hloadAdmin64
       (by decide) (by evm_ov),
     push4 ⟨3796991295⟩, push1 ⟨224⟩, shl, dup2,
-    raw mstore 6 (revokeRoleUnauthorizedSelectorMemFrom memAdmin)
+    raw rawMstore 6 (revokeRoleUnauthorizedSelectorMemFrom memAdmin)
       (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd830pre := evm_run rd815 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and,
@@ -852,7 +852,7 @@ theorem accessControlGrantRoleX_onlyRole_revert {cA gh bl σ σ₀ A I} {g : Sat
         UInt256.land solcAddrMask (grantRoleSourceWord I) := by
     exact u256_land_comm (grantRoleSourceWord I) solcAddrMask
   have rd830 := evm_run rd830pre with [
-    raw mstore 3 (revokeRoleUnauthorizedAccountMemFrom (grantRoleSourceWord I) memAdmin)
+    raw rawMstore 3 (revokeRoleUnauthorizedAccountMemFrom (grantRoleSourceWord I) memAdmin)
       (UInt256.ofNat 6) (by decide) mem_cost
       (by
         rw [show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 by decide, hsourceMaskComm]
@@ -860,13 +860,13 @@ theorem accessControlGrantRoleX_onlyRole_revert {cA gh bl σ σ₀ A I} {g : Sat
       (by decide) (by evm_ov) ]
   have rd837 := evm_run rd830 with [
     push1 ⟨36⟩, dup2, add, dup4, swap1,
-    raw mstore 3
+    raw rawMstore 3
       (revokeRoleUnauthorizedMemFrom (grantRoleSourceWord I)
         (grantRoleAdminStorageWord σ I) memAdmin)
       (UInt256.ofNat 7) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd848 := evm_run rd837 with [
     push1 ⟨68⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide) mem_cost
       (revokeRoleUnauthorizedMemFrom_mload64 (grantRoleSourceWord I)
         (grantRoleAdminStorageWord σ I) hmemAdmin hreadAdmin)
       (by decide) (by evm_ov),
@@ -875,7 +875,7 @@ theorem accessControlGrantRoleX_onlyRole_revert {cA gh bl σ σ₀ A I} {g : Sat
     decide
   have rd848' := rd848
   rw [hlen68] at rd848'
-  exact rd848'.rev 0 (by decide)
+  exact rd848'.rawRev 0 (by decide)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -1041,10 +1041,10 @@ theorem accessControlGrantRoleX_grant_write {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, push2 ⟨676⟩, jumpiNT (by rw [htarget]) ]
   have rd569pre := evm_run rd556 with [
     push0, dup4, dup2,
-    raw mstore 0 (revokeRoleWordAt0Mem (grantRoleRoleWord I) memTarget)
+    raw rawMstore 0 (revokeRoleWordAt0Mem (grantRoleRoleWord I) memTarget)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup2, dup2,
-    raw mstore 0 (revokeRoleBaseHashMemFrom (grantRoleRoleWord I) memTarget)
+    raw rawMstore 0 (revokeRoleBaseHashMemFrom (grantRoleRoleWord I) memTarget)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup4]
   have hbaseSlotRaw :
@@ -1055,7 +1055,7 @@ theorem accessControlGrantRoleX_grant_write {cA gh bl σ σ₀ A I} {g : Sat256}
     unfold revokeRoleBaseSlot
     rw [revokeRoleBaseHashMemFrom_read0_64 _ hmemTarget, revokeRoleBaseHashMem_read0_64]
   have rd579pre := evm_run rd569pre with [
-    raw keccak256 0 (revokeRoleBaseSlot (grantRoleRoleWord I)) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (revokeRoleBaseSlot (grantRoleRoleWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost hbaseSlotRaw (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup7, and]
   have haddrMask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1071,22 +1071,22 @@ theorem accessControlGrantRoleX_grant_write {cA gh bl σ σ₀ A I} {g : Sat256}
   rw [haddrMask, haccountCleanRight] at rd579pre
   have rd585pre := evm_run rd579pre with [
     dup5,
-    raw mstore 0
+    raw rawMstore 0
       (revokeRoleHasRoleAccountMemFrom (grantRoleRoleWord I) (grantRoleAccountWord I)
         memTarget)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1, swap2,
-    raw mstore 0
+    raw rawMstore 0
       (revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I) (grantRoleAccountWord I)
         memTarget)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1]
   have hslotWrite := grantRoleTargetKeccakSlotFrom I memTarget hsz68 hmemTarget hcanonAccount
   have rd588 := evm_run rd585pre with [
-    raw keccak256 0 (grantRoleTargetSlot I) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (grantRoleTargetSlot I) (UInt256.ofNat 3)
       (by decide) mem_cost hslotWrite (by decide) (by evm_ov),
     dup1]
-  obtain ⟨_, _, rd589₀⟩ := rd588.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd589₀⟩ := rd588.rawSload (by decide) (by evm_ov)
   have rd589 :
       ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨589⟩
         [grantRoleTargetStorageWord σ I, grantRoleTargetSlot I, ⟨0⟩,
@@ -1112,7 +1112,7 @@ theorem accessControlGrantRoleX_grant_write {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [hsetLandComm, u256_lor_comm]
     rfl
   rw [hsetWord] at rd597pre
-  obtain ⟨_, _, rd598₀⟩ := rd597pre.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd598₀⟩ := rd597pre.rawSstore hperm (by decide) (by evm_ov)
   have rd598 :
       ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨598⟩
         [⟨0⟩, grantRoleAccountWord I, grantRoleRoleWord I, ⟨389⟩,
@@ -1140,12 +1140,12 @@ theorem accessControlGrantRoleX_grant_write {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide) (by decide) (by evm_ov)
   have rd668 := evm_run rd658 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
       (revokeRoleHasRoleSlotHashMemFrom_mload64 (grantRoleRoleWord I)
         (grantRoleAccountWord I) hmemTarget hreadTarget)
       (by decide) (by evm_ov),
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
       (revokeRoleHasRoleSlotHashMemFrom_mload64 (grantRoleRoleWord I)
         (grantRoleAccountWord I) hmemTarget hreadTarget)
       (by decide) (by evm_ov),
@@ -1154,7 +1154,7 @@ theorem accessControlGrantRoleX_grant_write {cA gh bl σ σ₀ A I} {g : Sat256}
     decide
   have rd668' := rd668
   rw [hlen0] at rd668'
-  have rd669 := RD.log4 0 (UInt256.ofNat 3) rd668' (by decide) hperm
+  have rd669 := RD.rawLog4 0 (UInt256.ofNat 3) rd668' (by decide) hperm
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]

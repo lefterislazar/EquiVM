@@ -42,7 +42,7 @@ theorem ballotX_chairperson {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (UInt256.toByteArray (chairpersonReturnWord σ I)) := by
   obtain ⟨_, _, rd203⟩ := hreach
   have rd205 := evm_run rd203 with [jumpdest, push0]
-  obtain ⟨_, _, rd206⟩ := rd205.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd206⟩ := rd205.rawSload (by decide) (by evm_ov)
   have rd221 := evm_run rd206 with [
     push2 ⟨221⟩, swap1, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩,
     shl, sub, and, dup2, jump (by jump_dest) ]

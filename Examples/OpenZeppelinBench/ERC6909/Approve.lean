@@ -861,7 +861,7 @@ theorem erc6909ApproveX_stored {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
   have rd876₀ := evm_run rd848 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, dup2, and,
     push0, dup2, dup2,
-    raw mstore 0 (approveWordAt0Mem (approveOwnerWord I) solcFreePtrMem)
+    raw rawMstore 0 (approveWordAt0Mem (approveOwnerWord I) solcFreePtrMem)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -870,16 +870,16 @@ theorem erc6909ApproveX_stored {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨2⟩, push1 ⟨32⟩, swap1, dup2,
-    raw mstore 0 (approveOwnerHashMem (approveOwnerWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (approveOwnerHashMem (approveOwnerWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup4,
-    raw keccak256 0 (approveOwnerSlot (approveOwnerWord I)) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (approveOwnerSlot (approveOwnerWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd877 := RD.swap5 rd876₀ (by decide) (by evm_ov)
   have rd878 := RD.dup9 rd877 (by decide) (by evm_ov)
   have rd882₀ := evm_run rd878 with [
     and, dup1, dup5,
-    raw mstore 0 (approveWordAt0Mem (approveSpenderWord I)
+    raw rawMstore 0 (approveWordAt0Mem (approveSpenderWord I)
         (approveOwnerHashMem (approveOwnerWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
@@ -891,24 +891,24 @@ theorem erc6909ApproveX_stored {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
   have rd883 := RD.swap5 rd882₀ (by decide) (by evm_ov)
   have rd899 := evm_run rd883 with [
     dup3,
-    raw mstore 0 (approveSpenderHashMem (approveOwnerWord I) (approveSpenderWord I))
+    raw rawMstore 0 (approveSpenderHashMem (approveOwnerWord I) (approveSpenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     dup1, dup4,
-    raw keccak256 0 (approveSpenderSlot (approveOwnerWord I) (approveSpenderWord I))
+    raw rawKeccak256 0 (approveSpenderSlot (approveOwnerWord I) (approveSpenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     dup8, dup5,
-    raw mstore 0 (approveWordAt0Mem (approveIdWord I)
+    raw rawMstore 0 (approveWordAt0Mem (approveIdWord I)
         (approveSpenderHashMem (approveOwnerWord I) (approveSpenderWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     dup3,
-    raw mstore 0 (approveIdHashMem (approveOwnerWord I) (approveSpenderWord I)
+    raw rawMstore 0 (approveIdHashMem (approveOwnerWord I) (approveSpenderWord I)
         (approveIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     swap2, dup3, swap1,
-    raw keccak256 0 (approveSlotI I) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (approveSlotI I) (UInt256.ofNat 3)
       (by decide) mem_cost hslot (by decide) (by evm_ov),
     dup6, swap1 ]
   have rd899' := rd899
@@ -916,7 +916,7 @@ theorem erc6909ApproveX_stored {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
       solcAddrMask from by decide,
     solcAddrMask_clean_left (approveOwnerWord_canonical I),
     solcAddrMask_clean hcanonSpender] at rd899'
-  simpa using rd899'.sstore hperm (by decide) (by evm_ov)
+  simpa using rd899'.rawSstore hperm (by decide) (by evm_ov)
 
 theorem erc6909ApproveX_revert_owner {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -940,21 +940,21 @@ theorem erc6909ApproveX_revert_owner {cA gh bl σ σ₀ A I} {g : Sat256} {sel :
       decide) ]
   exact evm_run rd781 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push4 ⟨0x198ecd53⟩, push1 ⟨227⟩, shl, dup2,
-    raw mstore 6 (solcReturnMem approveInvalidApproverSelectorWord)
+    raw rawMstore 6 (solcReturnMem approveInvalidApproverSelectorWord)
       (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push0, push1 ⟨4⟩, dup3, add,
-    raw mstore 3 (approveErrorMem approveInvalidApproverSelectorWord ⟨0⟩)
+    raw rawMstore 3 (approveErrorMem approveInvalidApproverSelectorWord ⟨0⟩)
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨36⟩, add, push2 ⟨698⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost (approveErrorMem_mload64 approveInvalidApproverSelectorWord ⟨0⟩)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rawRev 0 (by decide) mem_cost (by evm_ov) ]
 
 theorem erc6909ApproveX_revert_spender {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -991,21 +991,21 @@ theorem erc6909ApproveX_revert_spender {cA gh bl σ σ₀ A I} {g : Sat256} {sel
       decide) ]
   exact evm_run rd822 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push4 ⟨0x6f65f465⟩, push1 ⟨224⟩, shl, dup2,
-    raw mstore 6 (solcReturnMem approveInvalidSpenderSelectorWord)
+    raw rawMstore 6 (solcReturnMem approveInvalidSpenderSelectorWord)
       (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push0, push1 ⟨4⟩, dup3, add,
-    raw mstore 3 (approveErrorMem approveInvalidSpenderSelectorWord ⟨0⟩)
+    raw rawMstore 3 (approveErrorMem approveInvalidSpenderSelectorWord ⟨0⟩)
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨36⟩, add, push2 ⟨698⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost (approveErrorMem_mload64 approveInvalidSpenderSelectorWord ⟨0⟩)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rawRev 0 (by decide) mem_cost (by evm_ov) ]
 
 theorem erc6909X_approve {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1024,13 +1024,13 @@ theorem erc6909X_approve {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     hsz100 hsize hszhi hperm hcanonSpender hsource hspender hreach
   have rd951 := evm_run rd900 with [
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (approveIdHashMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
         (approveIdWord I))
       (by decide) (by evm_ov),
     dup5, dup2,
-    raw mstore 6 (approveEventMem (approveOwnerWord I) (approveSpenderWord I)
+    raw rawMstore 6 (approveEventMem (approveOwnerWord I) (approveSpenderWord I)
         (approveIdWord I) (approveAmountWord I))
       (UInt256.ofNat 5) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
@@ -1039,13 +1039,13 @@ theorem erc6909X_approve {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by decide) (by decide) (by evm_ov)
   have rd951Log := evm_run rd942 with [
     swap2, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (approveEventMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
         (approveIdWord I) (approveAmountWord I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  have rd952 := RD.log4 0 (UInt256.ofNat 5) rd951Log (by decide) hperm
+  have rd952 := RD.rawLog4 0 (UInt256.ofNat 5) rd951Log (by decide) hperm
     mem_cost (by decide) (by evm_ov)
   have rd512 := evm_run rd952 with [
     pop, pop, pop, pop, jump (by jump_dest) ]
@@ -1053,13 +1053,13 @@ theorem erc6909X_approve {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, pop, push1 ⟨1⟩, swap4, swap3, pop, pop, pop, jump (by jump_dest) ]
   have rd165 := evm_run rd193 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (approveEventMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
         (approveIdWord I) (approveAmountWord I))
       (by decide) (by evm_ov),
     swap1, iszero, iszero, dup2,
-    raw mstore 0 (approveReturnMem (approveOwnerWord I) (approveSpenderWord I)
+    raw rawMstore 0 (approveReturnMem (approveOwnerWord I) (approveSpenderWord I)
         (approveIdWord I) (approveAmountWord I))
       (UInt256.ofNat 5) (by decide) mem_cost
       (by
@@ -1069,13 +1069,13 @@ theorem erc6909X_approve {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     push1 ⟨32⟩, add, push2 ⟨165⟩, jump (by jump_dest) ]
   exact evm_run rd165 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (approveReturnMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
         (approveIdWord I) (approveAmountWord I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,

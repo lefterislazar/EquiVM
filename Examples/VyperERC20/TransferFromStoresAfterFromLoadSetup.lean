@@ -28,7 +28,7 @@ theorem erc20X_transferFromAfterFromLoadSetup {cA gh bl σ σ₀ A I} {g : Sat25
   obtain ⟨k, C, rd493⟩ := hreach
   have rd496 := evm_run rd493 with [
     push0, push1 ⟨64⟩,
-    raw mload 0 (transferFromFromWord I) (UInt256.ofNat 5)
+    raw rawMload 0 (transferFromFromWord I) (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding

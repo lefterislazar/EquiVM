@@ -144,7 +144,7 @@ theorem scratch_blindAuctionReveal_postLoop_callDepth_fromCall
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
     have rd1410 := evm_run rd1405 with [
       dup1, push2 ⟨1413⟩, jumpiNT (by decide), push0, push0]
-    exact RD.rev _ rd1410 (by decide)
+    exact RD.rawRev _ rd1410 (by decide)
       (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
       (by evm_ov)
   exact hrev.reEquivExecutionRevert hcode hd hdec (by
@@ -283,7 +283,7 @@ theorem scratch_blindAuctionReveal_postLoop_callInsufficient_fromCall
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
     have rd1410 := evm_run rd1405 with [
       dup1, push2 ⟨1413⟩, jumpiNT (by decide), push0, push0]
-    exact RD.rev _ rd1410 (by decide)
+    exact RD.rawRev _ rd1410 (by decide)
       (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
       (by evm_ov)
   exact hrev.reEquivExecutionRevert hcode hd hdec (by
@@ -377,13 +377,13 @@ theorem scratch_blindAuctionReveal_postLoop_postCallNonempty
     UInt256.ofNat (MachineState.M aw1.toNat (⟨64⟩ : UInt256).toNat 32)
   have rd1381 := evm_run rd1363 with [
     push1 ⟨64⟩,
-    raw mload (Cₘ aw1 - Cₘ aDone.aw) aDone.fp aw1 (by decide)
+    raw rawMload (Cₘ aw1 - Cₘ aDone.aw) aDone.fp aw1 (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk, aw1])
       aDone.hfpLoad (by rfl) (by evm_ov),
     swap2, pop, push1 ⟨31⟩, not, push1 ⟨63⟩, returndatasize, add, and, dup3, add,
     push1 ⟨64⟩,
-    raw mstore (Cₘ aw2 - Cₘ aw1) mem2 aw2 (by decide)
+    raw rawMstore (Cₘ aw2 - Cₘ aw1) mem2 aw2 (by decide)
       (fun s haw hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw2])
       (by rfl) (by rfl) (by evm_ov)]
@@ -391,7 +391,7 @@ theorem scratch_blindAuctionReveal_postLoop_postCallNonempty
   let aw3 : UInt256 := UInt256.ofNat (MachineState.M aw2.toNat aDone.fp.toNat 32)
   have rd1384 := evm_run rd1381 with [
     returndatasize, dup3,
-    raw mstore (Cₘ aw3 - Cₘ aw2) mem3 aw3 (by decide)
+    raw rawMstore (Cₘ aw3 - Cₘ aw2) mem3 aw3 (by decide)
       (fun s haw hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw3])
       (by rfl) (by rfl) (by evm_ov)]
@@ -402,7 +402,7 @@ theorem scratch_blindAuctionReveal_postLoop_postCallNonempty
     simpa [copyLen] using UInt256.toNat_ofNat_of_lt hosz
   let mem4 : ByteArray := out.write 0 mem3 copyDest.toNat copyLen.toNat
   let aw4 : UInt256 := UInt256.ofNat (MachineState.M aw3.toNat copyDest.toNat copyLen.toNat)
-  have rd1391 := RD.returndatacopy
+  have rd1391 := RD.rawReturndatacopy
     (Cₘ aw4 - Cₘ aw3) mem4 aw4
     rd1390 (by decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
@@ -480,7 +480,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_failure
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
       have rd1410 := evm_run rd1405 with [
         dup1, push2 ⟨1413⟩, jumpiNT (by decide), push0, push0]
-      exact RD.rev _ rd1410 (by decide)
+      exact RD.rawRev _ rd1410 (by decide)
         (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
         (by evm_ov)
     exact hrev.reEquivExecutionRevert hcode hd hdec (by
@@ -499,7 +499,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_failure
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
       have rd1410 := evm_run rd1405 with [
         dup1, push2 ⟨1413⟩, jumpiNT (by decide), push0, push0]
-      exact RD.rev _ rd1410 (by decide)
+      exact RD.rawRev _ rd1410 (by decide)
         (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
         (by evm_ov)
     exact hrev.reEquivExecutionRevert hcode hd hdec (by

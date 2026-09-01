@@ -35,13 +35,13 @@ theorem ctorStoreRuntimeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   exact evm_run rd0 with [
     push1 ⟨128⟩,
     push1 ⟨64⟩,
-    raw mstore 9 solcFreePtrMem (UInt256.ofNat 3) (by decide)
+    raw rawMstore 9 solcFreePtrMem (UInt256.ofNat 3) (by decide)
       mem_cost
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by evm_ov),
     push0,
     push0,
-    raw rev 0 (by decide) mem_cost (by evm_ov)]
+    raw rawRev 0 (by decide) mem_cost (by evm_ov)]
 
 theorem ctorStoreRuntimeCorrect :
     runtimeEquivalence ctorStoreConfig ctorStoreRuntimeBytecode CtorStore.contract := by
@@ -262,34 +262,34 @@ theorem ctorStoreInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀
       raw push1 ⟨32⟩ (ctorStoreDecode0 _) (by evm_ov),
       raw push1 ⟨28⟩ (by simpa using ctorStoreDecode2 ((EVM.Word.toBytesBE w).toByteArray)) (by evm_ov),
       raw push0 (by simpa using ctorStoreDecode4 ((EVM.Word.toBytesBE w).toByteArray)) (by evm_ov),
-      raw codecopy 3 (ctorStoreArgMem w) (UInt256.ofNat 1)
+      raw rawCodecopy 3 (ctorStoreArgMem w) (UInt256.ofNat 1)
         (by simpa using ctorStoreDecode5 ((EVM.Word.toBytesBE w).toByteArray))
         mem_cost
         rfl
         (by decide) (by evm_ov),
       raw push0 (by simpa using ctorStoreDecode6 ((EVM.Word.toBytesBE w).toByteArray)) (by evm_ov),
-      raw mload 0 w (UInt256.ofNat 1)
+      raw rawMload 0 w (UInt256.ofNat 1)
         (by simpa using ctorStoreDecode7 ((EVM.Word.toBytesBE w).toByteArray))
         mem_cost
         (ctorStoreArgMem_mload w)
         (by decide) (by evm_ov),
       raw push0 (by simpa using ctorStoreDecode8 ((EVM.Word.toBytesBE w).toByteArray)) (by evm_ov)]
   obtain ⟨k', C', rdAfterStore⟩ :=
-    rdBeforeStore.sstore hperm
+    rdBeforeStore.rawSstore hperm
       (by simpa using ctorStoreDecode9 ((EVM.Word.toBytesBE w).toByteArray)) (by evm_ov)
   subst code
   exact evm_run rdAfterStore with [
     raw push1 ⟨8⟩ (by simpa using ctorStoreDecode10 ((EVM.Word.toBytesBE w).toByteArray)) (by evm_ov),
     raw push1 ⟨20⟩ (by simpa using ctorStoreDecode12 ((EVM.Word.toBytesBE w).toByteArray)) (by evm_ov),
     raw push0 (by simpa using ctorStoreDecode14 ((EVM.Word.toBytesBE w).toByteArray)) (by evm_ov),
-    raw codecopy 0 (ctorStoreReturnMem w) (UInt256.ofNat 1)
+    raw rawCodecopy 0 (ctorStoreReturnMem w) (UInt256.ofNat 1)
       (by simpa using ctorStoreDecode15 ((EVM.Word.toBytesBE w).toByteArray))
       mem_cost
       (ctorStoreRuntime_codecopy_mem w)
       (by decide) (by evm_ov),
     raw push1 ⟨8⟩ (by simpa using ctorStoreDecode16 ((EVM.Word.toBytesBE w).toByteArray)) (by evm_ov),
     raw push0 (by simpa using ctorStoreDecode18 ((EVM.Word.toBytesBE w).toByteArray)) (by evm_ov),
-    raw ret 0 ctorStoreRuntimeBytecode
+    raw rawRet 0 ctorStoreRuntimeBytecode
       (by simpa using ctorStoreDecode19 ((EVM.Word.toBytesBE w).toByteArray))
       mem_cost
       (ctorStoreFinal_read w)

@@ -43,7 +43,7 @@ theorem blindAuctionX_revealEnd {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, callvalue, dup1, iszero, push2 ⟨479⟩,
     jumpiT (by rw [hwv]; decide) (by jump_dest),
     jumpdest, pop, push2 ⟨373⟩, push1 ⟨2⟩]
-  obtain ⟨_, _, rd487₀⟩ := rd486.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd487₀⟩ := rd486.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd487⟩ :
       ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨487⟩
         [blindAuctionRevealEndWord σ I, ⟨373⟩, blindAuctionSelWord I]

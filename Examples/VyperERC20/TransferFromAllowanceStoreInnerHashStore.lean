@@ -29,7 +29,7 @@ theorem erc20X_transferFromAllowanceStoreAfterInnerHashStore {cA gh bl σ σ₀ 
       (cA, σ) k C := by
   obtain ⟨k, C, rd473⟩ := hreach
   have rd474 := rd473.push0 (by native_decide) (by evm_ov)
-  have rd475 := rd474.mstore 0
+  have rd475 := rd474.rawMstore 0
     (transferFromAllowanceInnerScratchMem
       (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
       (transferFromCurrentAllowanceRaw σ I))

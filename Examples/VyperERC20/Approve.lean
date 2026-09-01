@@ -432,23 +432,23 @@ theorem erc20X_approveFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
     jumpiNT (by simpa [approveSpenderWord, calldataWord] using hcanonSpenderGuard),
     push1 ⟨64⟩,
-    raw mstore 6 (approveSpenderArgMem (approveSpenderWord I)) (UInt256.ofNat 3)
+    raw rawMstore 6 (approveSpenderArgMem (approveSpenderWord I)) (UInt256.ofNat 3)
       (by vyper_erc20_approve_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨36⟩, calldataload,
     push1 ⟨1⟩, caller, push1 ⟨32⟩,
-    raw mstore 0 (approveInnerKeyMem (approveOwnerWord I) (approveSpenderWord I))
+    raw rawMstore 0 (approveInnerKeyMem (approveOwnerWord I) (approveSpenderWord I))
       (UInt256.ofNat 3)
       (by vyper_erc20_approve_decode) mem_cost rfl (by decide) (by evm_ov),
     push0,
-    raw mstore 0 (approveInnerHashMem (approveOwnerWord I) (approveSpenderWord I))
+    raw rawMstore 0 (approveInnerHashMem (approveOwnerWord I) (approveSpenderWord I))
       (UInt256.ofNat 3)
       (by vyper_erc20_approve_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (approveInnerSlotWord (approveOwnerWord I) (approveSpenderWord I))
+    raw rawKeccak256 0 (approveInnerSlotWord (approveOwnerWord I) (approveSpenderWord I))
       (UInt256.ofNat 3)
       (by vyper_erc20_approve_decode) mem_cost rfl (by decide) (by evm_ov),
     dup1, push1 ⟨64⟩,
-    raw mload 0 (approveSpenderWord I) (UInt256.ofNat 3)
+    raw rawMload 0 (approveSpenderWord I) (UInt256.ofNat 3)
       (by vyper_erc20_approve_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
@@ -459,22 +459,22 @@ theorem erc20X_approveFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
           (approveInnerHashMem_read64 (approveOwnerWord I) (approveSpenderWord I)))
       (by decide) (by evm_ov),
     push1 ⟨32⟩,
-    raw mstore 0 (approveOuterKeyMem (approveOwnerWord I) (approveSpenderWord I))
+    raw rawMstore 0 (approveOuterKeyMem (approveOwnerWord I) (approveSpenderWord I))
       (UInt256.ofNat 3)
       (by vyper_erc20_approve_decode) mem_cost rfl (by decide) (by evm_ov),
     push0,
-    raw mstore 0 (approveOuterHashMem (approveOwnerWord I) (approveSpenderWord I))
+    raw rawMstore 0 (approveOuterHashMem (approveOwnerWord I) (approveSpenderWord I))
       (UInt256.ofNat 3)
       (by vyper_erc20_approve_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (approveSlotI I) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (approveSlotI I) (UInt256.ofNat 3)
       (by vyper_erc20_approve_decode) mem_cost hslot (by decide) (by evm_ov),
     swap1, pop]
   obtain ⟨k1, C1, rdAfterStore⟩ :=
-    rdBeforeStore.sstore hperm (by vyper_erc20_approve_decode) (by evm_ov)
+    rdBeforeStore.rawSstore hperm (by vyper_erc20_approve_decode) (by evm_ov)
   have rdAfterTopic := (evm_run rdAfterStore with [
     push1 ⟨64⟩,
-    raw mload 0 (approveSpenderWord I) (UInt256.ofNat 3)
+    raw rawMload 0 (approveSpenderWord I) (UInt256.ofNat 3)
       (by vyper_erc20_approve_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
@@ -489,19 +489,19 @@ theorem erc20X_approveFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdBeforeLog := evm_run rdAfterTopic with [
     push1 ⟨36⟩, calldataload,
     push1 ⟨96⟩,
-    raw mstore 3 (approveLogMem (approveOwnerWord I) (approveSpenderWord I) (approveValueWord I))
+    raw rawMstore 3 (approveLogMem (approveOwnerWord I) (approveSpenderWord I) (approveValueWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_approve_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨96⟩]
-  have rdAfterLog := rdBeforeLog.log3 0 (UInt256.ofNat 4)
+  have rdAfterLog := rdBeforeLog.rawLog3 0 (UInt256.ofNat 4)
     (by vyper_erc20_approve_decode) hperm mem_cost (by decide) (by evm_ov)
   have rdBeforeReturn := evm_run rdAfterLog with [
     push1 ⟨1⟩, push1 ⟨96⟩,
-    raw mstore 0 (approveReturnMem (approveOwnerWord I) (approveSpenderWord I) (approveValueWord I))
+    raw rawMstore 0 (approveReturnMem (approveOwnerWord I) (approveSpenderWord I) (approveValueWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_approve_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨96⟩]
-  exact rdBeforeReturn.ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256))
+  exact rdBeforeReturn.rawRet 0 (UInt256.toByteArray (⟨1⟩ : UInt256))
     (by vyper_erc20_approve_decode)
     mem_cost
     (approveReturnMem_read96 (approveOwnerWord I) (approveSpenderWord I) (approveValueWord I))
@@ -593,11 +593,11 @@ theorem erc20X_approveReach {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨1⟩, shl, push2 ⟨805⟩, add, push1 ⟨30⟩]
   have rdBeforeCopy := by
     simpa [hword, approveSelectorWord] using rdBeforeCopy0
-  have rdAfterCopy := rdBeforeCopy.codecopy 3 approveDispatchMem (UInt256.ofNat 1)
+  have rdAfterCopy := rdBeforeCopy.rawCodecopy 3 approveDispatchMem (UInt256.ofNat 1)
     (by vyper_erc20_approve_decode) mem_cost (by native_decide) (by decide) (by evm_ov)
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
-    raw mload 0 ⟨206⟩ (UInt256.ofNat 1)
+    raw rawMload 0 ⟨206⟩ (UInt256.ofNat 1)
       (by vyper_erc20_approve_decode)
       mem_cost
       approveDispatchMem_mload0

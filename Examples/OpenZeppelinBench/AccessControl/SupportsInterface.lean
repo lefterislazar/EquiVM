@@ -620,16 +620,16 @@ theorem accessControlReturnBool145 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     RDret accessControlBenchBytecode g s0 acc (UInt256.toByteArray val) := by
   exact evm_run h with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     swap1, iszero, iszero, dup2,
-    raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide)
       mem_cost (by rw [hnorm]; rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost (solcReturnMem_mload64 val) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray val) (by decide)
+    raw rawRet 0 (UInt256.toByteArray val) (by decide)
       mem_cost
       (by
         rw [show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32

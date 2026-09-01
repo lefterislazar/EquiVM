@@ -361,22 +361,22 @@ theorem erc20X_balanceOf {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hslot := balanceOfKeccakSlot I hcanon
   have rd1362 := evm_run rd1345 with [
     jumpdest, push0, push1 ⟨32⟩,
-    raw mstore 0 balanceOfBaseSlotMem (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMstore 0 balanceOfBaseSlotMem (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     dup1, push0,
-    raw mstore 0 (balanceOfHashMem (balanceOfOwnerWord I)) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (balanceOfHashMem (balanceOfOwnerWord I)) (UInt256.ofNat 3) (by decide)
       mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (balanceOfSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (balanceOfSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hslot (by decide) (by evm_ov),
     push0, swap2, pop, swap1, pop ]
-  obtain ⟨k1, C1, rd1363⟩ := rd1362.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd1363⟩ := rd1362.rawSload (by decide) (by evm_ov)
   have rd252 := evm_run rd1363 with [
     dup2, jump erc20_jd ]
   have rd2073 := evm_run rd252 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (balanceOfHashMem_mload64 (balanceOfOwnerWord I))
       (by decide) (by evm_ov),
@@ -386,12 +386,12 @@ theorem erc20X_balanceOf {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rd2073 (by rfl) erc20_jd (by simp only [List.length_cons, List.length_nil]; omega)
   exact evm_run rd265 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (balanceOfReturnMem_mload64 (balanceOfOwnerWord I) (balanceOfWord σ I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (balanceOfWord σ I)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (balanceOfWord σ I)) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, erc20SubRet32_toNat]

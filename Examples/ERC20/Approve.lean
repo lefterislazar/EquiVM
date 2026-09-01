@@ -461,7 +461,7 @@ theorem erc20RoutineEncodeBoolFromMem {g : Sat256} {s0 : State} {ee : ExecutionE
   obtain ⟨k1, C1, rd2027⟩ := erc20RoutineBoolCleanup rd2007 erc20_jd (by evm_ov)
   let rd := evm_run rd2027 with [
     jumpdest, dup3,
-    raw mstore 0 memout (UInt256.ofNat 5) (by decide) mem_cost
+    raw rawMstore 0 memout (UInt256.ofNat 5) (by decide) mem_cost
       (by rw [show ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 from by decide]; exact hmemout)
       (by decide) (by evm_ov),
     pop, pop,
@@ -626,7 +626,7 @@ theorem erc20ApproveX_stored {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     (approveOuterSpenderMem_writeSlot (approveOwnerWord I) (approveSpenderWord I))
     hslot (by evm_ov)
   have rd493 := evm_run rd493₀ with [ dup2, swap1 ]
-  exact rd493.sstore hperm (by decide) (by evm_ov)
+  exact rd493.rawSstore hperm (by decide) (by evm_ov)
 
 theorem erc20X_approve {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -654,7 +654,7 @@ theorem erc20X_approve {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   rw [hspenderCleanL, hownerCleanL] at rd543
   have rd2073 := evm_run rd543 with [
     dup5, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (allowanceOuterHashMem_mload64 (approveOwnerWord I) (approveSpenderWord I))
       (by decide) (by evm_ov),
@@ -666,19 +666,19 @@ theorem erc20X_approve {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rd2073 (by rfl) erc20_jd (by simp only [List.length_cons, List.length_nil]; omega)
   have rd597 := evm_run rd589 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (allowanceReturnMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
         (approveValueWord I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  have rd598 := rd597.log3 0 (UInt256.ofNat 5) (by decide) hperm mem_cost
+  have rd598 := rd597.rawLog3 0 (UInt256.ofNat 5) (by decide) hperm mem_cost
     (by decide) (by evm_ov)
   have rd126 := evm_run rd598 with [
     push1 ⟨1⟩, swap1, pop, swap3, swap2, pop, pop, jump erc20_jd ]
   have rd2033 := evm_run rd126 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (allowanceReturnMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
         (approveValueWord I))
@@ -692,13 +692,13 @@ theorem erc20X_approve {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     erc20_jd (by simp only [List.length_cons, List.length_nil]; omega)
   exact evm_run rd139 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (approveReturnMem_mload64 (approveOwnerWord I) (approveSpenderWord I)
         (approveValueWord I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, erc20SubRet32_toNat]

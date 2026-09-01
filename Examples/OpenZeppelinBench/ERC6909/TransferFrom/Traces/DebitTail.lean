@@ -136,22 +136,22 @@ theorem erc6909TransferFromX_from661_revert_sender_zero_base
       decide) ]
   exact evm_run rd676 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (erc6909ScratchMem_mload64 hbase hread64) (by decide) (by evm_ov),
     push4 ⟨0x01486a41⟩, push1 ⟨231⟩, shl, dup2,
-    raw mstore 6 (solcReturnBaseMem base transferFromInvalidSenderSelectorWord)
+    raw rawMstore 6 (solcReturnBaseMem base transferFromInvalidSenderSelectorWord)
       (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push0, push1 ⟨4⟩, dup3, add,
-    raw mstore 3 (approveErrorBaseMem base transferFromInvalidSenderSelectorWord ⟨0⟩)
+    raw rawMstore 3 (approveErrorBaseMem base transferFromInvalidSenderSelectorWord ⟨0⟩)
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨36⟩, add,
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost (approveErrorBaseMem_mload64 transferFromInvalidSenderSelectorWord ⟨0⟩
         hbase hread64)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rawRev 0 (by decide) mem_cost (by evm_ov) ]
 
 theorem erc6909TransferFromX_from661_revert_receiver_zero_base
     {cA gh bl σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
@@ -187,22 +187,22 @@ theorem erc6909TransferFromX_from661_revert_receiver_zero_base
       decide) ]
   exact evm_run rd722 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (erc6909ScratchMem_mload64 hbase hread64) (by decide) (by evm_ov),
     push4 ⟨0x0b8bbd61⟩, push1 ⟨228⟩, shl, dup2,
-    raw mstore 6 (solcReturnBaseMem base transferFromInvalidReceiverSelectorWord)
+    raw rawMstore 6 (solcReturnBaseMem base transferFromInvalidReceiverSelectorWord)
       (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push0, push1 ⟨4⟩, dup3, add,
-    raw mstore 3 (approveErrorBaseMem base transferFromInvalidReceiverSelectorWord ⟨0⟩)
+    raw rawMstore 3 (approveErrorBaseMem base transferFromInvalidReceiverSelectorWord ⟨0⟩)
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨36⟩, add, push2 ⟨698⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost (approveErrorBaseMem_mload64 transferFromInvalidReceiverSelectorWord ⟨0⟩
         hbase hread64)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rawRev 0 (by decide) mem_cost (by evm_ov) ]
 
 theorem erc6909TransferFromX_from1323_afterLoad {cA gh bl σ σ₀ σcur A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ}
@@ -238,7 +238,7 @@ theorem erc6909TransferFromX_from1323_afterLoad {cA gh bl σ σ₀ σcur A I}
       exact isZero_eq_zero_of_ne hsenderNZ) ]
   have rd1372 := evm_run rd1340 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, and, push0, swap1, dup2,
-    raw mstore 0 (approveWordAt0Mem (transferFromSenderWord I) solcFreePtrMem)
+    raw rawMstore 0 (approveWordAt0Mem (transferFromSenderWord I) solcFreePtrMem)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -247,22 +247,22 @@ theorem erc6909TransferFromX_from1323_afterLoad {cA gh bl σ σ₀ σcur A I}
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, dup2, dup2,
-    raw mstore 0 (transferInnerHashMem (transferFromSenderWord I))
+    raw rawMstore 0 (transferInnerHashMem (transferFromSenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup4,
-    raw keccak256 0 (transferInnerSlot (transferFromSenderWord I))
+    raw rawKeccak256 0 (transferInnerSlot (transferFromSenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     dup7, dup5,
-    raw mstore 0 (approveWordAt0Mem (transferFromIdWord I)
+    raw rawMstore 0 (approveWordAt0Mem (transferFromIdWord I)
         (transferInnerHashMem (transferFromSenderWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1, swap2,
-    raw mstore 0 (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
+    raw rawMstore 0 (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw keccak256 0 (transferOuterSlot (transferFromSenderWord I) (transferFromIdWord I))
+    raw rawKeccak256 0 (transferOuterSlot (transferFromSenderWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
-  obtain ⟨k1, C1, rd1373₀⟩ := rd1372.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd1373₀⟩ := rd1372.rawSload (by decide) (by evm_ov)
   exact ⟨k1, C1, by
     simpa [transferFromSenderBalanceWord, transferFromSenderBalanceSlot,
       hslot, initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
@@ -327,16 +327,16 @@ theorem erc6909TransferFromX_from1373_insufficient {cA gh bl σ σ₀ σcur A I}
     jumpiNT (by rw [hltw]; decide) ]
   exact evm_run rd1381 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
       (transferOuterHashMem_mload64 (transferFromSenderWord I) (transferFromIdWord I))
       (by decide) (by evm_ov),
     push4 ⟨0x02c6d3fb⟩, push1 ⟨230⟩, shl, dup2,
-    raw mstore 6 (transferInsufficientBalanceSelectorMem (transferFromSenderWord I)
+    raw rawMstore 6 (transferInsufficientBalanceSelectorMem (transferFromSenderWord I)
         (transferFromIdWord I))
       (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup8, and,
     push1 ⟨4⟩, dup3, add,
-    raw mstore 3 (transferInsufficientBalanceSenderMem (transferFromSenderWord I)
+    raw rawMstore 3 (transferInsufficientBalanceSenderMem (transferFromSenderWord I)
         (transferFromIdWord I))
       (UInt256.ofNat 6) (by decide) mem_cost
       (by
@@ -346,32 +346,32 @@ theorem erc6909TransferFromX_from1373_insufficient {cA gh bl σ σ₀ σcur A I}
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨36⟩, dup2, add, dup3, swap1,
-    raw mstore 3 (transferInsufficientBalanceBalanceMem (transferFromSenderWord I)
+    raw rawMstore 3 (transferInsufficientBalanceBalanceMem (transferFromSenderWord I)
         (transferFromIdWord I)
         (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I))
       (UInt256.ofNat 7) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨68⟩, dup2, add, dup5, swap1,
-    raw mstore 3 (transferInsufficientBalanceAmountMem (transferFromSenderWord I)
+    raw rawMstore 3 (transferInsufficientBalanceAmountMem (transferFromSenderWord I)
         (transferFromIdWord I)
         (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
         (transferFromAmountWord I))
       (UInt256.ofNat 8) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨100⟩, dup2, add, dup6, swap1,
-    raw mstore 3 (transferInsufficientBalanceIdMem (transferFromSenderWord I)
+    raw rawMstore 3 (transferInsufficientBalanceIdMem (transferFromSenderWord I)
         (transferFromIdWord I)
         (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
         (transferFromAmountWord I))
       (UInt256.ofNat 9) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨132⟩, add, push2 ⟨698⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide) mem_cost
       (transferInsufficientBalanceIdMem_mload64 (transferFromSenderWord I)
         (transferFromIdWord I)
         (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
         (transferFromAmountWord I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rawRev 0 (by decide) mem_cost (by evm_ov) ]
 
 theorem erc6909TransferFromX_from1323_insufficient {cA gh bl σ σ₀ σcur A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ}
@@ -429,7 +429,7 @@ theorem erc6909TransferFromX_from1323_afterLoad_base {cA gh bl σ σ₀ σcur A 
       exact isZero_eq_zero_of_ne hsenderNZ) ]
   have rd1372 := evm_run rd1340 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, and, push0, swap1, dup2,
-    raw mstore 0 (approveWordAt0Mem (transferFromSenderWord I) base)
+    raw rawMstore 0 (approveWordAt0Mem (transferFromSenderWord I) base)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -438,10 +438,10 @@ theorem erc6909TransferFromX_from1323_afterLoad_base {cA gh bl σ σ₀ σcur A 
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, dup2, dup2,
-    raw mstore 0 (approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩ base)
+    raw rawMstore 0 (approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩ base)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup4,
-    raw keccak256 0 (transferInnerSlot (transferFromSenderWord I))
+    raw rawKeccak256 0 (transferInnerSlot (transferFromSenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         unfold transferInnerSlot
@@ -457,15 +457,15 @@ theorem erc6909TransferFromX_from1323_afterLoad_base {cA gh bl σ σ₀ σcur A 
           transferInnerHashMem_read0_64])
       (by decide) (by evm_ov),
     dup7, dup5,
-    raw mstore 0 (approveWordAt0Mem (transferFromIdWord I)
+    raw rawMstore 0 (approveWordAt0Mem (transferFromIdWord I)
         (approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩ base))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1, swap2,
-    raw mstore 0 (transferMapScratchMem base (transferFromSenderWord I)
+    raw rawMstore 0 (transferMapScratchMem base (transferFromSenderWord I)
         (transferFromIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw keccak256 0 (transferOuterSlot (transferFromSenderWord I) (transferFromIdWord I))
+    raw rawKeccak256 0 (transferOuterSlot (transferFromSenderWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         unfold transferOuterSlot
@@ -482,7 +482,7 @@ theorem erc6909TransferFromX_from1323_afterLoad_base {cA gh bl σ σ₀ σcur A 
         rw [transferMapScratchMem_read0_64 (transferFromSenderWord I)
           (transferFromIdWord I) hbase, transferOuterHashMem_read0_64])
       (by decide) (by evm_ov) ]
-  obtain ⟨k1, C1, rd1373₀⟩ := rd1372.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd1373₀⟩ := rd1372.rawSload (by decide) (by evm_ov)
   exact ⟨k1, C1, by
     simpa [transferFromSenderBalanceWord, transferFromSenderBalanceSlot,
       hslot, initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
@@ -560,16 +560,16 @@ theorem erc6909TransferFromX_from1373_insufficient_base
     jumpiNT (by rw [hltw]; decide) ]
   exact evm_run rd1381 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
       (transferMapScratchMem_mload64 (transferFromSenderWord I) (transferFromIdWord I)
         hbase hread64)
       (by decide) (by evm_ov),
     push4 ⟨0x02c6d3fb⟩, push1 ⟨230⟩, shl, dup2,
-    raw mstore 6 (transferInsufficientBalanceSelectorBaseMem senderMem)
+    raw rawMstore 6 (transferInsufficientBalanceSelectorBaseMem senderMem)
       (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup8, and,
     push1 ⟨4⟩, dup3, add,
-    raw mstore 3 (transferInsufficientBalanceSenderBaseMem senderMem
+    raw rawMstore 3 (transferInsufficientBalanceSenderBaseMem senderMem
         (transferFromSenderWord I))
       (UInt256.ofNat 6) (by decide) mem_cost
       (by
@@ -579,32 +579,32 @@ theorem erc6909TransferFromX_from1373_insufficient_base
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨36⟩, dup2, add, dup3, swap1,
-    raw mstore 3 (transferInsufficientBalanceBalanceBaseMem senderMem
+    raw rawMstore 3 (transferInsufficientBalanceBalanceBaseMem senderMem
         (transferFromSenderWord I)
         (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I))
       (UInt256.ofNat 7) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨68⟩, dup2, add, dup5, swap1,
-    raw mstore 3 (transferInsufficientBalanceAmountBaseMem senderMem
+    raw rawMstore 3 (transferInsufficientBalanceAmountBaseMem senderMem
         (transferFromSenderWord I)
         (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
         (transferFromAmountWord I))
       (UInt256.ofNat 8) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨100⟩, dup2, add, dup6, swap1,
-    raw mstore 3 (transferInsufficientBalanceIdBaseMem senderMem
+    raw rawMstore 3 (transferInsufficientBalanceIdBaseMem senderMem
         (transferFromSenderWord I) (transferFromIdWord I)
         (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
         (transferFromAmountWord I))
       (UInt256.ofNat 9) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨132⟩, add, push2 ⟨698⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide) mem_cost
       (transferInsufficientBalanceIdBaseMem_mload64 (transferFromSenderWord I)
         (transferFromIdWord I)
         (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
         (transferFromAmountWord I) hsenderMemSize hsenderMemRead64)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rawRev 0 (by decide) mem_cost (by evm_ov) ]
 
 theorem erc6909TransferFromX_from1323_insufficient_base
     {cA gh bl σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
@@ -667,7 +667,7 @@ theorem erc6909TransferFromX_from1323_afterDebit {cA gh bl σ σ₀ σcur A I}
   have rd1451 := evm_run rd1437 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup7, and,
     push0, swap1, dup2,
-    raw mstore 0 (approveWordAt0Mem (transferFromSenderWord I)
+    raw rawMstore 0 (approveWordAt0Mem (transferFromSenderWord I)
         (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
@@ -678,12 +678,12 @@ theorem erc6909TransferFromX_from1323_afterDebit {cA gh bl σ σ₀ σcur A I}
       (by decide) (by evm_ov) ]
   have rd1456 := evm_run rd1451 with [
     push1 ⟨32⟩, dup2, dup2,
-    raw mstore 0 (approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩
+    raw rawMstore 0 (approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩
         (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1461 := evm_run rd1456 with [
     push1 ⟨64⟩, dup1, dup4,
-    raw keccak256 0 (transferInnerSlot (transferFromSenderWord I))
+    raw rawKeccak256 0 (transferInnerSlot (transferFromSenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         unfold transferInnerSlot
@@ -702,19 +702,19 @@ theorem erc6909TransferFromX_from1323_afterDebit {cA gh bl σ σ₀ σcur A I}
       (by decide) (by evm_ov) ]
   have rd1468 := evm_run rd1461 with [
     dup8, dup5,
-    raw mstore 0 (approveWordAt0Mem (transferFromIdWord I)
+    raw rawMstore 0 (approveWordAt0Mem (transferFromIdWord I)
         (approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩
           (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1, swap2,
-    raw mstore 0
+    raw rawMstore 0
       (transferMapScratchMem
         (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
         (transferFromSenderWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1470 := evm_run rd1468 with [
     swap1,
-    raw keccak256 0 (transferOuterSlot (transferFromSenderWord I) (transferFromIdWord I))
+    raw rawKeccak256 0 (transferOuterSlot (transferFromSenderWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         unfold transferOuterSlot
@@ -750,7 +750,7 @@ theorem erc6909TransferFromX_from1323_afterDebit {cA gh bl σ σ₀ σcur A I}
     swap1, dup4, swap1, sub, swap1 ]
   have rd1475 := rd1475₀
   rw [hdebit, hslot] at rd1475
-  obtain ⟨_, _, rd1476⟩ := rd1475.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1476⟩ := rd1475.rawSstore hperm (by decide) (by evm_ov)
   exact ⟨_, _, rd1476⟩
 
 theorem erc6909TransferFromX_from1323_toCheckedAdd {cA gh bl σ σ₀ σcur A I}
@@ -817,7 +817,7 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd {cA gh bl σ σ₀ σcur A I}
   have rd1505 := evm_run rd1492 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and, push0, swap1,
     dup2,
-    raw mstore 0 (approveWordAt0Mem (transferFromReceiverWord I) debitMem)
+    raw rawMstore 0 (approveWordAt0Mem (transferFromReceiverWord I) debitMem)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -827,11 +827,11 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd {cA gh bl σ σ₀ σcur A I}
       (by decide) (by evm_ov) ]
   have rd1510 := evm_run rd1505 with [
     push1 ⟨32⟩, dup2, dup2,
-    raw mstore 0 (approveTwoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem)
+    raw rawMstore 0 (approveTwoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1515 := evm_run rd1510 with [
     push1 ⟨64⟩, dup1, dup4,
-    raw keccak256 0 (transferInnerSlot (transferFromReceiverWord I))
+    raw rawKeccak256 0 (transferInnerSlot (transferFromReceiverWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         unfold transferInnerSlot
@@ -849,16 +849,16 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd {cA gh bl σ σ₀ σcur A I}
       (by decide) (by evm_ov) ]
   have rd1522 := evm_run rd1515 with [
     dup7, dup5,
-    raw mstore 0 (approveWordAt0Mem (transferFromIdWord I)
+    raw rawMstore 0 (approveWordAt0Mem (transferFromIdWord I)
         (approveTwoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1, swap2,
-    raw mstore 0 (transferMapScratchMem debitMem (transferFromReceiverWord I)
+    raw rawMstore 0 (transferMapScratchMem debitMem (transferFromReceiverWord I)
         (transferFromIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     dup2 ]
   have rd1524 := evm_run rd1522 with [
-    raw keccak256 0 (transferOuterSlot (transferFromReceiverWord I) (transferFromIdWord I))
+    raw rawKeccak256 0 (transferOuterSlot (transferFromReceiverWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         unfold transferOuterSlot
@@ -876,7 +876,7 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd {cA gh bl σ σ₀ σcur A I}
           (transferFromIdWord I) hdebitMemSize, transferOuterHashMem_read0_64])
       (by decide) (by evm_ov),
     dup1 ]
-  obtain ⟨k1, C1, rd1526₀⟩ := rd1524.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd1526₀⟩ := rd1524.rawSload (by decide) (by evm_ov)
   have rd1526 : RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1526⟩
       [transferFromTailReceiverBalanceWord (initState cA gh bl σcur σ₀ g A I) I,
         transferFromReceiverBalanceSlot I, ⟨0⟩, transferFromCallerWord I,
@@ -924,12 +924,12 @@ theorem erc6909TransferFromX_from1545_successCaller_mem {cA gh bl σ σ₀ σcur
     simpa [creditMem] using hmemRead64
   have rd1563 := evm_run rd1545 with [
     jumpdest, push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (erc6909ScratchMem_mload64 hmemSize hmemRead64)
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, dup2, and, dup3,
-    raw mstore 6 (transferEventFromBaseMem creditMem (transferFromCallerWord I))
+    raw rawMstore 6 (transferEventFromBaseMem creditMem (transferFromCallerWord I))
       (UInt256.ofNat 5) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -941,7 +941,7 @@ theorem erc6909TransferFromX_from1545_successCaller_mem {cA gh bl σ σ₀ σcur
       (by decide) (by evm_ov) ]
   have rd1570 := evm_run rd1563 with [
     push1 ⟨32⟩, dup3, add, dup6, swap1,
-    raw mstore 3 (transferEventBaseMem creditMem (transferFromCallerWord I)
+    raw rawMstore 3 (transferEventBaseMem creditMem (transferFromCallerWord I)
         (transferFromAmountWord I))
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1573 := evm_run rd1570 with [dup6, swap3, dup2]
@@ -958,13 +958,13 @@ theorem erc6909TransferFromX_from1545_successCaller_mem {cA gh bl σ σ₀ σcur
     (by decide) (by decide) (by evm_ov)
   have rd1622 := evm_run rd1613 with [
     swap2, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
       (transferEventBaseMem_mload64 (transferFromCallerWord I) (transferFromAmountWord I)
         hcreditMemSize hcreditMemRead64)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  have rd1623 := RD.log4 0 (UInt256.ofNat 6) rd1622 (by decide) hperm
+  have rd1623 := RD.rawLog4 0 (UInt256.ofNat 6) rd1622 (by decide) hperm
     mem_cost (by decide) (by evm_ov)
   have rd760 := evm_run rd1623 with [
     pop, pop, pop, pop, pop, jump (by jump_dest) ]
@@ -977,13 +977,13 @@ theorem erc6909TransferFromX_from1545_successCaller_mem {cA gh bl σ σ₀ σcur
     pop, pop, pop, pop, pop, jump (by jump_dest) ]
   have rd165 := evm_run rd193 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
       (transferEventBaseMem_mload64 (transferFromCallerWord I) (transferFromAmountWord I)
         hcreditMemSize hcreditMemRead64)
       (by decide) (by evm_ov),
     swap1, iszero, iszero, dup2,
-    raw mstore 0 (transferReturnBaseMem creditMem (transferFromCallerWord I)
+    raw rawMstore 0 (transferReturnBaseMem creditMem (transferFromCallerWord I)
         (transferFromAmountWord I))
       (UInt256.ofNat 6) (by decide) mem_cost
       (by
@@ -993,13 +993,13 @@ theorem erc6909TransferFromX_from1545_successCaller_mem {cA gh bl σ σ₀ σcur
     push1 ⟨32⟩, add, push2 ⟨165⟩, jump (by jump_dest) ]
   exact evm_run rd165 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
       (transferReturnBaseMem_mload64 (transferFromCallerWord I) (transferFromAmountWord I)
         hcreditMemSize hcreditMemRead64)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -1117,7 +1117,7 @@ theorem erc6909TransferFromX_from1323_afterCredit {cA gh bl σ σ₀ σcur A I}
   rw [hnew] at rd1539
   have rd1542 := evm_run rd1539 with [
     jumpdest, swap1, swap2 ]
-  obtain ⟨_, _, rd1543⟩ := rd1542.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1543⟩ := rd1542.rawSstore hperm (by decide) (by evm_ov)
   exact ⟨_, _, evm_run rd1543 with [ pop, pop ]⟩
 
 theorem erc6909TransferFromX_from1323_overflow {cA gh bl σ σ₀ σcur A I}
@@ -1224,7 +1224,7 @@ theorem erc6909TransferFromX_from1323_afterDebit_base
   have rd1451 := evm_run rd1437 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup7, and,
     push0, swap1, dup2,
-    raw mstore 0 (approveWordAt0Mem (transferFromSenderWord I) senderMem)
+    raw rawMstore 0 (approveWordAt0Mem (transferFromSenderWord I) senderMem)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1234,11 +1234,11 @@ theorem erc6909TransferFromX_from1323_afterDebit_base
       (by decide) (by evm_ov) ]
   have rd1456 := evm_run rd1451 with [
     push1 ⟨32⟩, dup2, dup2,
-    raw mstore 0 (approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩ senderMem)
+    raw rawMstore 0 (approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩ senderMem)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1461 := evm_run rd1456 with [
     push1 ⟨64⟩, dup1, dup4,
-    raw keccak256 0 (transferInnerSlot (transferFromSenderWord I))
+    raw rawKeccak256 0 (transferInnerSlot (transferFromSenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         unfold transferInnerSlot
@@ -1255,16 +1255,16 @@ theorem erc6909TransferFromX_from1323_afterDebit_base
       (by decide) (by evm_ov) ]
   have rd1468 := evm_run rd1461 with [
     dup8, dup5,
-    raw mstore 0 (approveWordAt0Mem (transferFromIdWord I)
+    raw rawMstore 0 (approveWordAt0Mem (transferFromIdWord I)
         (approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩ senderMem))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1, swap2,
-    raw mstore 0
+    raw rawMstore 0
       (transferMapScratchMem senderMem (transferFromSenderWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1470 := evm_run rd1468 with [
     swap1,
-    raw keccak256 0 (transferOuterSlot (transferFromSenderWord I) (transferFromIdWord I))
+    raw rawKeccak256 0 (transferOuterSlot (transferFromSenderWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         unfold transferOuterSlot
@@ -1298,7 +1298,7 @@ theorem erc6909TransferFromX_from1323_afterDebit_base
     swap1, dup4, swap1, sub, swap1 ]
   have rd1475 := rd1475₀
   rw [hdebit, hslot] at rd1475
-  obtain ⟨_, _, rd1476⟩ := rd1475.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1476⟩ := rd1475.rawSstore hperm (by decide) (by evm_ov)
   exact ⟨_, _, by simpa [senderMem] using rd1476⟩
 
 theorem erc6909TransferFromX_from1323_toCheckedAdd_base
@@ -1376,7 +1376,7 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd_base
   have rd1505 := evm_run rd1492 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and, push0, swap1,
     dup2,
-    raw mstore 0 (approveWordAt0Mem (transferFromReceiverWord I) debitMem)
+    raw rawMstore 0 (approveWordAt0Mem (transferFromReceiverWord I) debitMem)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1386,11 +1386,11 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd_base
       (by decide) (by evm_ov) ]
   have rd1510 := evm_run rd1505 with [
     push1 ⟨32⟩, dup2, dup2,
-    raw mstore 0 (approveTwoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem)
+    raw rawMstore 0 (approveTwoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1515 := evm_run rd1510 with [
     push1 ⟨64⟩, dup1, dup4,
-    raw keccak256 0 (transferInnerSlot (transferFromReceiverWord I))
+    raw rawKeccak256 0 (transferInnerSlot (transferFromReceiverWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         unfold transferInnerSlot
@@ -1408,16 +1408,16 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd_base
       (by decide) (by evm_ov) ]
   have rd1522 := evm_run rd1515 with [
     dup7, dup5,
-    raw mstore 0 (approveWordAt0Mem (transferFromIdWord I)
+    raw rawMstore 0 (approveWordAt0Mem (transferFromIdWord I)
         (approveTwoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1, swap2,
-    raw mstore 0 (transferMapScratchMem debitMem (transferFromReceiverWord I)
+    raw rawMstore 0 (transferMapScratchMem debitMem (transferFromReceiverWord I)
         (transferFromIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     dup2 ]
   have rd1524 := evm_run rd1522 with [
-    raw keccak256 0 (transferOuterSlot (transferFromReceiverWord I) (transferFromIdWord I))
+    raw rawKeccak256 0 (transferOuterSlot (transferFromReceiverWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         unfold transferOuterSlot
@@ -1435,7 +1435,7 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd_base
           (transferFromIdWord I) hdebitMemSize, transferOuterHashMem_read0_64])
       (by decide) (by evm_ov),
     dup1 ]
-  obtain ⟨k1, C1, rd1526₀⟩ := rd1524.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd1526₀⟩ := rd1524.rawSload (by decide) (by evm_ov)
   have rd1526 : RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1526⟩
       [transferFromTailReceiverBalanceWord (initState cA gh bl σcur σ₀ g A I) I,
         transferFromReceiverBalanceSlot I, ⟨0⟩, transferFromCallerWord I,
@@ -1520,13 +1520,13 @@ theorem erc6909TransferFromX_from1545_successCaller_base
 /-
   have rd1563 := evm_run rd1545 with [
     jumpdest, push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (transferMapScratchMem_mload64 (transferFromReceiverWord I) (transferFromIdWord I)
         hdebitMemSize hdebitMemRead64)
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, dup2, and, dup3,
-    raw mstore 6 (transferEventFromBaseMem creditMem (transferFromCallerWord I))
+    raw rawMstore 6 (transferEventFromBaseMem creditMem (transferFromCallerWord I))
       (UInt256.ofNat 5) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1538,7 +1538,7 @@ theorem erc6909TransferFromX_from1545_successCaller_base
       (by decide) (by evm_ov) ]
   have rd1570 := evm_run rd1563 with [
     push1 ⟨32⟩, dup3, add, dup6, swap1,
-    raw mstore 3 (transferEventBaseMem creditMem (transferFromCallerWord I)
+    raw rawMstore 3 (transferEventBaseMem creditMem (transferFromCallerWord I)
         (transferFromAmountWord I))
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1573 := evm_run rd1570 with [dup6, swap3, dup2]
@@ -1555,13 +1555,13 @@ theorem erc6909TransferFromX_from1545_successCaller_base
     (by decide) (by decide) (by evm_ov)
   have rd1622 := evm_run rd1613 with [
     swap2, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
       (transferEventBaseMem_mload64 (transferFromCallerWord I) (transferFromAmountWord I)
         hcreditMemSize hcreditMemRead64)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  have rd1623 := RD.log4 0 (UInt256.ofNat 6) rd1622 (by decide) hperm
+  have rd1623 := RD.rawLog4 0 (UInt256.ofNat 6) rd1622 (by decide) hperm
     mem_cost (by decide) (by evm_ov)
   have rd760 := evm_run rd1623 with [
     pop, pop, pop, pop, pop, jump (by jump_dest) ]
@@ -1574,13 +1574,13 @@ theorem erc6909TransferFromX_from1545_successCaller_base
     pop, pop, pop, pop, pop, jump (by jump_dest) ]
   have rd165 := evm_run rd193 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
       (transferEventBaseMem_mload64 (transferFromCallerWord I) (transferFromAmountWord I)
         hcreditMemSize hcreditMemRead64)
       (by decide) (by evm_ov),
     swap1, iszero, iszero, dup2,
-    raw mstore 0 (transferReturnBaseMem creditMem (transferFromCallerWord I)
+    raw rawMstore 0 (transferReturnBaseMem creditMem (transferFromCallerWord I)
         (transferFromAmountWord I))
       (UInt256.ofNat 6) (by decide) mem_cost
       (by
@@ -1590,13 +1590,13 @@ theorem erc6909TransferFromX_from1545_successCaller_base
     push1 ⟨32⟩, add, push2 ⟨165⟩, jump (by jump_dest) ]
   exact evm_run rd165 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
       (transferReturnBaseMem_mload64 (transferFromCallerWord I) (transferFromAmountWord I)
         hcreditMemSize hcreditMemRead64)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -1669,7 +1669,7 @@ theorem erc6909TransferFromX_from1323_afterCredit_base
   rw [hnew] at rd1539
   have rd1542 := evm_run rd1539 with [
     jumpdest, swap1, swap2 ]
-  obtain ⟨_, _, rd1543⟩ := rd1542.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1543⟩ := rd1542.rawSstore hperm (by decide) (by evm_ov)
   exact ⟨_, _, evm_run rd1543 with [ pop, pop ]⟩
 
 theorem erc6909TransferFromX_from1323_overflow_base

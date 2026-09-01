@@ -1535,14 +1535,14 @@ theorem decode_word_at_eq_any (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ c
 Solidity stores `mapping[key]` at base slot `s` in `keccak256(key ‖ s)` (each a 32-byte big-endian
 word); the Solm layout (`Solm.SolidityLayout`) computes exactly
 `uInt256OfByteArray (KEC (keyWord.toByteArray ++ s.toByteArray))`.  The EVM bytecode writes the key
-and slot into scratch memory and runs `KECCAK256`, and `RD.keccak256` pushes
+and slot into scratch memory and runs `KECCAK256`, and `RD.rawKeccak256` pushes
 `UInt256.ofNat (fromByteArrayBigEndian (KEC …))`.  These lemmas bridge the two representations so a
 mapping `SLOAD`/`SSTORE` at the EVM-computed slot couples to the Solm storage ref's slot, and
-`RD.sload`'s pushed value couples to the Solm `storageLoad`.  The byte-preimage (that the scratch
+`RD.rawSload`'s pushed value couples to the Solm `storageLoad`.  The byte-preimage (that the scratch
 memory reads back as `key ++ slot`) and the partial-slot store decoding are reused from the existing
 memory/`storageLocStore` lemmas; these supply the mapping-specific keccak-slot identities. -/
 
-/-- The slot word an EVM `KECCAK256` pushes (`RD.keccak256`'s result — the big-endian decode of the
+/-- The slot word an EVM `KECCAK256` pushes (`RD.rawKeccak256`'s result — the big-endian decode of the
     hash) is exactly the Solm layout's mapping-slot interpretation `uInt256OfByteArray (KEC …)`. -/
 theorem keccakSlot_eq (b : ByteArray) :
     UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC b)) = uInt256OfByteArray (ffi.KEC b) :=

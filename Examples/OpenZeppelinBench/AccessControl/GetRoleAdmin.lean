@@ -457,16 +457,16 @@ theorem accessControlGetRoleAdminX {cA gh bl σ σ₀ A I} {g : Sat256}
   have hslot := getRoleAdminBaseKeccakSlot I
   have rd194pre := evm_run rd180 with [
     jumpdest, push0, swap1, dup2,
-    raw mstore 0 (getRoleAdminRoleMem I) (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMstore 0 (getRoleAdminRoleMem I) (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 (getRoleAdminHashMem I) (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMstore 0 (getRoleAdminHashMem I) (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1,
-    raw keccak256 0 (getRoleAdminBaseSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (getRoleAdminBaseSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hslot (by decide) (by evm_ov),
     push1 ⟨1⟩, add]
-  obtain ⟨_, _, rd198₀⟩ := rd194pre.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd198₀⟩ := rd194pre.rawSload (by decide) (by evm_ov)
   have rd198 :
       ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨198⟩
         [getRoleAdminWord σ I, ⟨200⟩, accessControlSelWord I]
@@ -490,22 +490,22 @@ theorem accessControlGetRoleAdminX {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd200 := evm_run rd198 with [swap1, jump (by jump_dest)]
   have rd157 := evm_run rd200 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (getRoleAdminHashMem_mload64 I)
       (by decide) (by evm_ov),
     swap1, dup2,
-    raw mstore 6 (getRoleAdminReturnMem I (getRoleAdminWord σ I)) (UInt256.ofNat 5)
+    raw rawMstore 6 (getRoleAdminReturnMem I (getRoleAdminWord σ I)) (UInt256.ofNat 5)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨157⟩, jump (by jump_dest) ]
   exact evm_run rd157 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (getRoleAdminReturnMem_mload64 I (getRoleAdminWord σ I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (getRoleAdminWord σ I)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (getRoleAdminWord σ I)) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,

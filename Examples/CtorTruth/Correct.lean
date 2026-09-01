@@ -177,7 +177,7 @@ theorem ctorTruthInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀
   exact evm_run rd0 with [
     raw push1 ⟨128⟩ ctorTruthDecode0 (by evm_ov),
     raw push1 ⟨64⟩ ctorTruthDecode2 (by evm_ov),
-    raw mstore 9 solcFreePtrMem (UInt256.ofNat 3) ctorTruthDecode4
+    raw rawMstore 9 solcFreePtrMem (UInt256.ofNat 3) ctorTruthDecode4
       mem_cost
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by evm_ov),
@@ -185,12 +185,12 @@ theorem ctorTruthInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀
     raw dup1 ctorTruthDecode7 (by evm_ov),
     raw push1 ⟨15⟩ ctorTruthDecode8 (by evm_ov),
     raw push0 ctorTruthDecode10 (by evm_ov),
-    raw codecopy 3 ctorTruthInitReturnMem (UInt256.ofNat 4) ctorTruthDecode11
+    raw rawCodecopy 3 ctorTruthInitReturnMem (UInt256.ofNat 4) ctorTruthDecode11
       mem_cost
       ctorTruthInitcode_codecopy_mem
       (by decide) (by evm_ov),
     raw push0 ctorTruthDecode12 (by evm_ov),
-    raw ret 0 ctorTruthRuntimeBytecode ctorTruthDecode13
+    raw rawRet 0 ctorTruthRuntimeBytecode ctorTruthDecode13
       mem_cost
       ctorTruthFinal_read
       (by evm_ov)]

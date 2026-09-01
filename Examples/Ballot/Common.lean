@@ -140,14 +140,14 @@ theorem RD.ballotPanic32Revert1815 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd1824 := rd1824₀
   rw [hsel] at rd1824
   have rd1828 := evm_run rd1824 with [
-    raw mstore 0 (Ballot.ballotPanicMem0 mem) (UInt256.ofNat 3)
+    raw rawMstore 0 (Ballot.ballotPanicMem0 mem) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨0x32⟩, push1 ⟨4⟩ ]
   have rd1834 := evm_run rd1828 with [
-    raw mstore 0 (Ballot.ballotPanicMem ⟨0x32⟩ mem) (UInt256.ofNat 3)
+    raw rawMstore 0 (Ballot.ballotPanicMem ⟨0x32⟩ mem) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨0x24⟩, push0 ]
-  exact rd1834.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd1834.rawRev 0 (by decide) mem_cost (by evm_ov)
 
 /-- Ballot's Solidity `Panic(0x11)` checked-arithmetic block at pc 1847. -/
 theorem RD.ballotPanic11Revert1847 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
@@ -164,14 +164,14 @@ theorem RD.ballotPanic11Revert1847 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd1855 := rd1855₀
   rw [hsel] at rd1855
   have rd1859 := evm_run rd1855 with [
-    raw mstore 0 (Ballot.ballotPanicMem0 mem) (UInt256.ofNat 3)
+    raw rawMstore 0 (Ballot.ballotPanicMem0 mem) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨0x11⟩, push1 ⟨4⟩ ]
   have rd1865 := evm_run rd1859 with [
-    raw mstore 0 (Ballot.ballotPanicMem ⟨0x11⟩ mem) (UInt256.ofNat 3)
+    raw rawMstore 0 (Ballot.ballotPanicMem ⟨0x11⟩ mem) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨0x24⟩, push0 ]
-  exact rd1865.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd1865.rawRev 0 (by decide) mem_cost (by evm_ov)
 
 /-- Ballot's shared solc ABI encoder for one `address` word at pc 221. -/
 theorem RD.ballotRoutineEncodeAddress {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
@@ -184,13 +184,13 @@ theorem RD.ballotRoutineEncodeAddress {g : Sat256} {s0 : State} {ee : ExecutionE
       (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5) rdata acc k' C' := by
   let rd := evm_run h with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
     swap1, swap2, and, dup2,
-    raw mstore 6 (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5)
+    raw rawMstore 6 (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5)
       (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -209,12 +209,12 @@ theorem RD.ballotReturnOneWord194 {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
     RDret ballotBytecode g s0 acc (UInt256.toByteArray val) := by
   exact evm_run h with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (solcReturnMem_mload64 val)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray val) (by decide)
+    raw rawRet 0 (UInt256.toByteArray val) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -240,12 +240,12 @@ theorem RD.ballotReturnOneWord194OfMem {g : Sat256} {s0 : State} {ee : Execution
     RDret ballotBytecode g s0 acc (UInt256.toByteArray val) := by
   exact evm_run h with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       hmload64
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray val) (by decide)
+    raw rawRet 0 (UInt256.toByteArray val) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,

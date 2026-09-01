@@ -1645,11 +1645,11 @@ theorem RD.tinyReturnWord167 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C 
   exact evm_run h with [
     raw jumpdest (by tiny_decode_at v, ⟨167⟩, 0x5b, .JUMPDEST) (by evm_ov),
     raw push1 ⟨64⟩ (by tiny_decode_at v, ⟨168⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by tiny_decode_at v, ⟨170⟩, 0x51, .MLOAD)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by tiny_decode_at v, ⟨170⟩, 0x51, .MLOAD)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     raw swap1 (by tiny_decode_at v, ⟨171⟩, 0x90, .SWAP1) (by evm_ov),
     raw dup2 (by tiny_decode_at v, ⟨172⟩, 0x81, .DUP2) (by evm_ov),
-    raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5)
+    raw rawMstore 6 (solcReturnMem val) (UInt256.ofNat 5)
       (by tiny_decode_at v, ⟨173⟩, 0x52, .MSTORE)
       mem_cost (by rfl) (by decide) (by evm_ov),
     raw push1 ⟨32⟩ (by tiny_decode_at v, ⟨174⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
@@ -1658,13 +1658,13 @@ theorem RD.tinyReturnWord167 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C 
     raw jump (by tiny_decode_at v, ⟨180⟩, 0x56, .JUMP) (tinyContains139 v) (by evm_ov),
     raw jumpdest (by tiny_decode_at v, ⟨139⟩, 0x5b, .JUMPDEST) (by evm_ov),
     raw push1 ⟨64⟩ (by tiny_decode_at v, ⟨140⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by tiny_decode_at v, ⟨142⟩, 0x51, .MLOAD)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by tiny_decode_at v, ⟨142⟩, 0x51, .MLOAD)
       mem_cost (solcReturnMem_mload64 val) (by decide) (by evm_ov),
     raw dup1 (by tiny_decode_at v, ⟨143⟩, 0x80, .DUP1) (by evm_ov),
     raw swap2 (by tiny_decode_at v, ⟨144⟩, 0x91, .SWAP2) (by evm_ov),
     raw sub (by tiny_decode_at v, ⟨145⟩, 0x03, .SUB) (by evm_ov),
     raw swap1 (by tiny_decode_at v, ⟨146⟩, 0x90, .SWAP1) (by evm_ov),
-    raw ret 0 (UInt256.toByteArray val) (by tiny_decode_at v, ⟨147⟩, 0xf3, .RETURN)
+    raw rawRet 0 (UInt256.toByteArray val) (by tiny_decode_at v, ⟨147⟩, 0xf3, .RETURN)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -1685,7 +1685,7 @@ theorem RD.tinyReturnAddress106 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k
   exact evm_run h with [
     raw jumpdest (by tiny_decode_at v, ⟨106⟩, 0x5b, .JUMPDEST) (by evm_ov),
     raw push1 ⟨64⟩ (by tiny_decode_at v, ⟨107⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by tiny_decode_at v, ⟨109⟩, 0x51, .MLOAD)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by tiny_decode_at v, ⟨109⟩, 0x51, .MLOAD)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     raw push20 solcAddrMask (by tiny_decode_at v, ⟨110⟩, 0x73, (.Push .PUSH20))
       (by evm_ov),
@@ -1693,21 +1693,21 @@ theorem RD.tinyReturnAddress106 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k
     raw swap2 (by tiny_decode_at v, ⟨132⟩, 0x91, .SWAP2) (by evm_ov),
     raw and (by tiny_decode_at v, ⟨133⟩, 0x16, .AND) (by evm_ov),
     raw dup2 (by tiny_decode_at v, ⟨134⟩, 0x81, .DUP2) (by evm_ov),
-    raw mstore 6 (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5)
+    raw rawMstore 6 (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5)
       (by tiny_decode_at v, ⟨135⟩, 0x52, .MSTORE)
       mem_cost (by rfl) (by decide) (by evm_ov),
     raw push1 ⟨32⟩ (by tiny_decode_at v, ⟨136⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
     raw add (by tiny_decode_at v, ⟨138⟩, 0x01, .ADD) (by evm_ov),
     raw jumpdest (by tiny_decode_at v, ⟨139⟩, 0x5b, .JUMPDEST) (by evm_ov),
     raw push1 ⟨64⟩ (by tiny_decode_at v, ⟨140⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by tiny_decode_at v, ⟨142⟩, 0x51, .MLOAD)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by tiny_decode_at v, ⟨142⟩, 0x51, .MLOAD)
       mem_cost (solcReturnMem_mload64 (UInt256.land val solcAddrMask)) (by decide)
       (by evm_ov),
     raw dup1 (by tiny_decode_at v, ⟨143⟩, 0x80, .DUP1) (by evm_ov),
     raw swap2 (by tiny_decode_at v, ⟨144⟩, 0x91, .SWAP2) (by evm_ov),
     raw sub (by tiny_decode_at v, ⟨145⟩, 0x03, .SUB) (by evm_ov),
     raw swap1 (by tiny_decode_at v, ⟨146⟩, 0x90, .SWAP1) (by evm_ov),
-    raw ret 0 (UInt256.toByteArray (UInt256.land val solcAddrMask))
+    raw rawRet 0 (UInt256.toByteArray (UInt256.land val solcAddrMask))
       (by tiny_decode_at v, ⟨147⟩, 0xf3, .RETURN)
       mem_cost
       (by

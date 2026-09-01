@@ -149,7 +149,7 @@ theorem RD.solcErrorStringRevertTail_feeToStaticcall_size164
   have rdMload := evm_run h with [
     raw push1 ⟨64⟩ hd0 (by evm_ov),
     raw dup1 hd2 (by evm_ov),
-    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords hd3
+    raw rawMload 0 ⟨128⟩ feeToStaticcallActiveWords hd3
       mem_cost hmload64 (by native_decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4 (by simp only [List.length_cons]; omega)
@@ -157,19 +157,19 @@ theorem RD.solcErrorStringRevertTail_feeToStaticcall_size164
     raw push1 ⟨229⟩ hd8 (by evm_ov),
     raw shl hd10 (by evm_ov),
     raw dup2 hd11 (by evm_ov),
-    raw mstore 0 (solcErrorStringMem0 mem) feeToStaticcallActiveWords
+    raw rawMstore 0 (solcErrorStringMem0 mem) feeToStaticcallActiveWords
       hd12 mem_cost (by rfl) (by native_decide) (by evm_ov),
     raw push1 ⟨32⟩ hd13 (by evm_ov),
     raw push1 ⟨4⟩ hd15 (by evm_ov),
     raw dup3 hd17 (by evm_ov),
     raw add hd18 (by evm_ov),
-    raw mstore 0 (solcErrorStringMem1 mem) feeToStaticcallActiveWords
+    raw rawMstore 0 (solcErrorStringMem1 mem) feeToStaticcallActiveWords
       hd19 mem_cost (by rfl) (by native_decide) (by evm_ov),
     raw push1 len hd20 (by evm_ov),
     raw push1 ⟨36⟩ hd22 (by evm_ov),
     raw dup3 hd24 (by evm_ov),
     raw add hd25 (by evm_ov),
-    raw mstore 3 (solcErrorStringMem2 len mem)
+    raw rawMstore 3 (solcErrorStringMem2 len mem)
       (UInt256.ofNat 7) hd26 mem_cost (by rfl) (by native_decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst rawWord (width := width) (op := op)
     hpush hd27 (by simp only [List.length_cons]; omega)
@@ -181,10 +181,10 @@ theorem RD.solcErrorStringRevertTail_feeToStaticcall_size164
     raw push1 ⟨68⟩ hd68 (by evm_ov),
     raw dup3 hdDup3 (by evm_ov),
     raw add hdAdd (by evm_ov),
-    raw mstore 3 (solcErrorStringMem3 len word mem)
+    raw rawMstore 3 (solcErrorStringMem3 len word mem)
       (UInt256.ofNat 8) hdMstore3 mem_cost (by rfl) (by native_decide) (by evm_ov),
     raw swap1 hdSwap (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
       mem_cost
       (solcErrorStringMem3_mload64_of_size164 len word hmem hread64)
       (by native_decide) (by evm_ov),
@@ -195,7 +195,7 @@ theorem RD.solcErrorStringRevertTail_feeToStaticcall_size164
     raw push1 ⟨100⟩ hd100 (by evm_ov),
     raw add hdAdd2 (by evm_ov),
     raw swap1 hdSwap4 (by evm_ov),
-    raw rev 0 hdRev mem_cost (by evm_ov)]
+    raw rawRev 0 hdRev mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
 -- GENERALIZES Reasoning.Reach.RD.solcErrorStringRevertTail — parameterize the initial
@@ -221,7 +221,7 @@ theorem RD.solcErrorStringRevertTail_size164 {code : ByteArray} {g : Sat256}
   have rdMload := evm_run h with [
     raw push1 ⟨64⟩ hd0 (by evm_ov),
     raw dup1 hd2 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd3
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) hd3
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
@@ -231,19 +231,19 @@ theorem RD.solcErrorStringRevertTail_size164 {code : ByteArray} {g : Sat256}
     raw push1 ⟨229⟩ hd8 (by evm_ov),
     raw shl hd10 (by evm_ov),
     raw dup2 hd11 (by evm_ov),
-    raw mstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
+    raw rawMstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
       hd12 mem_cost (by rfl) (by decide) (by evm_ov),
     raw push1 ⟨32⟩ hd13 (by evm_ov),
     raw push1 ⟨4⟩ hd15 (by evm_ov),
     raw dup3 hd17 (by evm_ov),
     raw add hd18 (by evm_ov),
-    raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
+    raw rawMstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
       hd19 mem_cost (by rfl) (by decide) (by evm_ov),
     raw push1 len hd20 (by evm_ov),
     raw push1 ⟨36⟩ hd22 (by evm_ov),
     raw dup3 hd24 (by evm_ov),
     raw add hd25 (by evm_ov),
-    raw mstore 3 (solcErrorStringMem2 len mem)
+    raw rawMstore 3 (solcErrorStringMem2 len mem)
       (UInt256.ofNat 7) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst rawWord (width := width) (op := op)
     hpush hd27 (by simp only [List.length_cons]; omega)
@@ -255,10 +255,10 @@ theorem RD.solcErrorStringRevertTail_size164 {code : ByteArray} {g : Sat256}
     raw push1 ⟨68⟩ hd68 (by evm_ov),
     raw dup3 hdDup3 (by evm_ov),
     raw add hdAdd (by evm_ov),
-    raw mstore 3 (solcErrorStringMem3 len word mem)
+    raw rawMstore 3 (solcErrorStringMem3 len word mem)
       (UInt256.ofNat 8) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
     raw swap1 hdSwap (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
       mem_cost
       (solcErrorStringMem3_mload64_of_size164 len word hmem hread64)
       (by decide) (by evm_ov),
@@ -269,7 +269,7 @@ theorem RD.solcErrorStringRevertTail_size164 {code : ByteArray} {g : Sat256}
     raw push1 ⟨100⟩ hd100 (by evm_ov),
     raw add hdAdd2 (by evm_ov),
     raw swap1 hdSwap4 (by evm_ov),
-    raw rev 0 hdRev mem_cost (by evm_ov)]
+    raw rawRev 0 hdRev mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
 -- GENERALIZES Reasoning.Reach.RD.solcCheckedAddStringRevert — use the size-164 revert tail.

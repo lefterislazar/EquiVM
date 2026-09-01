@@ -687,7 +687,7 @@ theorem blindAuctionX_withdraw_loadAmount {cA gh bl σ σ₀ A I} {g : Sat256}
     (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach
   have rd849₀ := evm_run rd834 with [
     jumpdest, caller, push0, swap1, dup2,
-    raw mstore 0 (withdrawKeyMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (withdrawKeyMem I) (UInt256.ofNat 3) (by decide)
       mem_cost
       (by
         change (UInt256.toByteArray (withdrawSourceWord I)).write 0 solcFreePtrMem 0 32 =
@@ -695,14 +695,14 @@ theorem blindAuctionX_withdraw_loadAmount {cA gh bl σ σ₀ A I} {g : Sat256}
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨7⟩, push1 ⟨32⟩,
-    raw mstore 0 (withdrawLoadHashMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (withdrawLoadHashMem I) (UInt256.ofNat 3) (by decide)
       mem_cost
       (by rfl)
       (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1,
-    raw keccak256 0 (withdrawAmountSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (withdrawAmountSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost (withdrawLoadMappingKeccak I) (by decide) (by evm_ov)]
-  obtain ⟨_, _, rd850₀⟩ := rd849₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd850₀⟩ := rd849₀.rawSload (by decide) (by evm_ov)
   exact ⟨_, _, by simpa [withdrawAmountWord, initState] using rd850₀⟩
 
 theorem blindAuctionX_withdraw_zero {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -748,29 +748,29 @@ theorem blindAuctionX_withdraw_toCall {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd873₀ := evm_run rd852 with [
     push2 ⟨884⟩, jumpiNT (by decide),
     caller, push0, dup2, dup2,
-    raw mstore 0 (withdrawRehashKeyMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (withdrawRehashKeyMem I) (UInt256.ofNat 3) (by decide)
       mem_cost
       (by rfl)
       (by decide) (by evm_ov),
     push1 ⟨7⟩, push1 ⟨32⟩,
-    raw mstore 0 (withdrawRehashMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (withdrawRehashMem I) (UInt256.ofNat 3) (by decide)
       mem_cost
       (by rfl)
       (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup3,
-    raw keccak256 0 (withdrawAmountSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (withdrawAmountSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost (withdrawRehashMappingKeccak I) (by decide) (by evm_ov),
     dup3, swap1]
-  obtain ⟨_, _, rd874₀⟩ := rd873₀.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd874₀⟩ := rd873₀.rawSstore hperm (by decide) (by evm_ov)
   have rd765₀ := evm_run rd874₀ with [
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (withdrawRehashMem_mload64 I) (by decide) (by evm_ov),
     swap1, swap2, swap1, dup4, swap1, push2 ⟨754⟩, jump (by jump_dest),
     jumpdest, push0, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (withdrawRehashMem_mload64 I) (by decide) (by evm_ov),
     dup1, dup4, sub, dup2, dup6, dup8]
-  obtain ⟨gasArg, rd766⟩ := rd765₀.gas (by decide) (by evm_ov)
+  obtain ⟨gasArg, rd766⟩ := rd765₀.rawGas (by decide) (by evm_ov)
   exact ⟨gasArg, _, _, by simpa [withdrawZeroMap] using rd766⟩
 
 set_option maxHeartbeats 1000000 in
@@ -944,16 +944,16 @@ theorem blindAuctionX_withdraw_postCallNonempty_toBranch {cA gh bl σ σ₀ A I}
   let mem2 : ByteArray := (UInt256.toByteArray (UInt256.add ⟨128⟩ rounded)).write 0 mem 64 32
   have rd798 := evm_run rd780 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost hfp (by decide) (by evm_ov),
     swap2, pop, push1 ⟨31⟩, not, push1 ⟨63⟩, returndatasize, add, and, dup3, add,
     push1 ⟨64⟩,
-    raw mstore 0 mem2 (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 mem2 (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   let mem3 : ByteArray := (UInt256.toByteArray rdsz).write 0 mem2 128 32
   have rd801 := evm_run rd798 with [
     returndatasize, dup3,
-    raw mstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
+    raw rawMstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
       mem3 (UInt256.ofNat 5) (by decide)
       (fun s haw hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -972,7 +972,7 @@ theorem blindAuctionX_withdraw_postCallNonempty_toBranch {cA gh bl σ σ₀ A I}
         SimpleAuction.withdrawReturnDataActiveWords o := by
     simp [SimpleAuction.withdrawReturnDataActiveWords, copyDest, copyLen, hcopyDest_toNat,
       hcopyLen_toNat]
-  have rd808 := RD.returndatacopy
+  have rd808 := RD.rawReturndatacopy
     (Cₘ (SimpleAuction.withdrawReturnDataActiveWords o) - Cₘ (UInt256.ofNat 5))
     mem4
     (SimpleAuction.withdrawReturnDataActiveWords o)
@@ -1008,7 +1008,7 @@ theorem blindAuctionX_withdraw_requireSuccess_revert {cA gh bl σ σ₀ A I} {g 
       mem aw rdata acc k C) :
     RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have rd827 := evm_run rd with [dup1, push2 ⟨830⟩, jumpiNT (by decide), push0, push0]
-  exact RD.rev _ rd827 (by decide)
+  exact RD.rawRev _ rd827 (by decide)
     (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
     (by evm_ov)
 

@@ -71,7 +71,7 @@ theorem ownable2StepX_pendingOwner {cA gh bl σ σ₀ A I} {g : Sat256}
       (UInt256.toByteArray (pendingOwnerReturnWord σ I)) := by
   obtain ⟨_, _, rd147⟩ := hreach
   have rd150 := evm_run rd147 with [jumpdest, push1 ⟨1⟩]
-  obtain ⟨_, _, rd151⟩ := rd150.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd151⟩ := rd150.rawSload (by decide) (by evm_ov)
   have rd119 := evm_run rd151 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and,
     push2 ⟨119⟩, jump (by jump_dest) ]

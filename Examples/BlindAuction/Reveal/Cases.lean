@@ -166,7 +166,7 @@ theorem scratch_revealLoopBody_refundOverflow_from1247_pair {I} {g : Sat256}
       hboundFakes hboundSecrets hvalueLookup hfakeLookup hfakeNorm hsecretLookup hblinded
       hdeposit hhash heq hover
   have rd1252₀ := evm_run rd with [jumpdest, push1 ⟨1⟩, dup5, add]
-  obtain ⟨_, _, rd1253₀⟩ := rd1252₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1253₀⟩ := rd1252₀.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1253⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1253⟩
       [deposit, secret, fakeWord, value, slot, i, refund, len, revealEnd, biddingEnd,
         secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
@@ -618,7 +618,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
     simpa [scratch_revealEvmLoopStack] using rd
   have rd1027 := evm_run rd' with [
     caller, push0, swap1, dup2,
-    raw mstore 0 mem1 aw (by decide)
+    raw rawMstore 0 mem1 aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
         rw [haw0]
@@ -626,7 +626,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
       (by rfl) haw0 (by evm_ov)]
   have rd1033 := evm_run rd1027 with [
     push1 ⟨4⟩, push1 ⟨32⟩,
-    raw mstore 0 mem2 aw (by decide)
+    raw rawMstore 0 mem2 aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
         rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
@@ -634,7 +634,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
         simp)
       (by rfl) haw32 (by evm_ov),
     push1 ⟨64⟩, dup2,
-    raw keccak256 0 (revealScratchBidsLengthSlot I) aw (by decide)
+    raw rawKeccak256 0 (revealScratchBidsLengthSlot I) aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
         rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
@@ -654,7 +654,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
         simpa [mem2, mem1, revealScratchSenderWord] using hword) haw64
       (by evm_ov),
     dup1]
-  obtain ⟨_, _, rd1039₀⟩ := rd1033.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1039₀⟩ := rd1033.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1039⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1039⟩
       [curLen, revealScratchBidsLengthSlot I, ⟨0⟩, i, refund, len, revealEnd, biddingEnd,
         secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
@@ -668,14 +668,14 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
     push2 ⟨1054⟩, jumpiT one_ne_zero_uint (by jump_dest), jumpdest]
   have rd1062 := evm_run rd1054 with [
     swap1, push0,
-    raw mstore 0 mem3 aw (by decide)
+    raw rawMstore 0 mem3 aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
         rw [haw0]
         simp)
       (by rfl) haw0 (by evm_ov),
     push1 ⟨32⟩, push0,
-    raw keccak256 0
+    raw rawKeccak256 0
       (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
       aw (by decide)
       (fun s haws hstk => by

@@ -756,20 +756,20 @@ theorem ballotX_voters_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hslot := votersKeccakSlot' I hcanon
   have rd335 := evm_run rd319 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 votersBaseSlotMem (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMstore 0 votersBaseSlotMem (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push0, swap2, dup3,
-    raw mstore 0 (votersHashMem (votersArgWord I)) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (votersHashMem (votersArgWord I)) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
-    raw keccak256 0 (votersBaseSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (votersBaseSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hslot (by decide) (by evm_ov) ]
   have rd337 := evm_run rd335 with [dup1]
-  obtain ⟨_, _, rd338⟩ := rd337.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd342⟩ := (evm_run rd338 with [swap2, dup2, add]).sload
+  obtain ⟨_, _, rd338⟩ := rd337.rawSload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd342⟩ := (evm_run rd338 with [swap2, dup2, add]).rawSload
     (by decide) (by evm_ov)
   obtain ⟨_, _, rd348⟩ := (evm_run rd342 with [
-    push1 ⟨2⟩, swap1, swap2, add ]).sload (by decide) (by evm_ov)
+    push1 ⟨2⟩, swap1, swap2, add ]).rawSload (by decide) (by evm_ov)
   have rd353 := evm_run rd348 with [push1 ⟨255⟩, dup3, and, swap2, push2 ⟨256⟩, swap1]
   have rd358 := RD.div rd353 (by decide) (by evm_ov)
   have rd370 := evm_run rd358 with [
@@ -777,17 +777,17 @@ theorem ballotX_voters_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jump (by jump_dest) ]
   have rd384 := evm_run rd370 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
       (votersHashMem_mload64 (votersArgWord I)) (by decide) (by evm_ov),
     push2 ⟨194⟩, swap5, swap4, swap3, swap2, swap1, swap4, dup5]
   have rd385 := evm_run rd384 with [
-    raw mstore 6 (votersReturnWeightMem (votersArgWord I) (votersWeightWord σ I)) (UInt256.ofNat 5)
+    raw rawMstore 6 (votersReturnWeightMem (votersArgWord I) (votersWeightWord σ I)) (UInt256.ofNat 5)
       (by decide) (fun s haw hstk => mstoreCost_of_stack haw hstk (by decide))
       (by rfl) (by decide) (by evm_ov)]
   have rd392 := evm_run rd385 with [
     swap2, iszero, iszero, push1 ⟨32⟩, dup5, add]
   have rd393 := evm_run rd392 with [
-    raw mstore 3
+    raw rawMstore 3
       (votersReturnVotedMem (votersArgWord I) (votersWeightWord σ I) (votersBoolWord σ I))
       (UInt256.ofNat 6) (by decide)
       (fun s haw hstk => mstoreCost_of_stack haw hstk (by decide))
@@ -795,7 +795,7 @@ theorem ballotX_voters_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd405 := evm_run rd393 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and, push1 ⟨64⟩, dup4, add]
   have rd406 := evm_run rd405 with [
-    raw mstore 3
+    raw rawMstore 3
       (votersReturnDelegateMem (votersArgWord I) (votersWeightWord σ I) (votersBoolWord σ I)
         (votersDelegateWord σ I))
       (UInt256.ofNat 7) (by decide)
@@ -813,7 +813,7 @@ theorem ballotX_voters_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (by decide) (by evm_ov)]
   have rd411 := evm_run rd406 with [push1 ⟨96⟩, dup3, add]
   have rd412 := evm_run rd411 with [
-    raw mstore 3
+    raw rawMstore 3
       (votersReturnMem (votersArgWord I) (votersWeightWord σ I) (votersBoolWord σ I)
         (votersDelegateWord σ I) (votersVoteWord σ I))
       (UInt256.ofNat 8) (by decide)
@@ -822,13 +822,13 @@ theorem ballotX_voters_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd416 := evm_run rd412 with [push1 ⟨128⟩, add, swap1, jump (by jump_dest)]
   have rd423 := evm_run rd416 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide) mem_cost
       (votersReturnMem_mload64 (votersArgWord I) (votersWeightWord σ I) (votersBoolWord σ I)
         (votersDelegateWord σ I) (votersVoteWord σ I))
       (by decide) (by evm_ov)]
   exact evm_run rd423 with [
     dup1, swap2, sub, swap1,
-    raw ret 0
+    raw rawRet 0
       (UInt256.toByteArray (votersWeightWord σ I) ++
         UInt256.toByteArray (votersBoolWord σ I) ++
         UInt256.toByteArray (votersDelegateWord σ I) ++

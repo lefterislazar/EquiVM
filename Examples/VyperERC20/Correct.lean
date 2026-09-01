@@ -595,7 +595,7 @@ theorem erc20InitcodeNonpayableRevert
     callvalue, push2 ⟨103⟩,
     jumpiT hwv (by vyper_erc20_ctor_jd),
     jumpdest, push0, dup1]
-  exact rd103.rev 0 (by vyper_erc20_ctor_decode)
+  exact rd103.rawRev 0 (by vyper_erc20_ctor_decode)
     (fun s _ hstks => memExpRevert0 s hstks) (by simp)
 
 theorem erc20InitcodeSuccess
@@ -627,53 +627,53 @@ theorem erc20InitcodeSuccess
     callvalue, push2 ⟨103⟩,
     jumpiNT (by simp [hwv]),
     push1 ⟨32⟩, push2 ⟨926⟩, push0,
-    raw codecopy 3 (erc20CtorArgMem initialSupply) (UInt256.ofNat 1)
+    raw rawCodecopy 3 (erc20CtorArgMem initialSupply) (UInt256.ofNat 1)
       (by vyper_erc20_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mload 0 initialSupply (UInt256.ofNat 1)
+    raw rawMload 0 initialSupply (UInt256.ofNat 1)
       (by vyper_erc20_ctor_decode)
       mem_cost
       (erc20CtorArgMem_mload0 initialSupply)
       (by decide) (by evm_ov),
     push0, caller, push1 ⟨32⟩,
-    raw mstore 3 (erc20CtorOwnerMem I.source initialSupply) (UInt256.ofNat 2)
+    raw rawMstore 3 (erc20CtorOwnerMem I.source initialSupply) (UInt256.ofNat 2)
       (by vyper_erc20_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mstore 0 (erc20CtorHashMem I.source initialSupply) (UInt256.ofNat 2)
+    raw rawMstore 0 (erc20CtorHashMem I.source initialSupply) (UInt256.ofNat 2)
       (by vyper_erc20_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (erc20BalanceOfSlot (.address I.source)) (UInt256.ofNat 2)
+    raw rawKeccak256 0 (erc20BalanceOfSlot (.address I.source)) (UInt256.ofNat 2)
       (by vyper_erc20_ctor_decode)
       mem_cost
       (erc20CtorKeccakSlot I.source initialSupply)
       (by decide) (by evm_ov)]
   obtain ⟨k', C', rdAfterBalanceStore⟩ :=
-    rdBeforeBalanceStore.sstore hperm (by vyper_erc20_ctor_decode) (by evm_ov)
+    rdBeforeBalanceStore.rawSstore hperm (by vyper_erc20_ctor_decode) (by evm_ov)
   have rdBeforeTotalSupplyStore := vyper_erc20_ctor_run rdAfterBalanceStore with [
     push1 ⟨32⟩, push2 ⟨926⟩, push0,
-    raw codecopy 0 (erc20CtorArgAgainMem I.source initialSupply) (UInt256.ofNat 2)
+    raw rawCodecopy 0 (erc20CtorArgAgainMem I.source initialSupply) (UInt256.ofNat 2)
       (by vyper_erc20_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mload 0 initialSupply (UInt256.ofNat 2)
+    raw rawMload 0 initialSupply (UInt256.ofNat 2)
       (by vyper_erc20_ctor_decode)
       mem_cost
       (erc20CtorArgAgainMem_mload0 I.source initialSupply)
       (by decide) (by evm_ov),
     push1 ⟨2⟩]
   obtain ⟨k'', C'', rdAfterTotalSupplyStore⟩ :=
-    rdBeforeTotalSupplyStore.sstore hperm (by vyper_erc20_ctor_decode) (by evm_ov)
+    rdBeforeTotalSupplyStore.rawSstore hperm (by vyper_erc20_ctor_decode) (by evm_ov)
   have rdBeforeTopic := vyper_erc20_ctor_run rdAfterTotalSupplyStore with [
     caller, push0]
   have rdAfterTopic := rdBeforeTopic.pushConst transferTransferTopic
@@ -681,26 +681,26 @@ theorem erc20InitcodeSuccess
     (by decide) (by vyper_erc20_ctor_decode) (by evm_ov)
   have rdBeforeReturn := vyper_erc20_ctor_run rdAfterTopic with [
     push1 ⟨32⟩, push2 ⟨926⟩, push1 ⟨64⟩,
-    raw codecopy 3 (erc20CtorLogMem I.source initialSupply) (UInt256.ofNat 3)
+    raw rawCodecopy 3 (erc20CtorLogMem I.source initialSupply) (UInt256.ofNat 3)
       (by vyper_erc20_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨64⟩,
-    raw log3 0 (UInt256.ofNat 3)
+    raw rawLog3 0 (UInt256.ofNat 3)
       (by vyper_erc20_ctor_decode)
       hperm
       mem_cost
       (by decide)
       (by evm_ov),
     push2 ⟨819⟩, push2 ⟨107⟩, push2 ⟨0⟩,
-    raw codecopy 70 (erc20CtorReturnMem I.source initialSupply) (UInt256.ofNat 26)
+    raw rawCodecopy 70 (erc20CtorReturnMem I.source initialSupply) (UInt256.ofNat 26)
       (by vyper_erc20_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push2 ⟨819⟩, push2 ⟨0⟩]
-  exact rdBeforeReturn.ret 0 vyperERC20Bytecode
+  exact rdBeforeReturn.rawRet 0 vyperERC20Bytecode
     (by vyper_erc20_ctor_decode)
     mem_cost
     (erc20CtorReturnMem_read I.source initialSupply)
@@ -966,7 +966,7 @@ theorem erc20X_balanceOfReach_of_mod0 {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
     push1 ⟨1⟩, shl, push2 ⟨805⟩, add, push1 ⟨30⟩]
-  have rdAfterCopy0 := rdBeforeCopy0.codecopy 3
+  have rdAfterCopy0 := rdBeforeCopy0.rawCodecopy 3
     (vyperERC20Bytecode.write
       (((⟨805⟩ : UInt256) +
         UInt256.shiftLeft (UInt256.mod (vyperRuntimeSelectorWord I) ⟨7⟩) ⟨1⟩).toNat)
@@ -978,7 +978,7 @@ theorem erc20X_balanceOfReach_of_mod0 {cA gh bl σ σ₀ A I} {g : Sat256}
       using rdAfterCopy0
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
-    raw mload 0 ⟨623⟩ (UInt256.ofNat 1)
+    raw rawMload 0 ⟨623⟩ (UInt256.ofNat 1)
       (by vyper_erc20_balance_decode)
       mem_cost
       balanceOfDispatchMem_mload0
@@ -996,7 +996,7 @@ theorem erc20X_approveReach_of_mod1 {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
     push1 ⟨1⟩, shl, push2 ⟨805⟩, add, push1 ⟨30⟩]
-  have rdAfterCopy0 := rdBeforeCopy0.codecopy 3
+  have rdAfterCopy0 := rdBeforeCopy0.rawCodecopy 3
     (vyperERC20Bytecode.write
       (((⟨805⟩ : UInt256) +
         UInt256.shiftLeft (UInt256.mod (vyperRuntimeSelectorWord I) ⟨7⟩) ⟨1⟩).toNat)
@@ -1008,7 +1008,7 @@ theorem erc20X_approveReach_of_mod1 {cA gh bl σ σ₀ A I} {g : Sat256}
       using rdAfterCopy0
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
-    raw mload 0 ⟨206⟩ (UInt256.ofNat 1)
+    raw rawMload 0 ⟨206⟩ (UInt256.ofNat 1)
       (by vyper_erc20_approve_decode)
       mem_cost
       approveDispatchMem_mload0
@@ -1026,7 +1026,7 @@ theorem erc20X_transferFromReach_of_mod2 {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
     push1 ⟨1⟩, shl, push2 ⟨805⟩, add, push1 ⟨30⟩]
-  have rdAfterCopy0 := rdBeforeCopy0.codecopy 3
+  have rdAfterCopy0 := rdBeforeCopy0.rawCodecopy 3
     (vyperERC20Bytecode.write
       (((⟨805⟩ : UInt256) +
         UInt256.shiftLeft (UInt256.mod (vyperRuntimeSelectorWord I) ⟨7⟩) ⟨1⟩).toNat)
@@ -1038,7 +1038,7 @@ theorem erc20X_transferFromReach_of_mod2 {cA gh bl σ σ₀ A I} {g : Sat256}
       using rdAfterCopy0
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
-    raw mload 0 ⟨331⟩ (UInt256.ofNat 1)
+    raw rawMload 0 ⟨331⟩ (UInt256.ofNat 1)
       (by native_decide)
       mem_cost
       transferFromDispatchMem_mload0
@@ -1056,7 +1056,7 @@ theorem erc20X_transferReach_of_mod3 {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
     push1 ⟨1⟩, shl, push2 ⟨805⟩, add, push1 ⟨30⟩]
-  have rdAfterCopy0 := rdBeforeCopy0.codecopy 3
+  have rdAfterCopy0 := rdBeforeCopy0.rawCodecopy 3
     (vyperERC20Bytecode.write
       (((⟨805⟩ : UInt256) +
         UInt256.shiftLeft (UInt256.mod (vyperRuntimeSelectorWord I) ⟨7⟩) ⟨1⟩).toNat)
@@ -1068,7 +1068,7 @@ theorem erc20X_transferReach_of_mod3 {cA gh bl σ σ₀ A I} {g : Sat256}
       using rdAfterCopy0
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
-    raw mload 0 ⟨24⟩ (UInt256.ofNat 1)
+    raw rawMload 0 ⟨24⟩ (UInt256.ofNat 1)
       (by vyper_erc20_transfer_decode)
       mem_cost
       transferDispatchMem_mload0
@@ -1086,7 +1086,7 @@ theorem erc20X_selectorMissReach_of_mod4 {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
     push1 ⟨1⟩, shl, push2 ⟨805⟩, add, push1 ⟨30⟩]
-  have rdAfterCopy0 := rdBeforeCopy0.codecopy 3
+  have rdAfterCopy0 := rdBeforeCopy0.rawCodecopy 3
     (vyperERC20Bytecode.write
       (((⟨805⟩ : UInt256) +
         UInt256.shiftLeft (UInt256.mod (vyperRuntimeSelectorWord I) ⟨7⟩) ⟨1⟩).toNat)
@@ -1098,7 +1098,7 @@ theorem erc20X_selectorMissReach_of_mod4 {cA gh bl σ σ₀ A I} {g : Sat256}
       using rdAfterCopy0
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
-    raw mload 0 ⟨797⟩ (UInt256.ofNat 1)
+    raw rawMload 0 ⟨797⟩ (UInt256.ofNat 1)
       (by vyper_erc20_runtime_decode)
       mem_cost
       selectorMissDispatchMem_mload0
@@ -1116,7 +1116,7 @@ theorem erc20X_totalSupplyReach_of_mod5 {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
     push1 ⟨1⟩, shl, push2 ⟨805⟩, add, push1 ⟨30⟩]
-  have rdAfterCopy0 := rdBeforeCopy0.codecopy 3
+  have rdAfterCopy0 := rdBeforeCopy0.rawCodecopy 3
     (vyperERC20Bytecode.write
       (((⟨805⟩ : UInt256) +
         UInt256.shiftLeft (UInt256.mod (vyperRuntimeSelectorWord I) ⟨7⟩) ⟨1⟩).toNat)
@@ -1128,7 +1128,7 @@ theorem erc20X_totalSupplyReach_of_mod5 {cA gh bl σ σ₀ A I} {g : Sat256}
       using rdAfterCopy0
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
-    raw mload 0 ⟨769⟩ (UInt256.ofNat 1)
+    raw rawMload 0 ⟨769⟩ (UInt256.ofNat 1)
       (by vyper_erc20_runtime_decode)
       mem_cost
       runtimeDispatchMem_mload0
@@ -1146,7 +1146,7 @@ theorem erc20X_allowanceReach_of_mod6 {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
     push1 ⟨1⟩, shl, push2 ⟨805⟩, add, push1 ⟨30⟩]
-  have rdAfterCopy0 := rdBeforeCopy0.codecopy 3
+  have rdAfterCopy0 := rdBeforeCopy0.rawCodecopy 3
     (vyperERC20Bytecode.write
       (((⟨805⟩ : UInt256) +
         UInt256.shiftLeft (UInt256.mod (vyperRuntimeSelectorWord I) ⟨7⟩) ⟨1⟩).toNat)
@@ -1158,7 +1158,7 @@ theorem erc20X_allowanceReach_of_mod6 {cA gh bl σ σ₀ A I} {g : Sat256}
       using rdAfterCopy0
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
-    raw mload 0 ⟨681⟩ (UInt256.ofNat 1)
+    raw rawMload 0 ⟨681⟩ (UInt256.ofNat 1)
       (by vyper_erc20_allowance_decode)
       mem_cost
       allowanceDispatchMem_mload0

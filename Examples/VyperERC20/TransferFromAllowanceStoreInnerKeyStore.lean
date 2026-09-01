@@ -28,7 +28,7 @@ theorem erc20X_transferFromAllowanceStoreAfterInnerKeyStore {cA gh bl σ σ₀ A
       (UInt256.ofNat 5) ByteArray.empty
       (cA, σ) k C := by
   obtain ⟨k, C, rd472⟩ := hreach
-  have rd473 := rd472.mstore 0
+  have rd473 := rd472.rawMstore 0
     (wordAt32Mem (transferFromFromWord I)
       (transferFromFromBalanceHashMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)

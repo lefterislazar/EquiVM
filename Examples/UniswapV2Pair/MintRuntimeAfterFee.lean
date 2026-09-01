@@ -26,7 +26,7 @@ theorem uniswapMintRuntimeAfterMintFeeTotalSupplyZero
         toWord, ⟨861⟩, sel]
       mem aw rdata (cAFee, σFee) k' C' := by
   have rd3704pre := evm_run rd3701 with [jumpdest, push1 ⟨0⟩]
-  obtain ⟨k3705, C3705, rd3705₀⟩ := rd3704pre.sload (by native_decide) (by evm_ov)
+  obtain ⟨k3705, C3705, rd3705₀⟩ := rd3704pre.rawSload (by native_decide) (by evm_ov)
   have rd3705 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3705⟩
       [uniswapSlotWord ⟨0⟩ σFee I, feeOn, ⟨0⟩, amount1, amount0, balance1, balance0,
@@ -60,7 +60,7 @@ theorem uniswapMintRuntimeAfterMintFeeTotalSupplyNonzero
         toWord, ⟨861⟩, sel]
       mem aw rdata (cAFee, σFee) k' C' := by
   have rd3704pre := evm_run rd3701 with [jumpdest, push1 ⟨0⟩]
-  obtain ⟨k3705, C3705, rd3705₀⟩ := rd3704pre.sload (by native_decide) (by evm_ov)
+  obtain ⟨k3705, C3705, rd3705₀⟩ := rd3704pre.rawSload (by native_decide) (by evm_ov)
   have rd3705 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3705⟩
       [uniswapSlotWord ⟨0⟩ σFee I, feeOn, ⟨0⟩, amount1, amount0, balance1, balance0,
@@ -848,7 +848,7 @@ theorem uniswapMintRuntimeAfterUpdateFeeOn
   rw [isZero_eq_zero_of_ne hfeeOn] at rd3932pre
   have rd3933 := evm_run rd3932pre with [jumpiNT (by native_decide)]
   have rd3935pre := evm_run rd3933 with [push1 ⟨8⟩]
-  obtain ⟨k3936, C3936, rd3936₀⟩ := rd3935pre.sload (by native_decide) (by evm_ov)
+  obtain ⟨k3936, C3936, rd3936₀⟩ := rd3935pre.rawSload (by native_decide) (by evm_ov)
   have rd3936 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3936⟩
       [slot8, totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1,
@@ -872,7 +872,7 @@ theorem uniswapMintRuntimeAfterUpdateFeeOn
     (by simpa [packedReserve0, packedReserve1, slot8] using hfit) (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3973 := evm_run rd3970 with [jumpdest, push1 ⟨11⟩]
-  obtain ⟨_, _, rd3974⟩ := rd3973.sstore hperm (by native_decide)
+  obtain ⟨_, _, rd3974⟩ := rd3973.rawSstore hperm (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [slot8, packedReserve0, packedReserve1] using rd3974⟩
 
@@ -1018,21 +1018,21 @@ theorem uniswapMintRuntimeFinalizeToReturnWrapper
       (cAFee, sstoreAccountMap I.codeOwner σPost ⟨12⟩ (⟨1⟩ : UInt256)) k' C' := by
   let memAmount0 := (UInt256.toByteArray amount0).write 0 mem 128 32
   have rd3978 := evm_run rd3974 with [jumpdest, push1 ⟨64⟩, dup1]
-  have rd3979 := rd3978.mload 0 ⟨128⟩ feeToStaticcallActiveWords
+  have rd3979 := rd3978.rawMload 0 ⟨128⟩ feeToStaticcallActiveWords
     (by native_decide) mem_cost hmload64 (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3981 := evm_run rd3979 with [dup6, dup2]
-  have rd3982 := rd3981.mstore 0 memAmount0 feeToStaticcallActiveWords
+  have rd3982 := rd3981.rawMstore 0 memAmount0 feeToStaticcallActiveWords
     (by native_decide) mem_cost (by unfold memAmount0; rfl) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3988pre := evm_run rd3982 with [push1 ⟨32⟩, dup2, add, dup6, swap1]
-  have rd3989 := rd3988pre.mstore 0 (uniswapMintLogMem amount0 amount1 mem)
+  have rd3989 := rd3988pre.rawMstore 0 (uniswapMintLogMem amount0 amount1 mem)
     feeToStaticcallActiveWords (by native_decide) mem_cost
     (by unfold uniswapMintLogMem memAmount0; rfl) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3992 := evm_run rd3989 with [
     dup2,
-    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
+    raw rawMload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
       mem_cost hlogMload64 (by native_decide) (by evm_ov),
     caller, swap3]
   have rd4026 := rd3992.pushConst uniswapMintTopic (width := 32) (op := .PUSH32)
@@ -1043,7 +1043,7 @@ theorem uniswapMintRuntimeFinalizeToReturnWrapper
     (by native_decide) hperm mem_cost (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd4039pre := evm_run rd4033 with [pop, pop, push1 ⟨1⟩, push1 ⟨12⟩]
-  obtain ⟨_, _, rd4040⟩ := rd4039pre.sstore hperm (by native_decide)
+  obtain ⟨_, _, rd4040⟩ := rd4039pre.rawSstore hperm (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd4050 := evm_run rd4040 with [
     pop, swap5, swap7, swap6, pop, pop, pop, pop, pop, pop]
@@ -1075,13 +1075,13 @@ theorem RD.uniswapReturnWord861FromFeeMem {g : Sat256} {s0 : State} {ee : Execut
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
+    raw rawMload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
       mem_cost hmload64 (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov),
     raw dup3 (by native_decide) (by evm_ov),
-    raw mstore 0 memout feeToStaticcallActiveWords (by native_decide)
+    raw rawMstore 0 memout feeToStaticcallActiveWords (by native_decide)
       mem_cost hmemout (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
+    raw rawMload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
       mem_cost hmemoutLoad64 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov),
@@ -1090,7 +1090,7 @@ theorem RD.uniswapReturnWord861FromFeeMem {g : Sat256} {s0 : State} {ee : Execut
     raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
-    raw ret 0 (UInt256.toByteArray val) (by native_decide) mem_cost
+    raw rawRet 0 (UInt256.toByteArray val) (by native_decide) mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
           show ((⟨32⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat =

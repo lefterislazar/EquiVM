@@ -75,7 +75,7 @@ theorem vyperRuntimeRevert801 {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest,
     push0,
     dup1]
-  exact rd804.rev 0 (by vyper_erc20_runtime_decode)
+  exact rd804.rawRev 0 (by vyper_erc20_runtime_decode)
     (fun s _ hstks => memExpRevert0 s hstks) (by omega)
 
 theorem vyperRuntimeRevert797 {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -90,7 +90,7 @@ theorem vyperRuntimeRevert797 {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest,
     push0,
     push0]
-  exact rd800.rev 0 (by vyper_erc20_runtime_decode)
+  exact rd800.rawRev 0 (by vyper_erc20_runtime_decode)
     (fun s _ hstks => memExpRevert0 s hstks) (by omega)
 
 theorem calldataSizeGuardOk {n m : Nat}
@@ -186,7 +186,7 @@ theorem erc20X_totalSupplyReach {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨30⟩]
   have rdBeforeCopy := by
     simpa [hword, totalSupplySelectorWord] using rdBeforeCopy0
-  have rdAfterCopy := rdBeforeCopy.codecopy 3 runtimeDispatchMem (UInt256.ofNat 1)
+  have rdAfterCopy := rdBeforeCopy.rawCodecopy 3 runtimeDispatchMem (UInt256.ofNat 1)
     (by vyper_erc20_runtime_decode)
     mem_cost
     (by native_decide)
@@ -194,7 +194,7 @@ theorem erc20X_totalSupplyReach {cA gh bl σ σ₀ A I} {g : Sat256}
     (by evm_ov)
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
-    raw mload 0 ⟨769⟩ (UInt256.ofNat 1)
+    raw rawMload 0 ⟨769⟩ (UInt256.ofNat 1)
       (by vyper_erc20_runtime_decode)
       mem_cost
       runtimeDispatchMem_mload0
@@ -220,16 +220,16 @@ theorem erc20X_totalSupplyFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpiNT (by simp [hwv]),
     push1 ⟨2⟩]
   obtain ⟨k1, C1, rdAfterLoad⟩ :=
-    rdBeforeLoad.sload (by vyper_erc20_runtime_decode) (by evm_ov)
+    rdBeforeLoad.rawSload (by vyper_erc20_runtime_decode) (by evm_ov)
   have rdBeforeReturn := evm_run rdAfterLoad with [
     push1 ⟨64⟩,
-    raw mstore 6 (totalSupplyReturnMem (totalSupplyWord σ I)) (UInt256.ofNat 3)
+    raw rawMstore 6 (totalSupplyReturnMem (totalSupplyWord σ I)) (UInt256.ofNat 3)
       (by vyper_erc20_runtime_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨64⟩]
-  exact rdBeforeReturn.ret 0 (UInt256.toByteArray (totalSupplyWord σ I))
+  exact rdBeforeReturn.rawRet 0 (UInt256.toByteArray (totalSupplyWord σ I))
     (by vyper_erc20_runtime_decode)
     mem_cost
     (totalSupplyReturnMem_read64 (totalSupplyWord σ I))

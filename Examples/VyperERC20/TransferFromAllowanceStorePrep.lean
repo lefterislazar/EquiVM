@@ -38,7 +38,7 @@ theorem erc20X_transferFromAllowanceStoreInnerSlot {cA gh bl σ σ₀ A I} {g : 
     unfold transferFromAllowanceInnerSlotWord
     rw [transferFromAllowanceInnerScratchMem_read0_64,
       transferFromAllowanceInnerHashMem_read0_64]
-  have rd479 := rd477.keccak256 0
+  have rd479 := rd477.rawKeccak256 0
     (transferFromAllowanceInnerSlotWord (transferFromFromWord I) (transferFromToWord I))
     (UInt256.ofNat 5)
     (by native_decide) mem_cost hslot (by decide) (by evm_ov)

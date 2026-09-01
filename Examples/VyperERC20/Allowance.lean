@@ -465,7 +465,7 @@ theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     push2 ⟨801⟩,
     jumpiNT (by simpa [allowanceOwnerWord, calldataWord] using hcanonOwnerGuard),
     push1 ⟨64⟩,
-    raw mstore 6 (allowanceOwnerArgMem (allowanceOwnerWord I)) (UInt256.ofNat 3)
+    raw rawMstore 6 (allowanceOwnerArgMem (allowanceOwnerWord I)) (UInt256.ofNat 3)
       (by vyper_erc20_allowance_decode)
       mem_cost
       rfl
@@ -478,7 +478,7 @@ theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     push2 ⟨801⟩,
     jumpiNT (by simpa [allowanceSpenderWord, calldataWord] using hcanonSpenderGuard),
     push1 ⟨96⟩,
-    raw mstore 3 (allowanceSpenderArgMem (allowanceOwnerWord I) (allowanceSpenderWord I))
+    raw rawMstore 3 (allowanceSpenderArgMem (allowanceOwnerWord I) (allowanceSpenderWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_allowance_decode)
       mem_cost
@@ -486,7 +486,7 @@ theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov),
     push1 ⟨1⟩,
     push1 ⟨64⟩,
-    raw mload 0 (allowanceOwnerWord I) (UInt256.ofNat 4)
+    raw rawMload 0 (allowanceOwnerWord I) (UInt256.ofNat 4)
       (by vyper_erc20_allowance_decode)
       mem_cost
       (by
@@ -498,14 +498,14 @@ theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
           (allowanceSpenderArgMem_read64 (allowanceOwnerWord I) (allowanceSpenderWord I)))
       (by decide) (by evm_ov),
     push1 ⟨32⟩,
-    raw mstore 0 (allowanceInnerKeyMem (allowanceOwnerWord I) (allowanceSpenderWord I))
+    raw rawMstore 0 (allowanceInnerKeyMem (allowanceOwnerWord I) (allowanceSpenderWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_allowance_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mstore 0 (allowanceInnerHashMem (allowanceOwnerWord I) (allowanceSpenderWord I))
+    raw rawMstore 0 (allowanceInnerHashMem (allowanceOwnerWord I) (allowanceSpenderWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_allowance_decode)
       mem_cost
@@ -513,7 +513,7 @@ theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov),
     push1 ⟨64⟩,
     push0,
-    raw keccak256 0 (allowanceInnerSlotWord (allowanceOwnerWord I) (allowanceSpenderWord I))
+    raw rawKeccak256 0 (allowanceInnerSlotWord (allowanceOwnerWord I) (allowanceSpenderWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_allowance_decode)
       mem_cost
@@ -521,7 +521,7 @@ theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov),
     dup1,
     push1 ⟨96⟩,
-    raw mload 0 (allowanceSpenderWord I) (UInt256.ofNat 4)
+    raw rawMload 0 (allowanceSpenderWord I) (UInt256.ofNat 4)
       (by vyper_erc20_allowance_decode)
       mem_cost
       (by
@@ -533,14 +533,14 @@ theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
           (allowanceInnerHashMem_read96 (allowanceOwnerWord I) (allowanceSpenderWord I)))
       (by decide) (by evm_ov),
     push1 ⟨32⟩,
-    raw mstore 0 (allowanceOuterKeyMem (allowanceOwnerWord I) (allowanceSpenderWord I))
+    raw rawMstore 0 (allowanceOuterKeyMem (allowanceOwnerWord I) (allowanceSpenderWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_allowance_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mstore 0 (allowanceOuterHashMem (allowanceOwnerWord I) (allowanceSpenderWord I))
+    raw rawMstore 0 (allowanceOuterHashMem (allowanceOwnerWord I) (allowanceSpenderWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_allowance_decode)
       mem_cost
@@ -548,7 +548,7 @@ theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov),
     push1 ⟨64⟩,
     push0,
-    raw keccak256 0 (allowanceSlot I) (UInt256.ofNat 4)
+    raw rawKeccak256 0 (allowanceSlot I) (UInt256.ofNat 4)
       (by vyper_erc20_allowance_decode)
       mem_cost
       hslot
@@ -556,10 +556,10 @@ theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     swap1,
     pop]
   obtain ⟨k1, C1, rdAfterLoad⟩ :=
-    rdBeforeLoad.sload (by vyper_erc20_allowance_decode) (by evm_ov)
+    rdBeforeLoad.rawSload (by vyper_erc20_allowance_decode) (by evm_ov)
   have rdBeforeReturn := evm_run rdAfterLoad with [
     push1 ⟨128⟩,
-    raw mstore 3 (allowanceReturnMem (allowanceOwnerWord I) (allowanceSpenderWord I)
+    raw rawMstore 3 (allowanceReturnMem (allowanceOwnerWord I) (allowanceSpenderWord I)
         (allowanceWord σ I)) (UInt256.ofNat 5)
       (by vyper_erc20_allowance_decode)
       mem_cost
@@ -567,7 +567,7 @@ theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov),
     push1 ⟨32⟩,
     push1 ⟨128⟩]
-  exact rdBeforeReturn.ret 0 (UInt256.toByteArray (allowanceWord σ I))
+  exact rdBeforeReturn.rawRet 0 (UInt256.toByteArray (allowanceWord σ I))
     (by vyper_erc20_allowance_decode)
     mem_cost
     (allowanceReturnMem_read128 (allowanceOwnerWord I) (allowanceSpenderWord I) (allowanceWord σ I))
@@ -679,7 +679,7 @@ theorem erc20AllowanceX_noncanon_spender {cA gh bl σ σ₀ A I} {g : Sat256}
     push2 ⟨801⟩,
     jumpiNT (by simpa [allowanceOwnerWord, calldataWord] using hcanonOwnerGuard),
     push1 ⟨64⟩,
-    raw mstore 6 (allowanceOwnerArgMem (allowanceOwnerWord I)) (UInt256.ofNat 3)
+    raw rawMstore 6 (allowanceOwnerArgMem (allowanceOwnerWord I)) (UInt256.ofNat 3)
       (by vyper_erc20_allowance_decode)
       mem_cost
       rfl
@@ -755,7 +755,7 @@ theorem erc20X_allowanceReach {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨30⟩]
   have rdBeforeCopy := by
     simpa [hword, allowanceSelectorWord] using rdBeforeCopy0
-  have rdAfterCopy := rdBeforeCopy.codecopy 3 allowanceDispatchMem (UInt256.ofNat 1)
+  have rdAfterCopy := rdBeforeCopy.rawCodecopy 3 allowanceDispatchMem (UInt256.ofNat 1)
     (by vyper_erc20_allowance_decode)
     mem_cost
     (by native_decide)
@@ -763,7 +763,7 @@ theorem erc20X_allowanceReach {cA gh bl σ σ₀ A I} {g : Sat256}
     (by evm_ov)
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
-    raw mload 0 ⟨681⟩ (UInt256.ofNat 1)
+    raw rawMload 0 ⟨681⟩ (UInt256.ofNat 1)
       (by vyper_erc20_allowance_decode)
       mem_cost
       allowanceDispatchMem_mload0

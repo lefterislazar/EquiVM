@@ -63,7 +63,7 @@ theorem erc20X_transferFromAllowanceStoreGuard {cA gh bl σ σ₀ A I} {g : Sat2
     simpa [transferFromValueWord] using hdebitWordRaw
   have rd465 := evm_run rd445 with [
     push1 ⟨128⟩,
-    raw mload 0 (transferFromCurrentAllowanceRaw σ I) (UInt256.ofNat 5)
+    raw rawMload 0 (transferFromCurrentAllowanceRaw σ I) (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding

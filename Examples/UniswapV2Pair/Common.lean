@@ -1580,7 +1580,7 @@ theorem RD.uniswapLockEnterBodyLocked {g : Sat256} {s0 : State} {ee : ExecutionE
   have heqZero : UInt256.eq ⟨1⟩ lockedWord = ⟨0⟩ := by
     exact u256_eq_of_ne (by intro hbad; exact hlockedWord_ne hbad.symm)
   have rd2 := h.push1 ⟨12⟩ hd0 (by omega)
-  obtain ⟨_, _, rd3₀⟩ := rd2.sload hd2 (by omega)
+  obtain ⟨_, _, rd3₀⟩ := rd2.rawSload hd2 (by omega)
   have rd3 := rd3₀
   have hraw :
       (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
@@ -1640,7 +1640,7 @@ theorem RD.uniswapLockEnterBodyOk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   rcases hwf with ⟨hguard, hdOk, hdOk1, hdOk3, hdOk5, hdOk6, hdOk7⟩
   rcases hguard with ⟨hd0, hd2, hd3, hd5, hd6, hd9⟩
   have rd2 := h.push1 ⟨12⟩ hd0 (by omega)
-  obtain ⟨_, _, rd3₀⟩ := rd2.sload hd2 (by omega)
+  obtain ⟨_, _, rd3₀⟩ := rd2.rawSload hd2 (by omega)
   have rd3 := rd3₀
   rw [hunlocked] at rd3
   have rd5 := rd3.push1 ⟨1⟩ hd3 (by simp only [List.length_cons]; omega)
@@ -1654,7 +1654,7 @@ theorem RD.uniswapLockEnterBodyOk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rdOk5 := rdOk3.push1 ⟨12⟩ hdOk3 (by simp only [List.length_cons]; omega)
   have rdOk6 := rdOk5.dup2 hdOk5 (by omega)
   have rdOk7 := rdOk6.swap1 hdOk6 (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rdAfter⟩ := rdOk7.sstore hperm hdOk7
+  obtain ⟨_, _, rdAfter⟩ := rdOk7.rawSstore hperm hdOk7
     (by simp only [List.length_cons]; omega)
   have hpcOut :
       okPc + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =

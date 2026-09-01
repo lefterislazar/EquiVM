@@ -219,16 +219,16 @@ theorem erc6909TransferFromX_operatorFalse_insufficientAllowance
     jumpiNT (by rw [hltAmount]; decide) ]
   exact evm_run rd1266 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (erc6909ScratchMem_mload64 hbase hread64) (by decide) (by evm_ov),
     push4 ⟨0x2c51fead⟩, push1 ⟨225⟩, shl, dup2,
-    raw mstore 6
+    raw rawMstore 6
       (transferFromInsufficientAllowanceSelectorBaseMem
         (transferFromOperatorAllowanceScratchMem I))
       (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, and,
     push1 ⟨4⟩, dup3, add,
-    raw mstore 3
+    raw rawMstore 3
       (transferFromInsufficientAllowanceSenderBaseMem
         (transferFromOperatorAllowanceScratchMem I) (transferFromCallerWord I))
       (UInt256.ofNat 6) (by decide) mem_cost
@@ -239,20 +239,20 @@ theorem erc6909TransferFromX_operatorFalse_insufficientAllowance
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨36⟩, dup2, add, dup3, swap1,
-    raw mstore 3
+    raw rawMstore 3
       (transferFromInsufficientAllowanceAllowanceBaseMem
         (transferFromOperatorAllowanceScratchMem I) (transferFromCallerWord I)
         (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I))
       (UInt256.ofNat 7) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨68⟩, dup2, add, dup4, swap1,
-    raw mstore 3
+    raw rawMstore 3
       (transferFromInsufficientAllowanceAmountBaseMem
         (transferFromOperatorAllowanceScratchMem I) (transferFromCallerWord I)
         (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I)
         (transferFromAmountWord I))
       (UInt256.ofNat 8) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨100⟩, dup2, add, dup5, swap1,
-    raw mstore 3
+    raw rawMstore 3
       (transferFromInsufficientAllowanceIdBaseMem
         (transferFromOperatorAllowanceScratchMem I) (transferFromCallerWord I)
         (transferFromIdWord I)
@@ -261,7 +261,7 @@ theorem erc6909TransferFromX_operatorFalse_insufficientAllowance
       (UInt256.ofNat 9) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨132⟩, add, push2 ⟨698⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide)
       mem_cost
       (transferFromInsufficientAllowanceIdBaseMem_mload64 (transferFromCallerWord I)
         (transferFromIdWord I)
@@ -269,7 +269,7 @@ theorem erc6909TransferFromX_operatorFalse_insufficientAllowance
         (transferFromAmountWord I) hbase hread64)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rawRev 0 (by decide) mem_cost (by evm_ov) ]
 
 theorem erc6909TransferFromX_operatorApproved_revert_sender_zero
     {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}

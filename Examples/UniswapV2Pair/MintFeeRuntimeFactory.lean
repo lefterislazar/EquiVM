@@ -44,7 +44,7 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesize
   let factory := mintFeeFactoryWord σ'' I
   have rd7705 := evm_run rd7696 with [
     jumpdest, push1 ⟨0⟩, dup1, push1 ⟨5⟩, push1 ⟨0⟩, swap1]
-  obtain ⟨k7706, C7706, rd7706₀⟩ := rd7705.sload (by native_decide) (by evm_ov)
+  obtain ⟨k7706, C7706, rd7706₀⟩ := rd7705.rawSload (by native_decide) (by evm_ov)
   have rd7706 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7706⟩
       [factoryRaw, ⟨0⟩, ⟨0⟩, ⟨0⟩,
@@ -65,7 +65,7 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesize
     show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide,
     u256_land_solcAddrMask_idem_left factoryRaw] at rd7738
-  have rd7739 := rd7738.mload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords
+  have rd7739 := rd7738.rawMload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords
     (by native_decide)
     mem_cost
     (balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
@@ -77,13 +77,13 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesize
   have rd7750 := rd7750pre
   rw [show UInt256.land (⟨0xffffffff⟩ : UInt256) feeToSelectorWord =
       feeToSelectorWord from by native_decide] at rd7750
-  have rd7751 := rd7750.mstore 0 (feeToSelectorMem baseMem) feeToStaticcallActiveWords
+  have rd7751 := rd7750.rawMstore 0 (feeToSelectorMem baseMem) feeToStaticcallActiveWords
     (by native_decide) mem_cost (by rfl) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd7758 := evm_run rd7751 with [
     push1 ⟨4⟩, add, push1 ⟨32⟩, push1 ⟨64⟩]
   rw [show (⟨4⟩ : UInt256) + ⟨128⟩ = ⟨132⟩ from by decide] at rd7758
-  have rd7759 := rd7758.mload 0 ⟨128⟩ feeToStaticcallActiveWords
+  have rd7759 := rd7758.rawMload 0 ⟨128⟩ feeToStaticcallActiveWords
     (by native_decide)
     mem_cost
     (by
@@ -310,7 +310,7 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCall
         (by jump_dest) (by native_decide) (by native_decide) (by native_decide)
         (by simp only [List.length_cons, List.length_nil]; omega)
     have rd7824 := evm_run rd7822 with [push1 ⟨11⟩]
-    obtain ⟨k7825, C7825, rd7825₀⟩ := rd7824.sload (by native_decide) (by evm_ov)
+    obtain ⟨k7825, C7825, rd7825₀⟩ := rd7824.rawSload (by native_decide) (by evm_ov)
     exact ⟨k7825, C7825, by simpa [baseMem, mintFeeKLastSlotWord, uniswapSlotWord] using rd7825₀⟩
 
 set_option maxHeartbeats 1000000 in
@@ -388,7 +388,7 @@ theorem uniswapMintFeeRuntimeFeeOffKLastNonzeroReturn
   rw [isZero_eq_zero_of_ne hkLastNonzero] at rd8038pre
   have rd8033 := evm_run rd8038pre with [jumpiNT (by native_decide)]
   have rd8037 := evm_run rd8033 with [push1 ⟨0⟩, push1 ⟨11⟩]
-  obtain ⟨_, _, rd8038⟩ := rd8037.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd8038⟩ := rd8037.rawSstore hperm (by native_decide) (by evm_ov)
   exact ⟨_, _, evm_run rd8038 with [jumpdest, pop, pop, swap3, swap2, pop, pop,
     jump (by jump_dest)]⟩
 

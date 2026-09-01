@@ -60,12 +60,12 @@ theorem erc20X_transferFromAfterFromLoadSlot {cA gh bl σ σ₀ A I} {g : Sat256
     native_decide
   have rd504 := rd502.push1 ⟨64⟩ (by native_decide) (by evm_ov)
   have rd505 := rd504.push0 (by native_decide) (by evm_ov)
-  have rd506 := rd505.keccak256 0
+  have rd506 := rd505.rawKeccak256 0
     (transferFromFromSlot I)
     (UInt256.ofNat 5)
     (by native_decide) mem_cost hslot (by decide) (by evm_ov)
   have rd507 := rd506.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨k1, C1, rd508⟩ := rd507.sload
+  obtain ⟨k1, C1, rd508⟩ := rd507.rawSload
     (by vyper_erc20_transferFrom_decode) (by evm_ov)
   exact ⟨_, _, by
     simpa [evm0, evm1, hpc508, hfromLoadRaw.symm, transferFromAfterFromLoadMemI] using rd508⟩

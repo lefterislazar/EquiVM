@@ -66,7 +66,7 @@ theorem RD.uniswapUpdateOverflowStringRevertTail_aw6_size164 {g : Sat256} {s0 : 
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd6998 := evm_run h with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
@@ -74,15 +74,15 @@ theorem RD.uniswapUpdateOverflowStringRevertTail_aw6_size164 {g : Sat256} {s0 : 
     (by decide) (by decide) (by evm_ov)
   have rd7021 := evm_run rd7002 with [
     push1 ⟨229⟩, shl, dup2,
-    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 6)
+    raw rawMstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 6)
       (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
-    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
+    raw rawMstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
       (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨19⟩, push1 ⟨36⟩, dup3, add,
-    raw mstore 3 (solcErrorStringMem2 (⟨19⟩ : UInt256) mem)
+    raw rawMstore 3 (solcErrorStringMem2 (⟨19⟩ : UInt256) mem)
       (UInt256.ofNat 7) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov)]
   have rd7044 := rd7021.pushConst
@@ -90,18 +90,18 @@ theorem RD.uniswapUpdateOverflowStringRevertTail_aw6_size164 {g : Sat256} {s0 : 
     (width := 19) (op := .PUSH19) (by decide) (by decide) (by evm_ov)
   exact evm_run rd7044 with [
     push1 ⟨104⟩, shl, push1 ⟨68⟩, dup3, add,
-    raw mstore 3
+    raw rawMstore 3
       (solcErrorStringMem3 (⟨19⟩ : UInt256) uniswapUpdateOverflowStringWord mem)
       (UInt256.ofNat 8) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
       mem_cost
       (solcErrorStringMem3_mload64_of_size164 (⟨19⟩ : UInt256)
         uniswapUpdateOverflowStringWord hmem hread64)
       (by decide) (by evm_ov),
     swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov)]
+    raw rawRev 0 (by decide) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapUpdateOverflowGuardFirstReverts {g : Sat256} {s0 : State}
@@ -250,7 +250,7 @@ theorem RD.uniswapUpdateElapsedZeroSkipsCumulatives {g : Sat256} {s0 : State}
         reserve1 :: reserve0 :: balance1 :: balance0 :: R)
       mem aw rdata acc k' C' := by
   have rd7063 := evm_run h with [jumpdest, push1 ⟨8⟩]
-  obtain ⟨_, _, rd7064⟩ := rd7063.sload (by native_decide)
+  obtain ⟨_, _, rd7064⟩ := rd7063.rawSload (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd7069 := evm_run rd7064 with [push4 ⟨4294967295⟩]
   have rd7070 := RD.timestamp rd7069 (by native_decide) (by evm_ov)
@@ -313,7 +313,7 @@ theorem RD.uniswapUpdateReserve0ZeroSkipsCumulatives {g : Sat256} {s0 : State}
         ⟨0⟩ := by
     simpa [reserve112Mask, reserve112Shift] using hreserve0Zero
   have rd7063 := evm_run h with [jumpdest, push1 ⟨8⟩]
-  obtain ⟨_, _, rd7064⟩ := rd7063.sload (by native_decide)
+  obtain ⟨_, _, rd7064⟩ := rd7063.rawSload (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd7069 := evm_run rd7064 with [push4 ⟨4294967295⟩]
   have rd7070 := RD.timestamp rd7069 (by native_decide) (by evm_ov)
@@ -393,7 +393,7 @@ theorem RD.uniswapUpdateReserve1ZeroSkipsCumulatives {g : Sat256} {s0 : State}
         ⟨0⟩ := by
     simpa [reserve112Mask, reserve112Shift] using hreserve1Zero
   have rd7063 := evm_run h with [jumpdest, push1 ⟨8⟩]
-  obtain ⟨_, _, rd7064⟩ := rd7063.sload (by native_decide)
+  obtain ⟨_, _, rd7064⟩ := rd7063.rawSload (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd7069 := evm_run rd7064 with [push4 ⟨4294967295⟩]
   have rd7070 := RD.timestamp rd7069 (by native_decide) (by evm_ov)
@@ -443,7 +443,7 @@ theorem RD.uniswapUpdateStorePackedReserves {g : Sat256} {s0 : State}
           balance0))
       k' C' := by
   have rd7244 := evm_run h with [jumpdest, push1 ⟨8⟩, dup1]
-  obtain ⟨_, _, rd7246⟩ := rd7244.sload (by native_decide)
+  obtain ⟨_, _, rd7246⟩ := rd7244.rawSload (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd7261 := rd7246.pushConst reserve112Mask (width := 14) (op := .PUSH14)
     (by decide) (by decide) (by evm_ov)
@@ -459,7 +459,7 @@ theorem RD.uniswapUpdateStorePackedReserves {g : Sat256} {s0 : State}
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨224⟩, shl, sub, and,
     push1 ⟨1⟩, push1 ⟨224⟩, shl, push4 ⟨4294967295⟩, dup8, and, mul,
     or, swap3, dup4, swap1]
-  obtain ⟨_, _, rd7339⟩ := rd7338.sstore hperm (by native_decide)
+  obtain ⟨_, _, rd7339⟩ := rd7338.rawSstore hperm (by native_decide)
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by
     simpa [uniswapUpdatePackedReserveWord, uniswapSlotWord, reserve112Shift, reserve112Mask,
@@ -530,13 +530,13 @@ theorem RD.uniswapUpdateEmitSyncAndJump {g : Sat256} {s0 : State}
       (uniswapSyncLogMem packed mem) awLog rdata acc k' C' := by
   have rd7342 := evm_run h with [
     push1 ⟨64⟩, dup1,
-    raw mload mcostLoad ⟨128⟩ awLoad (by decide) hmcLoad hmload64 hawLoad (by evm_ov)]
+    raw rawMload mcostLoad ⟨128⟩ awLoad (by decide) hmcLoad hmload64 hawLoad (by evm_ov)]
   have rd7347₀ := evm_run rd7342 with [dup5, dup5, and, dup2]
-  have rd7348 := rd7347₀.mstore mcostStore0 (uniswapSyncLogReserve0Mem packed mem) awLog
+  have rd7348 := rd7347₀.rawMstore mcostStore0 (uniswapSyncLogReserve0Mem packed mem) awLog
     (by decide) hmcStore0 (by rfl) hawStore0 (by evm_ov)
   have rd7359₀ := evm_run rd7348 with [
     swap2, swap1, swap4, div, swap1, swap2, and, push1 ⟨32⟩, dup3, add]
-  have rd7360 := rd7359₀.mstore mcostStore1 (uniswapSyncLogMem packed mem) awLog
+  have rd7360 := rd7359₀.rawMstore mcostStore1 (uniswapSyncLogMem packed mem) awLog
     (by decide) hmcStore1
     (by
       rw [show (((⟨128⟩ : UInt256) + ⟨32⟩).toNat) = 160 from by decide]
@@ -544,13 +544,13 @@ theorem RD.uniswapUpdateEmitSyncAndJump {g : Sat256} {s0 : State}
     hawStore1 (by evm_ov)
   have rd7362 := evm_run rd7360 with [
     dup2,
-    raw mload mcostLoadLog ⟨128⟩ awLog (by decide) hmcLoadLog hmload64Log hawLoadLog
+    raw rawMload mcostLoadLog ⟨128⟩ awLog (by decide) hmcLoadLog hmload64Log hawLoadLog
       (by evm_ov)]
   have rd7395 := rd7362.pushConst uniswapSyncTopic (width := 32) (op := .PUSH32)
     (by decide) (by decide) (by evm_ov)
   have rd7404 := evm_run rd7395 with [
     swap3, swap2, dup2, swap1, sub, swap1, swap2, add, swap1]
-  have rd7405 := rd7404.log1 mcostLog awLog (by decide) hperm hmcLog hawLog
+  have rd7405 := rd7404.rawLog1 mcostLog awLog (by decide) hperm hmcLog hawLog
     (by simp only [List.length_cons]; omega)
   have rd7411 := evm_run rd7405 with [pop, pop, pop, pop, pop, pop]
   exact ⟨_, _, rd7411.jump (by decide) hret (by evm_ov)⟩

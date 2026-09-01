@@ -52,7 +52,7 @@ theorem blindAuctionX_beneficiary {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, callvalue, dup1, iszero, push2 ⟨289⟩,
     jumpiT (by rw [hwv]; decide) (by jump_dest)]
   have rd292 := evm_run rd289 with [jumpdest, pop, push0]
-  obtain ⟨_, _, rd293₀⟩ := rd292.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd293₀⟩ := rd292.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd293⟩ :
       ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨293⟩
         [beneficiaryWord σ I, blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3)

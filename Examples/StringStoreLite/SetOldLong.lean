@@ -767,7 +767,7 @@ theorem stringStoreLiteX_setLongReturnFromWrite
       I.calldata len payloadStart hnz hlenMax hsrc
   have rd93 := evm_run rd261 with [
     jumpdest, pop, dup1,
-    raw mload 0 len (setHelperEntryAw len) (by native_decide)
+    raw rawMload 0 len (setHelperEntryAw len) (by native_decide)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -778,7 +778,7 @@ theorem stringStoreLiteX_setLongReturnFromWrite
     swap2, pop, pop, swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd744 := evm_run rd93 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 (currentLengthFreePtr len) (setHelperEntryAw len) (by decide)
+    raw rawMload 0 (currentLengthFreePtr len) (setHelperEntryAw len) (by decide)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -807,7 +807,7 @@ theorem stringStoreLiteX_setLongReturnFromWrite
         awStore := rfl
   have rd763 := evm_run rd738 with [
     jumpdest, dup3,
-    raw mstore
+    raw rawMstore
       (Cₘ awStore - Cₘ (setHelperEntryAw len))
       returnMem awStore (by decide)
       (by
@@ -879,7 +879,7 @@ theorem stringStoreLiteX_setLongReturnFromWrite
         (freePtr := currentLengthFreePtr len) hfreeLeMem hretLen
   exact evm_run rd106 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload
+    raw rawMload
       (Cₘ awFinal - Cₘ awStore)
       (currentLengthFreePtr len) awFinal (by decide)
       (by
@@ -890,7 +890,7 @@ theorem stringStoreLiteX_setLongReturnFromWrite
       hfinalFreePtr
       hawFinal (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret
+    raw rawRet
       (Cₘ (UInt256.ofNat
         (MachineState.M awFinal.toNat (currentLengthFreePtr len).toNat
           (UInt256.sub (currentLengthFreePtr len + ⟨32⟩)
@@ -945,7 +945,7 @@ theorem stringStoreLiteX_setLongReturnFromWriteAfterClearBase
       I.calldata len payloadStart hnz hlenMax hsrc
   have rd93 := evm_run rd261 with [
     jumpdest, pop, dup1,
-    raw mload 0 len (clearCurrentHashAw (setHelperEntryAw len)) (by native_decide)
+    raw rawMload 0 len (clearCurrentHashAw (setHelperEntryAw len)) (by native_decide)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -958,7 +958,7 @@ theorem stringStoreLiteX_setLongReturnFromWriteAfterClearBase
     swap2, pop, pop, swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd744 := evm_run rd93 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 (currentLengthFreePtr len) (clearCurrentHashAw (setHelperEntryAw len))
+    raw rawMload 0 (currentLengthFreePtr len) (clearCurrentHashAw (setHelperEntryAw len))
       (by decide)
       (by
         intro s haw hstk
@@ -991,7 +991,7 @@ theorem stringStoreLiteX_setLongReturnFromWriteAfterClearBase
         awStore := rfl
   have rd763 := evm_run rd738 with [
     jumpdest, dup3,
-    raw mstore
+    raw rawMstore
       (Cₘ awStore - Cₘ (clearCurrentHashAw (setHelperEntryAw len)))
       returnMem awStore (by decide)
       (by
@@ -1071,7 +1071,7 @@ theorem stringStoreLiteX_setLongReturnFromWriteAfterClearBase
         (len := len) (freePtr := currentLengthFreePtr len) hfreeLeMem hretLen
   exact evm_run rd106 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload
+    raw rawMload
       (Cₘ awFinal - Cₘ awStore)
       (currentLengthFreePtr len) awFinal (by decide)
       (by
@@ -1082,7 +1082,7 @@ theorem stringStoreLiteX_setLongReturnFromWriteAfterClearBase
       hfinalFreePtr
       hawFinal (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret
+    raw rawRet
       (Cₘ (UInt256.ofNat
         (MachineState.M awFinal.toNat (currentLengthFreePtr len).toNat
           (UInt256.sub (currentLengthFreePtr len + ⟨32⟩)
@@ -1387,7 +1387,7 @@ theorem stringStoreLiteX_setStoreHelperZero {cA gh bl σinit σ₀ A I} {g : Sat
     jumpdest, push2 ⟨1123⟩, push2 ⟨1115⟩, dup3, push2 ⟨1085⟩, jump (by jump_dest),
     jumpdest, push0, dup2, swap1, pop, swap2, swap1, pop, jump (by jump_dest),
     jumpdest, dup5, dup5]
-  obtain ⟨_, _, rd1119⟩ := rd1118pre.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1119⟩ := rd1118pre.rawSload (by native_decide) (by evm_ov)
   have rd1009pre := evm_run rd1119 with [
     push2 ⟨962⟩, jump (by jump_dest),
     jumpdest, push0, push1 ⟨8⟩, dup4, mul, push2 ⟨1009⟩]
@@ -1408,7 +1408,7 @@ theorem stringStoreLiteX_setStoreHelperZero {cA gh bl σinit σ₀ A I} {g : Sat
     and, dup5, or, swap3, pop, pop, pop, swap4, swap3, pop, pop, pop,
     jump (by jump_dest),
     jumpdest, dup3]
-  obtain ⟨_, _, rd1126₀⟩ := rd1123.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1126₀⟩ := rd1123.rawSstore hperm (by native_decide) (by evm_ov)
   have hstored :
       (UInt256.lor
         (UInt256.land
@@ -1552,7 +1552,7 @@ theorem stringStoreLiteX_setEmptyWriteZeroFrom1405 {cA gh bl σinit σ₀ A I}
     jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
-  obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1449₀⟩ := rd1448pre.rawSstore hperm (by native_decide) (by evm_ov)
   have hpacked0 :
       ((⟨0⟩ : UInt256).land ((⟨0⟩ : UInt256).lnot.shiftRight ((⟨8⟩ : UInt256).mul ⟨0⟩)).lnot).lor
           ((⟨2⟩ : UInt256).mul ⟨0⟩) = ⟨0⟩ := by
@@ -1604,7 +1604,7 @@ theorem stringStoreLiteX_setWriteLongReachLoopFrom1405
     jumpdest, push1 ⟨31⟩, not, dup5, and, push2 ⟨1468⟩, dup7,
     push2 ⟨917⟩, jump (by jump_dest)]
   have rd923 := evm_run rd917 with [jumpdest, push0, dup2, swap1, pop, dup2, push0]
-  have rd924 := RD.mstore
+  have rd924 := RD.rawMstore
     (Cₘ (clearCurrentBaseAw aw) - Cₘ aw)
     (clearCurrentBaseMemFrom mem)
     (clearCurrentBaseAw aw)
@@ -1614,7 +1614,7 @@ theorem stringStoreLiteX_setWriteLongReachLoopFrom1405
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, clearCurrentBaseAw])
     (by rfl) (by rfl) (by evm_ov)
   have rd928 := evm_run rd924 with [push1 ⟨32⟩, push0]
-  have rd929 := RD.keccak256
+  have rd929 := RD.rawKeccak256
     (Cₘ (clearCurrentHashAw aw) - Cₘ (clearCurrentBaseAw aw))
     clearCurrentBaseWord
     (clearCurrentHashAw aw)
@@ -1810,10 +1810,10 @@ theorem stringStoreLiteX_setLongDataWordsLoopStep
   have rd1480 := RD.dup5 rd1479 (by native_decide) (by evm_ov)
   have rd1481 := RD.dup10 rd1480 (by native_decide) (by evm_ov)
   have rd1482pre := evm_run rd1481 with [add]
-  have rd1483 := RD.mload mloadCost word awLoad rd1482pre
+  have rd1483 := RD.rawMload mloadCost word awLoad rd1482pre
     (by native_decide) hmloadCost hmload hawLoad (by evm_ov)
   have rd1484pre := evm_run rd1483 with [dup3]
-  obtain ⟨_, _, rd1485₀⟩ := rd1484pre.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1485₀⟩ := rd1484pre.rawSstore hperm (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1485⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σinit σ₀ g A I) ⟨1485⟩
@@ -2989,7 +2989,7 @@ theorem stringStoreLiteX_setLongDataWordsLoopDoneNoTail
   have rd1543 := RD.dup9 rd1542pre (by native_decide) (by evm_ov)
   have rd1545pre₀ := evm_run rd1543 with [mul, add]
   have rd1545pre := RD.dup9 rd1545pre₀ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1546₀⟩ := rd1545pre.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1546₀⟩ := rd1545pre.rawSstore hperm (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1546⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σinit σ₀ g A I) ⟨1546⟩
@@ -3187,7 +3187,7 @@ theorem stringStoreLiteX_setLongDataWordsLoopDoneTail
   have rd1517 := RD.dup5 rd1516 (by native_decide) (by evm_ov)
   have rd1518 := RD.dup10 rd1517 (by native_decide) (by evm_ov)
   have rd1519pre := evm_run rd1518 with [add]
-  have rd1520 := RD.mload mloadCost word awLoad rd1519pre
+  have rd1520 := RD.rawMload mloadCost word awLoad rd1519pre
     (by native_decide) hmloadCost hmload hawLoad (by evm_ov)
   have rd1525pre := evm_run rd1520 with [push2 ⟨1532⟩, push1 ⟨31⟩]
   have rd1526 := RD.dup10 rd1525pre (by native_decide) (by evm_ov)
@@ -3200,7 +3200,7 @@ theorem stringStoreLiteX_setLongDataWordsLoopDoneTail
     jumpdest, not, dup1, dup4, and, swap2, pop, pop, swap3, swap2, pop, pop,
     jump (by jump_dest)]
   have rd1534pre := evm_run rd1532 with [jumpdest, dup4]
-  obtain ⟨_, _, rd1535₀⟩ := rd1534pre.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1535₀⟩ := rd1534pre.rawSstore hperm (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1535⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σinit σ₀ g A I) ⟨1535⟩
@@ -3213,7 +3213,7 @@ theorem stringStoreLiteX_setLongDataWordsLoopDoneTail
   have rd1543 := RD.dup9 rd1542pre (by native_decide) (by evm_ov)
   have rd1545pre₀ := evm_run rd1543 with [mul, add]
   have rd1545pre := RD.dup9 rd1545pre₀ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1546₀⟩ := rd1545pre.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1546₀⟩ := rd1545pre.rawSstore hperm (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1546⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σinit σ₀ g A I) ⟨1546⟩
@@ -3792,7 +3792,7 @@ theorem stringStoreLiteX_setShortValidWriteLongReach1405
     jumpdest, push2 ⟨1359⟩, dup3, push2 ⟨769⟩, jump (by jump_dest)]
   have rd1359 := evm_run rd769 with [
     jumpdest, push0, dup2,
-    raw mload 0 len (setHelperEntryAw len) (by native_decide)
+    raw rawMload 0 len (setHelperEntryAw len) (by native_decide)
       (by
         intro s haw hstk
         rw [set_mloadCostSpec (aw := setHelperEntryAw len) (off := ⟨128⟩) s haw hstk]
@@ -3819,7 +3819,7 @@ theorem stringStoreLiteX_setShortValidWriteLongReach1405
         decide)
       (by jump_dest)]
   have rd1389 := evm_run rd1384' with [jumpdest, push2 ⟨1394⟩, dup3]
-  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1390₀⟩ := rd1389.rawSload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1390⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨1390⟩
@@ -3894,7 +3894,7 @@ theorem stringStoreLiteX_setEmptyWriteLongValidToClearLoop {cA gh bl σ σ₀ A 
     jumpdest, push2 ⟨1359⟩, dup3, push2 ⟨769⟩, jump (by jump_dest)]
   have rd1359 := evm_run rd769 with [
     jumpdest, push0, dup2,
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by native_decide)
+    raw rawMload 0 ⟨0⟩ (UInt256.ofNat 6) (by native_decide)
       mem_cost
       currentLengthZeroReturnMem_mload128
       (by decide) (by evm_ov),
@@ -3905,7 +3905,7 @@ theorem stringStoreLiteX_setEmptyWriteLongValidToClearLoop {cA gh bl σ σ₀ A 
   have rd1384' := evm_run rd1369 with [
     dup2, gt, iszero, push2 ⟨1384⟩, jumpiT (by decide) (by jump_dest)]
   have rd1389 := evm_run rd1384' with [jumpdest, push2 ⟨1394⟩, dup3]
-  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1390₀⟩ := rd1389.rawSload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1390⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨1390⟩
@@ -3964,14 +3964,14 @@ theorem stringStoreLiteX_setEmptyWriteLongValidToClearLoop {cA gh bl σ σ₀ A 
   have rd1226 := evm_run rd1218 with [
     push2 ⟨1226⟩, dup2, push2 ⟨917⟩, jump (by jump_dest),
     jumpdest, push0, dup2, swap1, pop, dup2, push0,
-    raw mstore (Cₘ (clearCurrentBaseAw (UInt256.ofNat 6)) - Cₘ (UInt256.ofNat 6))
+    raw rawMstore (Cₘ (clearCurrentBaseAw (UInt256.ofNat 6)) - Cₘ (UInt256.ofNat 6))
       (clearCurrentBaseMemFrom currentLengthZeroReturnMem)
       (clearCurrentBaseAw (UInt256.ofNat 6)) (by native_decide)
       (fun s haw hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, clearCurrentBaseAw])
       (by rfl) (by rfl) (by evm_ov),
     push1 ⟨32⟩, push0,
-    raw keccak256
+    raw rawKeccak256
       (Cₘ (clearCurrentHashAw (UInt256.ofNat 6)) -
         Cₘ (clearCurrentBaseAw (UInt256.ofNat 6)))
       clearCurrentBaseWord (clearCurrentHashAw (UInt256.ofNat 6)) (by native_decide)
@@ -4137,7 +4137,7 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongValidToClearLoop
     jumpdest, push2 ⟨1359⟩, dup3, push2 ⟨769⟩, jump (by jump_dest)]
   have rd1359 := evm_run rd769 with [
     jumpdest, push0, dup2,
-    raw mload 0 newLen (setHelperEntryAw newLen) (by native_decide)
+    raw rawMload 0 newLen (setHelperEntryAw newLen) (by native_decide)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -4161,7 +4161,7 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongValidToClearLoop
         decide)
       (by jump_dest)]
   have rd1389 := evm_run rd1384' with [jumpdest, push2 ⟨1394⟩, dup3]
-  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1390₀⟩ := rd1389.rawSload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1390⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨1390⟩
@@ -4228,7 +4228,7 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongValidToClearLoop
   have rd1226 := evm_run rd1218 with [
     push2 ⟨1226⟩, dup2, push2 ⟨917⟩, jump (by jump_dest),
     jumpdest, push0, dup2, swap1, pop, dup2, push0,
-    raw mstore
+    raw rawMstore
       (Cₘ (clearCurrentBaseAw (setHelperEntryAw newLen)) - Cₘ (setHelperEntryAw newLen))
       (clearCurrentBaseMemFrom (setPaddedMem I.calldata newLen payloadStart))
       (clearCurrentBaseAw (setHelperEntryAw newLen)) (by native_decide)
@@ -4236,7 +4236,7 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongValidToClearLoop
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, clearCurrentBaseAw])
       (by rfl) (by rfl) (by evm_ov),
     push1 ⟨32⟩, push0,
-    raw keccak256
+    raw rawKeccak256
       (Cₘ (clearCurrentHashAw (setHelperEntryAw newLen)) -
         Cₘ (clearCurrentBaseAw (setHelperEntryAw newLen)))
       clearCurrentBaseWord (clearCurrentHashAw (setHelperEntryAw newLen)) (by native_decide)
@@ -4301,7 +4301,7 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidToClearLoop
     jumpdest, push2 ⟨1359⟩, dup3, push2 ⟨769⟩, jump (by jump_dest)]
   have rd1359 := evm_run rd769 with [
     jumpdest, push0, dup2,
-    raw mload 0 newLen (setHelperEntryAw newLen) (by native_decide)
+    raw rawMload 0 newLen (setHelperEntryAw newLen) (by native_decide)
       (by
         intro s haw hstk
         rw [set_mloadCostSpec (aw := setHelperEntryAw newLen) (off := ⟨128⟩) s haw hstk]
@@ -4328,7 +4328,7 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidToClearLoop
         decide)
       (by jump_dest)]
   have rd1389 := evm_run rd1384' with [jumpdest, push2 ⟨1394⟩, dup3]
-  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1390₀⟩ := rd1389.rawSload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1390⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨1390⟩
@@ -4387,7 +4387,7 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidToClearLoop
   have rd1226 := evm_run rd1218 with [
     push2 ⟨1226⟩, dup2, push2 ⟨917⟩, jump (by jump_dest),
     jumpdest, push0, dup2, swap1, pop, dup2, push0,
-    raw mstore
+    raw rawMstore
       (Cₘ (clearCurrentBaseAw (setHelperEntryAw newLen)) - Cₘ (setHelperEntryAw newLen))
       (clearCurrentBaseMemFrom (setPaddedMem I.calldata newLen payloadStart))
       (clearCurrentBaseAw (setHelperEntryAw newLen)) (by native_decide)
@@ -4395,7 +4395,7 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidToClearLoop
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, clearCurrentBaseAw])
       (by rfl) (by rfl) (by evm_ov),
     push1 ⟨32⟩, push0,
-    raw keccak256
+    raw rawKeccak256
       (Cₘ (clearCurrentHashAw (setHelperEntryAw newLen)) -
         Cₘ (clearCurrentBaseAw (setHelperEntryAw newLen)))
       clearCurrentBaseWord (clearCurrentHashAw (setHelperEntryAw newLen)) (by native_decide)
@@ -4452,7 +4452,7 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidNoClearTo1405
     jumpdest, push2 ⟨1359⟩, dup3, push2 ⟨769⟩, jump (by jump_dest)]
   have rd1359 := evm_run rd769 with [
     jumpdest, push0, dup2,
-    raw mload 0 newLen (setHelperEntryAw newLen) (by native_decide)
+    raw rawMload 0 newLen (setHelperEntryAw newLen) (by native_decide)
       (by
         intro s haw hstk
         rw [set_mloadCostSpec (aw := setHelperEntryAw newLen) (off := ⟨128⟩) s haw hstk]
@@ -4479,7 +4479,7 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidNoClearTo1405
         decide)
       (by jump_dest)]
   have rd1389 := evm_run rd1384' with [jumpdest, push2 ⟨1394⟩, dup3]
-  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1390₀⟩ := rd1389.rawSload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1390⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨1390⟩
@@ -4756,7 +4756,7 @@ theorem stringStoreLiteX_setWriteShortNonemptyFrom1405AfterClearBase
         omega
       · rw [hawHash]
         decide
-  have rd1434 := RD.mload
+  have rd1434 := RD.rawMload
     (Cₘ (setHelperPayloadAw len) - Cₘ (clearCurrentHashAw (setHelperEntryAw len)))
     (setHelperPayloadWord I.calldata len payloadStart)
     (setHelperPayloadAw len)
@@ -4926,7 +4926,7 @@ theorem stringStoreLiteX_setShortNonemptyReturnFromWriteAfterClearBase
     setHelperPayloadAw_eq_7_of_short_nonzero hnz hshort
   have rd93 := evm_run rd261 with [
     jumpdest, pop, dup1,
-    raw mload 0 len (setHelperPayloadAw len) (by native_decide)
+    raw rawMload 0 len (setHelperPayloadAw len) (by native_decide)
       (by
         intro s haw' hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw', hstk, haw]
@@ -4937,7 +4937,7 @@ theorem stringStoreLiteX_setShortNonemptyReturnFromWriteAfterClearBase
     swap2, pop, pop, swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd744 := evm_run rd93 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 (currentLengthFreePtr len) (setHelperPayloadAw len) (by decide)
+    raw rawMload 0 (currentLengthFreePtr len) (setHelperPayloadAw len) (by decide)
       (by
         intro s haw' hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw', hstk, haw]
@@ -4963,7 +4963,7 @@ theorem stringStoreLiteX_setShortNonemptyReturnFromWriteAfterClearBase
     jumpdest, push0, dup2, swap1, pop, swap2, swap1, pop, jump (by jump_dest)]
   have rd763 := evm_run rd738 with [
     jumpdest, dup3,
-    raw mstore 0 (setShortReturnMemAfterClearBase I.calldata len payloadStart)
+    raw rawMstore 0 (setShortReturnMemAfterClearBase I.calldata len payloadStart)
       (UInt256.ofNat 7) (by decide)
       (by
         intro s haw' hstk
@@ -4976,7 +4976,7 @@ theorem stringStoreLiteX_setShortNonemptyReturnFromWriteAfterClearBase
     jumpdest, swap3, swap2, pop, pop, jump (by jump_dest)]
   exact evm_run rd106 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 (currentLengthFreePtr len) (UInt256.ofNat 7) (by decide)
+    raw rawMload 0 (currentLengthFreePtr len) (UInt256.ofNat 7) (by decide)
       (by
         intro s haw' hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw', hstk, hfree]
@@ -4984,7 +4984,7 @@ theorem stringStoreLiteX_setShortNonemptyReturnFromWriteAfterClearBase
       (setShortReturnMemAfterClearBase_mload64 I.calldata len payloadStart hnz hshort hsrc)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray len) (by decide)
+    raw rawRet 0 (UInt256.toByteArray len) (by decide)
       (by
         intro s haw' hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw', hstk, hfree]
@@ -5366,14 +5366,14 @@ theorem stringStoreLiteX_setEmptyReturnFromWriteLongMem {cA gh bl σ σ₀ A I}
   obtain ⟨_, _, rd261⟩ := hreach
   have rd93 := evm_run rd261 with [
     jumpdest, pop, dup1,
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by native_decide)
+    raw rawMload 0 ⟨0⟩ (UInt256.ofNat 6) (by native_decide)
       mem_cost
       clearCurrentBaseMemFrom_currentLengthZeroReturnMem_mload128
       (by decide) (by evm_ov),
     swap2, pop, pop, swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd744 := evm_run rd93 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨160⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨160⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
       clearCurrentBaseMemFrom_currentLengthZeroReturnMem_mload64
       (by decide) (by evm_ov),
@@ -5387,7 +5387,7 @@ theorem stringStoreLiteX_setEmptyReturnFromWriteLongMem {cA gh bl σ σ₀ A I}
     jumpdest, push0, dup2, swap1, pop, swap2, swap1, pop, jump (by jump_dest)]
   have rd763 := evm_run rd738 with [
     jumpdest, dup3,
-    raw mstore 0 setEmptyReturnMemLong (UInt256.ofNat 6) (by decide)
+    raw rawMstore 0 setEmptyReturnMemLong (UInt256.ofNat 6) (by decide)
       mem_cost
       (by
         rw [show (((⟨160⟩ : UInt256) + ⟨0⟩).toNat) = 160 from by decide]
@@ -5398,12 +5398,12 @@ theorem stringStoreLiteX_setEmptyReturnFromWriteLongMem {cA gh bl σ σ₀ A I}
     jumpdest, swap3, swap2, pop, pop, jump (by jump_dest)]
   exact evm_run rd106 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨160⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨160⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
       setEmptyReturnMemLong_mload64
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray ⟨0⟩) (by decide)
+    raw rawRet 0 (UInt256.toByteArray ⟨0⟩) (by decide)
       mem_cost
       (by
         rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide,

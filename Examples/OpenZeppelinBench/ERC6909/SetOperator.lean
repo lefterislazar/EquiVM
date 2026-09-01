@@ -748,21 +748,21 @@ theorem erc6909SetOperatorX_revert_owner {cA gh bl σ σ₀ A I} {g : Sat256}
       decide) ]
   exact evm_run rd972 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push4 ⟨0x198ecd53⟩, push1 ⟨227⟩, shl, dup2,
-    raw mstore 6 (solcReturnMem approveInvalidApproverSelectorWord)
+    raw rawMstore 6 (solcReturnMem approveInvalidApproverSelectorWord)
       (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push0, push1 ⟨4⟩, dup3, add,
-    raw mstore 3 (approveErrorMem approveInvalidApproverSelectorWord ⟨0⟩)
+    raw rawMstore 3 (approveErrorMem approveInvalidApproverSelectorWord ⟨0⟩)
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨36⟩, add, push2 ⟨698⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost (approveErrorMem_mload64 approveInvalidApproverSelectorWord ⟨0⟩)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rawRev 0 (by decide) mem_cost (by evm_ov) ]
 
 theorem erc6909SetOperatorX_revert_spender {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -802,21 +802,21 @@ theorem erc6909SetOperatorX_revert_spender {cA gh bl σ σ₀ A I} {g : Sat256}
       decide) ]
   exact evm_run rd1013 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push4 ⟨0x6f65f465⟩, push1 ⟨224⟩, shl, dup2,
-    raw mstore 6 (solcReturnMem approveInvalidSpenderSelectorWord)
+    raw rawMstore 6 (solcReturnMem approveInvalidSpenderSelectorWord)
       (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push0, push1 ⟨4⟩, dup3, add,
-    raw mstore 3 (approveErrorMem approveInvalidSpenderSelectorWord ⟨0⟩)
+    raw rawMstore 3 (approveErrorMem approveInvalidSpenderSelectorWord ⟨0⟩)
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨36⟩, add, push2 ⟨698⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost (approveErrorMem_mload64 approveInvalidSpenderSelectorWord ⟨0⟩)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rawRev 0 (by decide) mem_cost (by evm_ov) ]
 
 def setOperatorStoredSlotStack (I : ExecutionEnv) (sel : UInt256) : List UInt256 :=
   [setOperatorSlotI I, setOperatorSlotI I, ⟨32⟩, ⟨64⟩,
@@ -900,7 +900,7 @@ theorem erc6909SetOperatorX_toStoredSlot {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd1066 := evm_run rd1039 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, dup2, and,
     push0, dup2, dup2,
-    raw mstore 0 (approveWordAt0Mem (setOperatorOwnerWord I) solcFreePtrMem)
+    raw rawMstore 0 (approveWordAt0Mem (setOperatorOwnerWord I) solcFreePtrMem)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -909,15 +909,15 @@ theorem erc6909SetOperatorX_toStoredSlot {cA gh bl σ σ₀ A I} {g : Sat256}
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, swap1, dup2,
-    raw mstore 0 (setOperatorOwnerHashMem (setOperatorOwnerWord I))
+    raw rawMstore 0 (setOperatorOwnerHashMem (setOperatorOwnerWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup4,
-    raw keccak256 0 (setOperatorOwnerSlot (setOperatorOwnerWord I))
+    raw rawKeccak256 0 (setOperatorOwnerSlot (setOperatorOwnerWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1067 := RD.swap5 rd1066 (by decide) (by evm_ov)
   have rd1072 := evm_run rd1067 with [
     dup8, and, dup1, dup5,
-    raw mstore 0 (approveWordAt0Mem (setOperatorSpenderWord I)
+    raw rawMstore 0 (approveWordAt0Mem (setOperatorSpenderWord I)
         (setOperatorOwnerHashMem (setOperatorOwnerWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
@@ -929,11 +929,11 @@ theorem erc6909SetOperatorX_toStoredSlot {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd1073 := RD.swap5 rd1072 (by decide) (by evm_ov)
   have rd1081 := evm_run rd1073 with [
     dup3,
-    raw mstore 0 (setOperatorSpenderHashMem (setOperatorOwnerWord I)
+    raw rawMstore 0 (setOperatorSpenderHashMem (setOperatorOwnerWord I)
         (setOperatorSpenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap2, dup3, swap1,
-    raw keccak256 0 (setOperatorSlotI I) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (setOperatorSlotI I) (UInt256.ofNat 3)
       (by decide) mem_cost hslot (by decide) (by evm_ov),
     dup1 ]
   exact ⟨_, _, by simpa [setOperatorStoredSlotStack] using rd1081⟩
@@ -948,7 +948,7 @@ theorem erc6909SetOperatorX_loaded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
       (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd1081⟩ := hslotReach
-  obtain ⟨_, _, rd1082raw⟩ := rd1081.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1082raw⟩ := rd1081.rawSload (by decide) (by evm_ov)
   exact ⟨_, _, by
     simpa [setOperatorStoredSlotStack, setOperatorStoredLoadedStack, setOperatorStorageWord,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, initState]
@@ -1015,7 +1015,7 @@ theorem erc6909SetOperatorX_sstore {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
       (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
       (UInt256.ofNat 3) ByteArray.empty (cA, setOperatorStoredPostMap σ I) k C := by
   obtain ⟨_, _, rd1094⟩ := hpre
-  obtain ⟨k, C, rd1095⟩ := rd1094.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨k, C, rd1095⟩ := rd1094.rawSstore hperm (by decide) (by evm_ov)
   refine ⟨k, C, ?_⟩
   simpa [setOperatorStoredPreStoreStack, setOperatorStoredPostMap] using rd1095
 
@@ -1079,12 +1079,12 @@ theorem erc6909X_setOperator {cA gh bl σ σ₀ A I} {g : Sat256}
     hsz68 hsize hszhi hperm hcanonSpender hbool hsource hspender hreach
   have rd1142pre := evm_run rd1095 with [
     swap2,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (setOperatorSpenderHashMem_mload64 (setOperatorOwnerWord I) (setOperatorSpenderWord I))
       (by decide) (by evm_ov),
     swap2, dup3,
-    raw mstore 6 (setOperatorEventMem (setOperatorOwnerWord I) (setOperatorSpenderWord I)
+    raw rawMstore 6 (setOperatorEventMem (setOperatorOwnerWord I) (setOperatorSpenderWord I)
         (setOperatorApprovedWord I))
       (UInt256.ofNat 5) (by decide) mem_cost
       (by
@@ -1096,26 +1096,26 @@ theorem erc6909X_setOperator {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide) (by decide) (by evm_ov)
   have rd1142Log := evm_run rd1133 with [
     swap2, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (setOperatorEventMem_mload64 (setOperatorOwnerWord I) (setOperatorSpenderWord I)
         (setOperatorApprovedWord I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
-  have rd1143 := rd1142Log.log3 0 (UInt256.ofNat 5) (by decide) hperm mem_cost
+  have rd1143 := rd1142Log.rawLog3 0 (UInt256.ofNat 5) (by decide) hperm mem_cost
     (by decide) (by evm_ov)
   have rd547 := evm_run rd1143 with [pop, pop, pop, jump (by jump_dest)]
   have rd193 := evm_run rd547 with [
     jumpdest, pop, push1 ⟨1⟩, swap3, swap2, pop, pop, jump (by jump_dest) ]
   have rd165 := evm_run rd193 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (setOperatorEventMem_mload64 (setOperatorOwnerWord I) (setOperatorSpenderWord I)
         (setOperatorApprovedWord I))
       (by decide) (by evm_ov),
     swap1, iszero, iszero, dup2,
-    raw mstore 0 (setOperatorReturnMem (setOperatorOwnerWord I) (setOperatorSpenderWord I)
+    raw rawMstore 0 (setOperatorReturnMem (setOperatorOwnerWord I) (setOperatorSpenderWord I)
         (setOperatorApprovedWord I))
       (UInt256.ofNat 5) (by decide) mem_cost
       (by
@@ -1125,13 +1125,13 @@ theorem erc6909X_setOperator {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨32⟩, add, push2 ⟨165⟩, jump (by jump_dest) ]
   exact evm_run rd165 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (setOperatorReturnMem_mload64 (setOperatorOwnerWord I) (setOperatorSpenderWord I)
         (setOperatorApprovedWord I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,

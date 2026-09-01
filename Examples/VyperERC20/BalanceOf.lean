@@ -260,14 +260,14 @@ theorem erc20X_balanceOfFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     push2 ⟨801⟩,
     jumpiNT (by simpa [balanceOfOwnerWord, calldataWord] using hcanonGuard),
     push1 ⟨64⟩,
-    raw mstore 6 (balanceOfOwnerArgMem (balanceOfOwnerWord I)) (UInt256.ofNat 3)
+    raw rawMstore 6 (balanceOfOwnerArgMem (balanceOfOwnerWord I)) (UInt256.ofNat 3)
       (by vyper_erc20_balance_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
     push1 ⟨64⟩,
-    raw mload 0 (balanceOfOwnerWord I) (UInt256.ofNat 3)
+    raw rawMload 0 (balanceOfOwnerWord I) (UInt256.ofNat 3)
       (by vyper_erc20_balance_decode)
       mem_cost
       (by
@@ -282,36 +282,36 @@ theorem erc20X_balanceOfFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
               (by rw [balanceOfDispatchMem_size]; exact lt_usize 32 (by norm_num))))
       (by decide) (by evm_ov),
     push1 ⟨32⟩,
-    raw mstore 0 (balanceOfKeyMem (balanceOfOwnerWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (balanceOfKeyMem (balanceOfOwnerWord I)) (UInt256.ofNat 3)
       (by vyper_erc20_balance_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mstore 0 (balanceOfHashMem (balanceOfOwnerWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (balanceOfHashMem (balanceOfOwnerWord I)) (UInt256.ofNat 3)
       (by vyper_erc20_balance_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push1 ⟨64⟩,
     push0,
-    raw keccak256 0 (balanceOfSlot I) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (balanceOfSlot I) (UInt256.ofNat 3)
       (by vyper_erc20_balance_decode)
       mem_cost
       hslot
       (by decide) (by evm_ov)]
   obtain ⟨k1, C1, rdAfterLoad⟩ :=
-    rdBeforeLoad.sload (by vyper_erc20_balance_decode) (by evm_ov)
+    rdBeforeLoad.rawSload (by vyper_erc20_balance_decode) (by evm_ov)
   have rdBeforeReturn := evm_run rdAfterLoad with [
     push1 ⟨96⟩,
-    raw mstore 3 (balanceOfReturnMem (balanceOfOwnerWord I) (balanceOfWord σ I)) (UInt256.ofNat 4)
+    raw rawMstore 3 (balanceOfReturnMem (balanceOfOwnerWord I) (balanceOfWord σ I)) (UInt256.ofNat 4)
       (by vyper_erc20_balance_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push1 ⟨32⟩,
     push1 ⟨96⟩]
-  exact rdBeforeReturn.ret 0 (UInt256.toByteArray (balanceOfWord σ I))
+  exact rdBeforeReturn.rawRet 0 (UInt256.toByteArray (balanceOfWord σ I))
     (by vyper_erc20_balance_decode)
     mem_cost
     (balanceOfReturnMem_read96 (balanceOfOwnerWord I) (balanceOfWord σ I))
@@ -376,7 +376,7 @@ theorem erc20X_balanceOfReach {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨30⟩]
   have rdBeforeCopy := by
     simpa [hword, balanceOfSelectorWord] using rdBeforeCopy0
-  have rdAfterCopy := rdBeforeCopy.codecopy 3 balanceOfDispatchMem (UInt256.ofNat 1)
+  have rdAfterCopy := rdBeforeCopy.rawCodecopy 3 balanceOfDispatchMem (UInt256.ofNat 1)
     (by vyper_erc20_balance_decode)
     mem_cost
     (by native_decide)
@@ -384,7 +384,7 @@ theorem erc20X_balanceOfReach {cA gh bl σ σ₀ A I} {g : Sat256}
     (by evm_ov)
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
-    raw mload 0 ⟨623⟩ (UInt256.ofNat 1)
+    raw rawMload 0 ⟨623⟩ (UInt256.ofNat 1)
       (by vyper_erc20_balance_decode)
       mem_cost
       balanceOfDispatchMem_mload0

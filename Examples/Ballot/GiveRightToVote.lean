@@ -1083,7 +1083,7 @@ theorem ballotGiveRightToVoteX_afterChair {cA gh bl σ σ₀ A I} {g : Sat256} {
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz36 hsize hszhi hcanon hreach
   have rd1427 := evm_run rd1425 with [jumpdest, push0]
-  obtain ⟨_, _, rd1428₀⟩ := rd1427.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1428₀⟩ := rd1427.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1428⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1428⟩
       [giveRightChairWord σ I, giveRightVoterWord I, ⟨156⟩, sel]
@@ -1115,7 +1115,7 @@ theorem ballotGiveRightToVoteX_chairRevert {cA gh bl σ σ₀ A I} {g : Sat256} 
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz36 hsize hszhi hcanon hreach
   have rd1427 := evm_run rd1425 with [jumpdest, push0]
-  obtain ⟨_, _, rd1428₀⟩ := rd1427.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1428₀⟩ := rd1427.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1428⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1428⟩
       [giveRightChairWord σ I, giveRightVoterWord I, ⟨156⟩, sel]
@@ -1138,38 +1138,38 @@ theorem ballotGiveRightToVoteX_chairRevert {cA gh bl σ σ₀ A I} {g : Sat256} 
   have rd1443 := evm_run rd1439' with [push2 ⟨1531⟩, jumpiNT (by decide)]
   have rd1446 := evm_run rd1443 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov) ]
   have rd1450 := rd1446.pushConst ⟨0x461bcd⟩ (width := 3) (op := .PUSH3)
     (by decide) (by decide) (by evm_ov)
   have rd1454 := evm_run rd1450 with [
     push1 ⟨229⟩, shl, dup2,
-    raw mstore 6 giveRightChairErrorMem0 (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 giveRightChairErrorMem0 (UInt256.ofNat 5) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
-    raw mstore 3 giveRightChairErrorMem1 (UInt256.ofNat 6) (by decide)
+    raw rawMstore 3 giveRightChairErrorMem1 (UInt256.ofNat 6) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨40⟩, push1 ⟨36⟩, dup3, add,
-    raw mstore 3 giveRightChairErrorMem2 (UInt256.ofNat 7) (by decide)
+    raw rawMstore 3 giveRightChairErrorMem2 (UInt256.ofNat 7) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1502 := rd1454.pushConst giveRightChairStringWord0 (width := 32) (op := .PUSH32)
     (by decide) (by decide) (by evm_ov)
   have rd1507 := evm_run rd1502 with [
     push1 ⟨68⟩, dup3, add,
-    raw mstore 3 giveRightChairErrorMem3 (UInt256.ofNat 8) (by decide)
+    raw rawMstore 3 giveRightChairErrorMem3 (UInt256.ofNat 8) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1516 := rd1507.pushConst ⟨0x3a37903b37ba3297⟩ (width := 8) (op := .PUSH8)
     (by decide) (by decide) (by evm_ov)
   have rd507 := evm_run rd1516 with [
     push1 ⟨193⟩, shl, push1 ⟨100⟩, dup3, add,
-    raw mstore 3 giveRightChairErrorMem4 (UInt256.ofNat 9) (by decide)
+    raw rawMstore 3 giveRightChairErrorMem4 (UInt256.ofNat 9) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨132⟩, add, push2 ⟨507⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide)
       mem_cost giveRightChairErrorMem4_mload64 (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rawRev 0 (by decide) mem_cost (by evm_ov) ]
   exact rd507
 
 theorem ballotGiveRightToVoteX_afterNotVoted {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -1194,7 +1194,7 @@ theorem ballotGiveRightToVoteX_afterNotVoted {cA gh bl σ σ₀ A I} {g : Sat256
   have rd1558₀ := evm_run rd1531 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and,
     push0, swap1, dup2,
-    raw mstore 0 (giveRightKeyMem (giveRightVoterWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (giveRightKeyMem (giveRightVoterWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by decide]
@@ -1204,13 +1204,13 @@ theorem ballotGiveRightToVoteX_afterNotVoted {cA gh bl σ σ₀ A I} {g : Sat256
         rw [hcleanL]
         rfl) (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
-    raw keccak256 0 (giveRightVoterSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (giveRightVoterSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hslot (by decide) (by evm_ov),
     add ]
-  obtain ⟨_, _, rd1560₀⟩ := rd1558₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1560₀⟩ := rd1558₀.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1560⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1560⟩
       [giveRightVotedPackedWord σ I, giveRightVoterWord I, ⟨156⟩, sel]
@@ -1249,7 +1249,7 @@ theorem ballotGiveRightToVoteX_votedRevert {cA gh bl σ σ₀ A I} {g : Sat256} 
   have rd1558₀ := evm_run rd1531 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and,
     push0, swap1, dup2,
-    raw mstore 0 (giveRightKeyMem (giveRightVoterWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (giveRightKeyMem (giveRightVoterWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by decide]
@@ -1259,13 +1259,13 @@ theorem ballotGiveRightToVoteX_votedRevert {cA gh bl σ σ₀ A I} {g : Sat256} 
         rw [hcleanL]
         rfl) (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
-    raw keccak256 0 (giveRightVoterSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (giveRightVoterSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hslot (by decide) (by evm_ov),
     add ]
-  obtain ⟨_, _, rd1560₀⟩ := rd1558₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1560₀⟩ := rd1558₀.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1560⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1560⟩
       [giveRightVotedPackedWord σ I, giveRightVoterWord I, ⟨156⟩, sel]
@@ -1283,32 +1283,32 @@ theorem ballotGiveRightToVoteX_votedRevert {cA gh bl σ σ₀ A I} {g : Sat256} 
   have rd1568 := evm_run rd1564' with [push2 ⟨1639⟩, jumpiNT (by decide)]
   have rd1571 := evm_run rd1568 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (giveRightHashMem_mload64 (giveRightVoterWord I)) (by decide) (by evm_ov) ]
   have rd1575 := rd1571.pushConst ⟨0x461bcd⟩ (width := 3) (op := .PUSH3)
     (by decide) (by decide) (by evm_ov)
   have rd1594 := evm_run rd1575 with [
     push1 ⟨229⟩, shl, dup2,
-    raw mstore 6 (giveRightVotedErrorMem0 (giveRightVoterWord I)) (UInt256.ofNat 5)
+    raw rawMstore 6 (giveRightVotedErrorMem0 (giveRightVoterWord I)) (UInt256.ofNat 5)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
-    raw mstore 3 (giveRightVotedErrorMem1 (giveRightVoterWord I)) (UInt256.ofNat 6)
+    raw rawMstore 3 (giveRightVotedErrorMem1 (giveRightVoterWord I)) (UInt256.ofNat 6)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨24⟩, push1 ⟨36⟩, dup3, add,
-    raw mstore 3 (giveRightVotedErrorMem2 (giveRightVoterWord I)) (UInt256.ofNat 7)
+    raw rawMstore 3 (giveRightVotedErrorMem2 (giveRightVoterWord I)) (UInt256.ofNat 7)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1627 := rd1594.pushConst giveRightVotedStringWord (width := 32) (op := .PUSH32)
     (by decide) (by decide) (by evm_ov)
   have rd507 := evm_run rd1627 with [
     push1 ⟨68⟩, dup3, add,
-    raw mstore 3 (giveRightVotedErrorMem3 (giveRightVoterWord I)) (UInt256.ofNat 8)
+    raw rawMstore 3 (giveRightVotedErrorMem3 (giveRightVoterWord I)) (UInt256.ofNat 8)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨100⟩, add, push2 ⟨507⟩, jump (by jump_dest),
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
       mem_cost (giveRightVotedErrorMem3_mload64 (giveRightVoterWord I)) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    raw rawRev 0 (by decide) mem_cost (by evm_ov) ]
   exact rd507
 
 theorem ballotGiveRightToVoteX_success {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -1333,20 +1333,20 @@ theorem ballotGiveRightToVoteX_success {cA gh bl σ σ₀ A I} {g : Sat256} {sel
   have rd1662₀ := evm_run rd1639 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and,
     push0, swap1, dup2,
-    raw mstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by decide]
         rw [hclean]
         exact giveRightHashMem_writeKey (giveRightVoterWord I)) (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩,
-    raw mstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (giveRightHashMem_writeBase (giveRightVoterWord I))
       (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1,
-    raw keccak256 0 (giveRightVoterSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (giveRightVoterSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hslot (by decide) (by evm_ov) ]
-  obtain ⟨_, _, rd1664₀⟩ := rd1662₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1664₀⟩ := rd1662₀.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1664⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1664⟩
       [giveRightWeightWord σ I, giveRightVoterWord I, ⟨156⟩, sel]
@@ -1361,20 +1361,20 @@ theorem ballotGiveRightToVoteX_success {cA gh bl σ σ₀ A I} {g : Sat256} {sel
   have rd1698₀ := evm_run rd1672 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and,
     push0, swap1, dup2,
-    raw mstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by decide]
         rw [hcleanL]
         exact giveRightHashMem_writeKey (giveRightVoterWord I)) (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩, dup2, swap1,
-    raw mstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (giveRightHashMem_writeBase (giveRightVoterWord I))
       (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1, swap2,
-    raw keccak256 0 (giveRightVoterSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (giveRightVoterSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hslot (by decide) (by evm_ov) ]
-  obtain ⟨_, _, rd1699⟩ := rd1698₀.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1699⟩ := rd1698₀.rawSstore hperm (by decide) (by evm_ov)
   have rd156 := evm_run rd1699 with [jump (by jump_dest), jumpdest]
   exact rd156.stop (by decide) (by evm_ov)
 
@@ -1397,20 +1397,20 @@ theorem ballotGiveRightToVoteX_weightRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd1662₀ := evm_run rd1639 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and,
     push0, swap1, dup2,
-    raw mstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by decide]
         rw [hclean]
         exact giveRightHashMem_writeKey (giveRightVoterWord I)) (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨32⟩,
-    raw mstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (giveRightHashMem (giveRightVoterWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (giveRightHashMem_writeBase (giveRightVoterWord I))
       (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1,
-    raw keccak256 0 (giveRightVoterSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (giveRightVoterSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hslot (by decide) (by evm_ov) ]
-  obtain ⟨_, _, rd1664₀⟩ := rd1662₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1664₀⟩ := rd1662₀.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1664⟩ : ∃ k C, RD ballotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1664⟩
       [giveRightWeightWord σ I, giveRightVoterWord I, ⟨156⟩, sel]

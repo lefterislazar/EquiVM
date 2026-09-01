@@ -486,7 +486,7 @@ theorem callerX_body117 {cA gh bl σ σ₀ A I} {g : Sat256}
   exact ⟨_, _, evm_run rd with [
     jumpdest, push2 ⟨73⟩, jump caller_jd,
     jumpdest, dup2, push20 addrMask, and, push4 ⟨1143701499⟩, dup3, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
@@ -511,7 +511,7 @@ theorem callerX_body425 {cA gh bl σ σ₀ A I} {g : Sat256}
         callerSelMem (UInt256.ofNat 5) ByteArray.empty (cA, σ) k C := by
   obtain ⟨k, C, rd⟩ := callerX_body117 hcode hwv hsz hsize hsz68 hszhi hmatch hclean
   exact ⟨_, _, evm_run rd with [
-    raw mstore 6 callerSelMem (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 callerSelMem (UInt256.ofNat 5) (by decide)
       mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨4⟩, add, push2 ⟨130⟩, swap2, swap1, push2 ⟨425⟩, jump caller_jd ]⟩
@@ -655,13 +655,13 @@ theorem callerX_toCall142 {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, push2 ⟨419⟩, dup2, push2 ⟨297⟩, jump caller_jd,
     jumpdest, push0, dup2, swap1, pop, swap2, swap1, pop, jump caller_jd,
     jumpdest, dup3,
-    raw mstore 3 (callerCalldataMem I) (UInt256.ofNat 6) (by decide)
+    raw rawMstore 3 (callerCalldataMem I) (UInt256.ofNat 6) (by decide)
       mem_cost
       (by rfl) (by decide) (by evm_ov),
     pop, pop, jump caller_jd,
     jumpdest, swap3, swap2, pop, pop, jump caller_jd,
     jumpdest, push1 ⟨32⟩, push1 ⟨64⟩,
-    raw mload 0 (callerOutPtr I) (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 (callerOutPtr I) (UInt256.ofNat 6) (by decide)
       mem_cost
       (by rfl) (by decide) (by evm_ov),
     dup1, dup4, sub, dup2, push0, dup8 ]⟩
@@ -685,7 +685,7 @@ theorem callerX_afterCall {cA gh bl σ σ₀ A I} {g : Sat256}
           UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ :: [])
         mem' aw' rdata' (cA', σ') k' C' := by
   obtain ⟨k, C, rd142⟩ := callerX_toCall142 hcode hwv hsz hsize hsz68 hszhi hmatch hclean
-  obtain ⟨gv, rd143⟩ := rd142.gas (by decide) (by evm_ov)
+  obtain ⟨gv, rd143⟩ := rd142.rawGas (by decide) (by evm_ov)
   obtain ⟨cA', σ', z, o, A_in, callGas, k', C', _hΘ, rd144, _hosz⟩ :=
     rd143.call (by decide) hdepth (by evm_ov)
   exact ⟨cA', σ', z, _, _, _, k', C', rd144⟩
@@ -717,7 +717,7 @@ theorem callerX_postCall {cA gh bl σ σ₀ A I} {g : Sat256}
                 accountMap := σ', substate := A', createdAccounts := cA' }, o) true
     ∧ o.size < UInt256.size := by
   obtain ⟨k, C, rd142⟩ := callerX_toCall142 hcode hwv hsz hsize hsz68 hszhi hmatch hclean
-  obtain ⟨gv, rd143⟩ := rd142.gas (by decide) (by evm_ov)
+  obtain ⟨gv, rd143⟩ := rd142.rawGas (by decide) (by evm_ov)
   obtain ⟨cA', σ', z, o, A_in, callGas, k', C', _hΘ, rd144, hosz⟩ :=
     rd143.call (by decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := _hΘ
@@ -763,7 +763,7 @@ theorem callerX_postRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   -- 155 RETURNDATASIZE; 156 PUSH0; 157 REVERT
   have rd156 := RD.returndatasize rd155 (by decide) (by simp only [List.length_cons]; omega)
   have rd157 := RD.push0 rd156 (by decide) (by simp only [List.length_cons]; omega)
-  exact RD.rev _ rd157 (by decide)
+  exact RD.rawRev _ rd157 (by decide)
     (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
     (by simp only [List.length_cons]; omega)
 
@@ -812,12 +812,12 @@ theorem callerX_succ_to470 {cA gh bl σ σ₀ A I} {g : Sat256}
       [⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
       (callerMem2 o mem) ⟨6⟩ o acc k' C' := by
   refine ⟨_, _, evm_run rd with [
-    raw mload 0 ⟨128⟩ ⟨6⟩ (by decide)
+    raw rawMload 0 ⟨128⟩ ⟨6⟩ (by decide)
       mem_cost
       hfp (by decide) (by evm_ov),
     returndatasize,
     push1 ⟨31⟩, not, push1 ⟨31⟩, dup3, add, and, dup3, add, dup1, push1 ⟨64⟩,
-    raw mstore 0 ((UInt256.add ⟨128⟩ (UInt256.land (UInt256.add (UInt256.ofNat o.size) ⟨31⟩)
+    raw rawMstore 0 ((UInt256.add ⟨128⟩ (UInt256.land (UInt256.add (UInt256.ofNat o.size) ⟨31⟩)
         (UInt256.lnot ⟨31⟩))).toByteArray.write 0 mem 64 32) ⟨6⟩ (by decide)
       mem_cost
       (by rfl) (by decide) (by evm_ov),
@@ -893,7 +893,7 @@ theorem callerX_succ_tail {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd198 := evm_run rd with [
     jumpdest, push0, push2 ⟨504⟩, dup5, dup3, dup6, add, push2 ⟨450⟩, jump callerContains450,
     jumpdest, push0, dup2,
-    raw mload 0 (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))) ⟨6⟩ (by decide)
+    raw rawMload 0 (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))) ⟨6⟩ (by decide)
       mem_cost
       (by
         have h128 : ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 := by decide
@@ -911,7 +911,7 @@ theorem callerX_succ_tail {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, swap3, swap2, pop, pop, jump callerContains504,
     jumpdest, swap2, pop, pop, swap3, swap2, pop, pop, jump callerContains194,
     jumpdest, push0, dup2, swap1 ]
-  obtain ⟨k', C', rd199⟩ := rd198.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨k', C', rd199⟩ := rd198.rawSstore hperm (by decide) (by evm_ov)
   exact RD.stop (evm_run rd199 with [pop, pop, pop, jump callerContains71, jumpdest])
     (by decide) (by evm_ov)
 
@@ -1260,7 +1260,7 @@ theorem callerX_callDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
     (hdepth : I.depth = 1024) :
     RDrev callerBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨k, C, rd142⟩ := callerX_toCall142 hcode hwv hsz hsize hsz68 hszhi hmatch hclean
-  obtain ⟨gv, rd143⟩ := rd142.gas (by decide) (by evm_ov)
+  obtain ⟨gv, rd143⟩ := rd142.rawGas (by decide) (by evm_ov)
   obtain ⟨k', C', rd144⟩ := rd143.callDepthLimit (by decide) hdepth (by evm_ov)
   exact callerX_postRevert rd144 (by simp)
 
@@ -1393,13 +1393,13 @@ theorem callerInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀ A 
     raw push2 ⟨567⟩ callerInitcodeDecode0 (by evm_ov),
     raw push1 ⟨12⟩ callerInitcodeDecode3 (by evm_ov),
     raw push0 callerInitcodeDecode5 (by evm_ov),
-    raw codecopy 54 callerInitReturnMem (UInt256.ofNat 18) callerInitcodeDecode6
+    raw rawCodecopy 54 callerInitReturnMem (UInt256.ofNat 18) callerInitcodeDecode6
       mem_cost
       rfl
       (by decide) (by evm_ov),
     raw push2 ⟨567⟩ callerInitcodeDecode7 (by evm_ov),
     raw push0 callerInitcodeDecode10 (by evm_ov),
-    raw ret 0 callerBytecode callerInitcodeDecode11
+    raw rawRet 0 callerBytecode callerInitcodeDecode11
       mem_cost
       callerFinal_read
       (by evm_ov)]

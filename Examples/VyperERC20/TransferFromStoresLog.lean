@@ -85,7 +85,7 @@ theorem erc20X_transferFromAfterLogTopics {cA gh bl σ σ₀ A I} {g : Sat256}
         (transferFromCurrentAllowanceRaw σ I)
   have rdAfterTopic := (evm_run rd563 with [
     push1 ⟨96⟩,
-    raw mload 0 (transferFromToWord I) (UInt256.ofNat 5)
+    raw rawMload 0 (transferFromToWord I) (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
@@ -96,7 +96,7 @@ theorem erc20X_transferFromAfterLogTopics {cA gh bl σ σ₀ A I} {g : Sat256}
           hread96)
       (by decide) (by evm_ov),
     push1 ⟨64⟩,
-    raw mload 0 (transferFromFromWord I) (UInt256.ofNat 5)
+    raw rawMload 0 (transferFromFromWord I) (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
@@ -133,7 +133,7 @@ theorem erc20X_transferFromBeforeLog {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdBeforeLog := evm_run rdAfterTopic with [
     push1 ⟨68⟩, calldataload,
     push1 ⟨160⟩,
-    raw mstore 3
+    raw rawMstore 3
       (transferFromLogActualMemI σ I)
       (UInt256.ofNat 6)
       (by vyper_erc20_transferFrom_decode) mem_cost rfl (by decide) (by evm_ov),
@@ -167,7 +167,7 @@ theorem erc20X_transferFromAfterLog {cA gh bl σ σ₀ A I} {g : Sat256}
           (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)
         (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
   obtain ⟨k, C, rd612⟩ := hreach
-  exact ⟨_, _, rd612.log3 0 (UInt256.ofNat 6)
+  exact ⟨_, _, rd612.rawLog3 0 (UInt256.ofNat 6)
     (by vyper_erc20_transferFrom_decode) hperm mem_cost (by decide) (by evm_ov)⟩
 
 theorem erc20X_transferFromReturnFromAfterLog {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -190,12 +190,12 @@ theorem erc20X_transferFromReturnFromAfterLog {cA gh bl σ σ₀ A I} {g : Sat25
   obtain ⟨k, C, rd613⟩ := hreach
   have rdBeforeReturn := evm_run rd613 with [
     push1 ⟨1⟩, push1 ⟨160⟩,
-    raw mstore 0
+    raw rawMstore 0
       (transferFromReturnActualMemI σ I)
       (UInt256.ofNat 6)
       (by vyper_erc20_transferFrom_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨160⟩]
-  exact rdBeforeReturn.ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256))
+  exact rdBeforeReturn.rawRet 0 (UInt256.toByteArray (⟨1⟩ : UInt256))
     (by vyper_erc20_transferFrom_decode) mem_cost
     (transferFromReturnActualMemI_read160 σ I)
     (by evm_ov)

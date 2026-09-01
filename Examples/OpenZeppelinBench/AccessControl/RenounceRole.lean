@@ -777,14 +777,14 @@ theorem accessControlRenounceRoleX_caller_revert {cA gh bl σ σ₀ A I} {g : Sa
     eq, push2 ⟨436⟩, jumpiNT (by rw [haddrMask, heqZero]) ]
   have rd424 := evm_run rd412 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
       (solcFreePtrMem_mload64) (by decide) (by evm_ov),
     push4 ⟨860608793⟩, push1 ⟨225⟩, shl, dup2,
-    raw mstore 6 (solcReturnMem renounceRoleBadConfirmationSelector)
+    raw rawMstore 6 (solcReturnMem renounceRoleBadConfirmationSelector)
       (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd435 := evm_run rd424 with [
     push1 ⟨4⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide) mem_cost
       (solcReturnMem_mload64 renounceRoleBadConfirmationSelector)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1 ]
@@ -792,7 +792,7 @@ theorem accessControlRenounceRoleX_caller_revert {cA gh bl σ σ₀ A I} {g : Sa
     decide
   have rd435' := rd435
   rw [hlen4] at rd435'
-  exact rd435'.rev 0 (by decide)
+  exact rd435'.rawRev 0 (by decide)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -907,10 +907,10 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
     jumpdest, iszero, push2 ⟨676⟩, jumpiNT (isZero_eq_zero_of_ne htarget) ]
   have rd713pre := evm_run rd700 with [
     push0, dup4, dup2,
-    raw mstore 0 (revokeRoleWordAt0Mem (renounceRoleRoleWord I) memTarget)
+    raw rawMstore 0 (revokeRoleWordAt0Mem (renounceRoleRoleWord I) memTarget)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup2, dup2,
-    raw mstore 0 (revokeRoleBaseHashMemFrom (renounceRoleRoleWord I) memTarget)
+    raw rawMstore 0 (revokeRoleBaseHashMemFrom (renounceRoleRoleWord I) memTarget)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup4]
   have hbaseSlotRaw :
@@ -921,7 +921,7 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
     unfold revokeRoleBaseSlot
     rw [revokeRoleBaseHashMemFrom_read0_64 _ hmemTarget, revokeRoleBaseHashMem_read0_64]
   have rd723pre := evm_run rd713pre with [
-    raw keccak256 0 (revokeRoleBaseSlot (renounceRoleRoleWord I)) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (revokeRoleBaseSlot (renounceRoleRoleWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost hbaseSlotRaw (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup7, and]
   have haddrMask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -937,12 +937,12 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
   rw [haddrMask, hcallerCleanRight] at rd723pre
   have rd731pre := evm_run rd723pre with [
     dup1, dup6,
-    raw mstore 0
+    raw rawMstore 0
       (revokeRoleHasRoleAccountMemFrom (renounceRoleRoleWord I) (renounceRoleCallerWord I)
         memTarget)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap3,
-    raw mstore 0
+    raw rawMstore 0
       (revokeRoleHasRoleSlotHashMemFrom (renounceRoleRoleWord I) (renounceRoleCallerWord I)
         memTarget)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
@@ -955,10 +955,10 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
     rw [revokeRoleAdminHasRoleKeccakSlotFrom (renounceRoleRoleWord I)
       (renounceRoleCallerWord I) memTarget hmemTarget hcanon, ← htargetSlotEq]
   have rd732 := evm_run rd731pre with [
-    raw keccak256 0 (renounceRoleTargetSlot I) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (renounceRoleTargetSlot I) (UInt256.ofNat 3)
       (by decide) mem_cost hslotWrite (by decide) (by evm_ov),
     dup1]
-  obtain ⟨_, _, rd733₀⟩ := rd732.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd733₀⟩ := rd732.rawSload (by decide) (by evm_ov)
   have rd733 :
       ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨734⟩
         [renounceRoleStorageWord σ I, renounceRoleTargetSlot I, ⟨64⟩,
@@ -978,7 +978,7 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
       (renounceRoleStorageWord σ I)
   have rd739pre := evm_run rd733 with [push1 ⟨255⟩, not, and, swap1]
   rw [hclearComm] at rd739pre
-  obtain ⟨_, _, rd740₀⟩ := rd739pre.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd740₀⟩ := rd739pre.rawSstore hperm (by decide) (by evm_ov)
   have rd740 :
       ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨740⟩
         [⟨64⟩, renounceRoleCallerWord I, ⟨0⟩, ⟨0⟩, renounceRoleCallerWord I,
@@ -998,7 +998,7 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
         memTarget).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     exact revokeRoleHasRoleSlotHashMemFrom_read64 _ _ hmemTarget hreadTarget
   have rd745pre := evm_run rd740 with [
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
       (revokeRoleHasRoleSlotHashMemFrom_mload64 (renounceRoleRoleWord I)
         (renounceRoleCallerWord I) hmemTarget hreadTarget)
       (by decide) (by evm_ov),
@@ -1006,7 +1006,7 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
   have rd745 := rd745pre.pushConst revokeRoleRevokedTopic (width := 32) (op := .PUSH32)
     (by decide) (by decide) (by evm_ov)
   have rd780 := evm_run rd745 with [swap2, swap1]
-  have rd781 := RD.log4 0 (UInt256.ofNat 3) rd780 (by decide) hperm
+  have rd781 := RD.rawLog4 0 (UInt256.ofNat 3) rd780 (by decide) hperm
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]

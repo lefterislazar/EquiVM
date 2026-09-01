@@ -37,7 +37,7 @@ theorem pausableX_paused {cA gh bl σ σ₀ A I} {g : Sat256}
       (UInt256.toByteArray (pausedReturnWord σ I)) := by
   obtain ⟨_, _, rd99⟩ := hreach
   have rd101 := evm_run rd99 with [jumpdest, push0]
-  obtain ⟨_, _, rd102₀⟩ := rd101.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd102₀⟩ := rd101.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd102⟩ :
       ∃ k C, RD pausableBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨102⟩
         [pausedRawWord σ I, pausableSelWord I] solcFreePtrMem (UInt256.ofNat 3)
@@ -51,24 +51,24 @@ theorem pausableX_paused {cA gh bl σ σ₀ A I} {g : Sat256}
   rw [hmask] at rd105
   exact evm_run rd105 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
     swap1, iszero, iszero, dup2,
-    raw mstore 6 (solcReturnMem (pausedReturnWord σ I)) (UInt256.ofNat 5)
+    raw rawMstore 6 (solcReturnMem (pausedReturnWord σ I)) (UInt256.ofNat 5)
       (by decide) mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (solcReturnMem_mload64 (pausedReturnWord σ I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (pausedReturnWord σ I)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (pausedReturnWord σ I)) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,

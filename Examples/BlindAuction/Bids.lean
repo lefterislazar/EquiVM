@@ -816,16 +816,16 @@ theorem blindAuctionBidsX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [u256_add_comm, hElemSlotL]
   have rd523 := evm_run rd510 with [
     jumpdest, push1 ⟨4⟩, push1 ⟨32⟩,
-    raw mstore 0 bidsBaseSlotMem (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMstore 0 bidsBaseSlotMem (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     dup2, push0,
-    raw mstore 0 (bidsHashMem (bidsAddressWord I)) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (bidsHashMem (bidsAddressWord I)) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (bidsLengthSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (bidsLengthSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hmapping (by decide) (by evm_ov),
     dup2, dup2 ]
-  obtain ⟨_, _, rd525⟩ := rd523.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd525⟩ := rd523.rawSload (by decide) (by evm_ov)
   have hlt : UInt256.lt (bidsIndexWord I) (bidsLengthWord σ I) = ⟨1⟩ :=
     ult_one hbound
   have rd535 := evm_run rd525 with [
@@ -839,46 +839,46 @@ theorem blindAuctionBidsX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
       rw [hlt']; decide) (by jump_dest) ]
   have rd551 := evm_run rd535 with [
     jumpdest, push0, swap2, dup3,
-    raw mstore 0 (bidsArrayDataMem (bidsAddressWord I) (bidsLengthSlot I))
+    raw rawMstore 0 (bidsArrayDataMem (bidsAddressWord I) (bidsLengthSlot I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, swap1, swap2,
-    raw keccak256 0 (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (bidsLengthSlot I))))
+    raw rawKeccak256 0 (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (bidsLengthSlot I))))
       (UInt256.ofNat 3) (by decide) mem_cost hdata (by decide) (by evm_ov),
     push1 ⟨2⟩, swap1, swap2, mul, add, dup1 ]
   have rd551' := rd551
   rw [hElemSlotR] at rd551'
-  obtain ⟨_, _, rd552⟩ := rd551'.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd552⟩ := rd551'.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd558⟩ := (evm_run rd552 with [
-    push1 ⟨1⟩, swap1, swap2, add ]).sload (by decide) (by evm_ov)
+    push1 ⟨1⟩, swap1, swap2, add ]).rawSload (by decide) (by evm_ov)
   have rd189 := evm_run rd558 with [
     swap1, swap3, pop, swap1, pop, dup3, jump (by jump_dest) ]
   exact evm_run rd189 with [
     jumpdest, push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (bidsArrayDataMem_mload64 (bidsAddressWord I) (bidsLengthSlot I))
       (by decide) (by evm_ov),
     swap3, dup4,
-    raw mstore 6
+    raw rawMstore 6
       (bidsReturnBlindedMem (bidsAddressWord I) (bidsLengthSlot I) (bidsBlindedWord σ I))
       (UInt256.ofNat 5) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup4, add, swap2, swap1, swap2,
-    raw mstore 3
+    raw rawMstore 3
       (bidsReturnMem (bidsAddressWord I) (bidsLengthSlot I) (bidsBlindedWord σ I)
         (bidsDepositWord σ I))
       (UInt256.ofNat 6) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     add,
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
       (bidsReturnMem_mload64 (bidsAddressWord I) (bidsLengthSlot I)
         (bidsBlindedWord σ I) (bidsDepositWord σ I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0
+    raw rawRet 0
       (UInt256.toByteArray (bidsBlindedWord σ I) ++ UInt256.toByteArray (bidsDepositWord σ I))
       (by decide) mem_cost
       (by
@@ -901,16 +901,16 @@ theorem blindAuctionBidsX_oob {cA gh bl σ σ₀ A I} {g : Sat256}
   have hmapping := bidsMappingBaseKeccak I hcanon
   have rd523 := evm_run rd510 with [
     jumpdest, push1 ⟨4⟩, push1 ⟨32⟩,
-    raw mstore 0 bidsBaseSlotMem (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMstore 0 bidsBaseSlotMem (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     dup2, push0,
-    raw mstore 0 (bidsHashMem (bidsAddressWord I)) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (bidsHashMem (bidsAddressWord I)) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (bidsLengthSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (bidsLengthSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hmapping (by decide) (by evm_ov),
     dup2, dup2 ]
-  obtain ⟨_, _, rd525⟩ := rd523.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd525⟩ := rd523.rawSload (by decide) (by evm_ov)
   have hlt : UInt256.lt (bidsIndexWord I) (bidsLengthWord σ I) = ⟨0⟩ :=
     ult_zero (by omega)
   exact evm_run rd525 with [
@@ -922,7 +922,7 @@ theorem blindAuctionBidsX_oob {cA gh bl σ σ₀ A I} {g : Sat256}
                 (fun acc => acc.storage.findD (bidsLengthSlot I) ⟨0⟩)) = ⟨0⟩ := by
         simpa [bidsLengthWord] using hlt
       exact hlt'),
-    push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov) ]
+    push0, dup1, raw rawRev 0 (by decide) mem_cost (by evm_ov) ]
 
 /-- `bids(address,uint256)` getter body (pc 158) refines its transition. -/
 theorem blindAuctionBidsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}

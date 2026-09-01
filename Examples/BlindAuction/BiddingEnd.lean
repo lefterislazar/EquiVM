@@ -45,7 +45,7 @@ theorem blindAuctionX_biddingEnd {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, callvalue, dup1, iszero, push2 ⟨363⟩,
     jumpiT (by rw [hwv]; decide) (by jump_dest),
     jumpdest, pop, push2 ⟨373⟩, push1 ⟨1⟩]
-  obtain ⟨_, _, rd371₀⟩ := rd370.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd371₀⟩ := rd370.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd371⟩ :
       ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨371⟩
         [biddingEndWord σ I, ⟨373⟩, blindAuctionSelWord I] solcFreePtrMem

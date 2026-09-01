@@ -383,11 +383,11 @@ theorem RD.ownable2StepReturnAddress119 {g : Sat256} {s0 : State} {ee : Executio
       (UInt256.toByteArray (UInt256.land val solcAddrMask)) := by
   exact evm_run h with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
     swap1, swap2, and, dup2,
-    raw mstore 6 (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5)
+    raw rawMstore 6 (solcReturnMem (UInt256.land val solcAddrMask)) (UInt256.ofNat 5)
       (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -395,11 +395,11 @@ theorem RD.ownable2StepReturnAddress119 {g : Sat256} {s0 : State} {ee : Executio
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost (solcReturnMem_mload64 (UInt256.land val solcAddrMask))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (UInt256.land val solcAddrMask)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (UInt256.land val solcAddrMask)) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -423,7 +423,7 @@ theorem RD.ownable2StepOnlyOwnerPass {g : Sat256} {s0 : State} {ee : ExecutionEn
     ∃ k' C', RD _root_.OpenZeppelinBench.Ownable2Step.ownable2StepBenchBytecode ee g s0 ret R
       mem aw rdata (cA, σ) k' C' := by
   have rd389 := evm_run h with [jumpdest, push0]
-  obtain ⟨_, _, rd390₀⟩ := rd389.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd390₀⟩ := rd389.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd390⟩ : ∃ k' C',
       RD _root_.OpenZeppelinBench.Ownable2Step.ownable2StepBenchBytecode ee g s0 ⟨390⟩
         (ownable2StepOnlyOwnerWord σ ee :: ret :: R) mem aw rdata (cA, σ) k' C' := by
@@ -459,7 +459,7 @@ theorem RD.ownable2StepOnlyOwnerRevert {g : Sat256} {s0 : State} {ee : Execution
     (hov : R.length + 8 ≤ 1024) :
     RDrev _root_.OpenZeppelinBench.Ownable2Step.ownable2StepBenchBytecode g s0 := by
   have rd389 := evm_run h with [jumpdest, push0]
-  obtain ⟨_, _, rd390₀⟩ := rd389.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd390₀⟩ := rd389.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd390⟩ : ∃ k' C',
       RD _root_.OpenZeppelinBench.Ownable2Step.ownable2StepBenchBytecode ee g s0 ⟨390⟩
         (ownable2StepOnlyOwnerWord σ ee :: ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata
@@ -493,10 +493,10 @@ theorem RD.ownable2StepOnlyOwnerRevert {g : Sat256} {s0 : State} {ee : Execution
   have rd405 := evm_run rd401 with [push2 ⟨200⟩, jumpiNT (by decide)]
   have rd418 := evm_run rd405 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push4 ⟨0x118cdaa7⟩, push1 ⟨224⟩, shl, dup2,
-    raw mstore 6
+    raw rawMstore 6
       (solcReturnMem _root_.OpenZeppelinBench.Ownable2Step.ownable2StepUnauthorizedSelector)
       (UInt256.ofNat 5) (by decide) mem_cost
       (by
@@ -505,7 +505,7 @@ theorem RD.ownable2StepOnlyOwnerRevert {g : Sat256} {s0 : State} {ee : Execution
       (by decide) (by evm_ov)]
   have rd423 := evm_run rd418 with [caller, push1 ⟨4⟩, dup3, add]
   have rd426 := evm_run rd423 with [
-    raw mstore 3
+    raw rawMstore 3
       (_root_.OpenZeppelinBench.Ownable2Step.ownable2StepUnauthorizedMem
         (_root_.OpenZeppelinBench.Ownable2Step.ownable2StepSourceWord ee))
       (UInt256.ofNat 6) (by decide) mem_cost
@@ -524,12 +524,12 @@ theorem RD.ownable2StepOnlyOwnerRevert {g : Sat256} {s0 : State} {ee : Execution
   have rd254 := evm_run rd426 with [push2 ⟨254⟩, jump (by jump_dest)]
   have rd262 := evm_run rd254 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
       (_root_.OpenZeppelinBench.Ownable2Step.ownable2StepUnauthorizedMem_mload64
         (_root_.OpenZeppelinBench.Ownable2Step.ownable2StepSourceWord ee))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
-  exact rd262.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd262.rawRev 0 (by decide) mem_cost (by evm_ov)
 
 end Reasoning.Reach

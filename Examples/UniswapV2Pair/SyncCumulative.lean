@@ -224,7 +224,7 @@ theorem RD.uniswapUpdateCumulativesAndJump {g : Sat256} {s0 : State}
         ⟨0⟩ :=
     isZero_eq_zero_of_ne hreserve1NeLit
   have rd7063 := evm_run h with [jumpdest, push1 ⟨8⟩]
-  obtain ⟨_, _, rd7064⟩ := rd7063.sload (by native_decide)
+  obtain ⟨_, _, rd7064⟩ := rd7063.rawSload (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd7069 := evm_run rd7064 with [push4 ⟨4294967295⟩]
   have rd7070 := RD.timestamp rd7069 (by native_decide) (by evm_ov)
@@ -269,12 +269,12 @@ theorem RD.uniswapUpdateCumulativesAndJump {g : Sat256} {s0 : State}
     RD.uniswapUQ112Div rd8478₀ hreserve0Ne (by jump_dest)
       (by simp only [List.length_cons]; omega)
   have rd7178 := evm_run rd7174 with [jumpdest, push1 ⟨9⟩, dup1]
-  obtain ⟨_, _, rd7179⟩ := rd7178.sload (by native_decide)
+  obtain ⟨_, _, rd7179⟩ := rd7178.rawSload (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd7197 := evm_run rd7179 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨224⟩, shl, sub, swap3, swap1, swap3,
     and, swap3, swap1, swap3, mul, add, swap1]
-  obtain ⟨_, _, rd7198⟩ := rd7197.sstore hperm (by native_decide)
+  obtain ⟨_, _, rd7198⟩ := rd7197.rawSstore hperm (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd8460₁ := evm_run rd7198 with [
     push4 ⟨4294967295⟩, dup2, and, push2 ⟨7217⟩, dup5, push2 ⟨7153⟩,
@@ -289,12 +289,12 @@ theorem RD.uniswapUpdateCumulativesAndJump {g : Sat256} {s0 : State}
     RD.uniswapUQ112Div rd8478₁ hreserve1Ne (by jump_dest)
       (by simp only [List.length_cons]; omega)
   have rd7221 := evm_run rd7217 with [jumpdest, push1 ⟨10⟩, dup1]
-  obtain ⟨_, _, rd7222⟩ := rd7221.sload (by native_decide)
+  obtain ⟨_, _, rd7222⟩ := rd7221.rawSload (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd7240 := evm_run rd7222 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨224⟩, shl, sub, swap3, swap1, swap3,
     and, swap3, swap1, swap3, mul, add, swap1]
-  obtain ⟨k7241, C7241, rd7241⟩ := rd7240.sstore hperm (by native_decide)
+  obtain ⟨k7241, C7241, rd7241⟩ := rd7240.rawSstore hperm (by native_decide)
     (by simp only [List.length_cons]; omega)
   have hpc7241 :
       ((⟨7217⟩ : UInt256) + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +

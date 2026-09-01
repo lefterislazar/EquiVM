@@ -427,7 +427,7 @@ theorem RD.routineencode {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : �
   evm_run h with [
       -- 71→83: load free pointer, save return addr 84, JUMP to the abi-encode helper @265
       jumpdest, push1 ⟨64⟩,
-      raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
+      raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide) mem_cost
         solcFreePtrMem_mload64
         (by decide) (by evm_ov),
       push2 ⟨84⟩, swap2, swap1, push2 ⟨265⟩,
@@ -442,7 +442,7 @@ theorem RD.routineencode {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : �
       raw routine9c (by jump_dest) (by evm_ov),
       -- 259→264: MSTORE mem[128] := val, JUMP back @284
       jumpdest, dup3,
-      raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide) mem_cost
+      raw rawMstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide) mem_cost
         (by rw [show ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 from (by decide)]; rfl)
         (by decide) (by evm_ov),
       pop, pop,
@@ -452,11 +452,11 @@ theorem RD.routineencode {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : �
       jump (by jump_dest),
       -- 84→92: reload free pointer (now solcReturnMem), compute length 160−128, RETURN mem[128..160]
       jumpdest, push1 ⟨64⟩,
-      raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide) mem_cost
+      raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide) mem_cost
         (solcReturnMem_mload64 val)
         (by decide) (by evm_ov),
       dup1, swap2, sub, swap1,
-      raw ret 0 (UInt256.toByteArray val) (by decide) mem_cost
+      raw rawRet 0 (UInt256.toByteArray val) (by decide) mem_cost
         (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, sub_ret32_toNat, solcReturnMem_read128])
         (by evm_ov) ]
 
@@ -990,13 +990,13 @@ theorem powInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀ A I} 
     raw push2 ⟨290⟩ powInitcodeDecode0 (by evm_ov),
     raw push1 ⟨12⟩ powInitcodeDecode3 (by evm_ov),
     raw push0 powInitcodeDecode5 (by evm_ov),
-    raw codecopy 30 powInitReturnMem (UInt256.ofNat 10) powInitcodeDecode6
+    raw rawCodecopy 30 powInitReturnMem (UInt256.ofNat 10) powInitcodeDecode6
       mem_cost
       rfl
       (by decide) (by evm_ov),
     raw push2 ⟨290⟩ powInitcodeDecode7 (by evm_ov),
     raw push0 powInitcodeDecode10 (by evm_ov),
-    raw ret 0 powBytecode powInitcodeDecode11
+    raw rawRet 0 powBytecode powInitcodeDecode11
       mem_cost
       powFinal_read
       (by evm_ov)]

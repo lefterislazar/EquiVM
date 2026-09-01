@@ -59,7 +59,7 @@ theorem ownable2StepStorageLocStore_address_offset0 (evm : EVM.State)
   simpa [addrLoc, addressOffset0Loc, ownable2StepSetAddressWord,
     setAddressOffset0Word] using storageLocStore_address_offset0 evm slot addr hcanon
 
-/-- `EVM.storageStore`'s account map is exactly the map carried by `RD.sstore`. -/
+/-- `EVM.storageStore`'s account map is exactly the map carried by `RD.rawSstore`. -/
 theorem ownable2StepStorageStore_accountMap
     (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).accountMap =

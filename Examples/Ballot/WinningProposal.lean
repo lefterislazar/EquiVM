@@ -980,7 +980,7 @@ theorem ballotWinningProposalLoop {cA σ I} {g : Sat256} {s0 : State}
     have hbestTarget : a.winningProposal = target.2 := by
       simpa [winningProposalLoopAuxWord] using congrArg Prod.snd hloop
     have rd1322 := evm_run h with [jumpdest, push1 ⟨2⟩]
-    obtain ⟨_, _, rd1323⟩ := rd1322.sload (by decide) (by evm_ov)
+    obtain ⟨_, _, rd1323⟩ := rd1322.rawSload (by decide) (by evm_ov)
     have rdret := evm_run rd1323 with [
       dup2, lt, iszero, push2 ⟨1420⟩,
       jumpiT (by
@@ -1017,7 +1017,7 @@ theorem ballotWinningProposalLoop {cA σ I} {g : Sat256} {s0 : State}
     have hread1 : mem1.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
       simpa [mem1] using winningProposalStoreBaseMem_read64 a.mem hmem hread64
     have rd1322 := evm_run h with [jumpdest, push1 ⟨2⟩]
-    obtain ⟨_, _, rd1323⟩ := rd1322.sload (by decide) (by evm_ov)
+    obtain ⟨_, _, rd1323⟩ := rd1322.rawSload (by decide) (by evm_ov)
     have rd1336_prefix := evm_run rd1323 with [
       dup2, lt, iszero, push2 ⟨1420⟩,
       jumpiNT (by
@@ -1028,7 +1028,7 @@ theorem ballotWinningProposalLoop {cA σ I} {g : Sat256} {s0 : State}
           simpa [winningProposalLengthWord] using hlt
         rw [hlt']; decide),
       dup2, push1 ⟨2⟩, dup3, dup2]
-    obtain ⟨_, _, rd1336⟩ := rd1336_prefix.sload (by decide) (by evm_ov)
+    obtain ⟨_, _, rd1336⟩ := rd1336_prefix.rawSload (by decide) (by evm_ov)
     have rdVoteSlot := evm_run rd1336 with [
       dup2, lt, push2 ⟨1349⟩,
       jumpiT (by
@@ -1039,13 +1039,13 @@ theorem ballotWinningProposalLoop {cA σ I} {g : Sat256} {s0 : State}
           simpa [winningProposalLengthWord] using hlt
         rw [hlt']; decide) (by jump_dest),
       jumpdest, swap1, push0,
-      raw mstore 0 mem1 (UInt256.ofNat 3) (by decide) mem_cost
+      raw rawMstore 0 mem1 (UInt256.ofNat 3) (by decide) mem_cost
         (by rfl) (by decide) (by evm_ov),
       push1 ⟨32⟩, push0,
-      raw keccak256 0 proposalsDataBase (UInt256.ofNat 3) (by decide)
+      raw rawKeccak256 0 proposalsDataBase (UInt256.ofNat 3) (by decide)
         mem_cost (winningProposalStoreBaseMem_keccak a.mem hmem) (by decide) (by evm_ov),
       swap1, push1 ⟨2⟩, mul, add, push1 ⟨1⟩, add]
-    obtain ⟨_, _, rdVote⟩ := rdVoteSlot.sload (by decide) (by evm_ov)
+    obtain ⟨_, _, rdVote⟩ := rdVoteSlot.rawSload (by decide) (by evm_ov)
     by_cases hgt : a.winningVoteCount.toNat < voteCount.toNat
     · let mem2 := winningProposalStoreBaseMem mem1
       have hmem2 : mem2.size = 96 := by
@@ -1066,7 +1066,7 @@ theorem ballotWinningProposalLoop {cA σ I} {g : Sat256} {s0 : State}
                 winningProposalVoteCountSlot_evm] using hgtWord
           rw [hgtWord']; decide),
         push1 ⟨2⟩, dup2, dup2]
-      obtain ⟨_, _, rd1376⟩ := rd1390_prefix.sload (by decide) (by evm_ov)
+      obtain ⟨_, _, rd1376⟩ := rd1390_prefix.rawSload (by decide) (by evm_ov)
       have rd1412 := evm_run rd1376 with [
         dup2, lt, push2 ⟨1390⟩,
         jumpiT (by
@@ -1077,13 +1077,13 @@ theorem ballotWinningProposalLoop {cA σ I} {g : Sat256} {s0 : State}
             simpa [winningProposalLengthWord] using hlt
           rw [hlt']; decide) (by jump_dest),
         jumpdest, swap1, push0,
-        raw mstore 0 mem2 (UInt256.ofNat 3) (by decide) mem_cost
+        raw rawMstore 0 mem2 (UInt256.ofNat 3) (by decide) mem_cost
           (by rfl) (by decide) (by evm_ov),
         push1 ⟨32⟩, push0,
-        raw keccak256 0 proposalsDataBase (UInt256.ofNat 3) (by decide)
+        raw rawKeccak256 0 proposalsDataBase (UInt256.ofNat 3) (by decide)
           mem_cost (winningProposalStoreBaseMem_keccak mem1 hmem1) (by decide) (by evm_ov),
         swap1, push1 ⟨2⟩, mul, add, push1 ⟨1⟩, add]
-      obtain ⟨_, _, rd1407⟩ := rd1412.sload (by decide) (by evm_ov)
+      obtain ⟨_, _, rd1407⟩ := rd1412.rawSload (by decide) (by evm_ov)
       have rdNext := evm_run rd1407 with [
         swap2, pop, dup1, swap3, pop,
         jumpdest, push1 ⟨1⟩, add, push2 ⟨1319⟩, jump (by jump_dest)]
@@ -1220,12 +1220,12 @@ theorem ballotX_winningProposal_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
       winningProposalReturnFromMem_read128 mem' (winningProposalResultWord σ I) hmem'
   have rd194 := evm_run rd272 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (mloadFreePtrValue (by rw [hmem']; decide) (by decide) hread64')
       (by decide) (by evm_ov),
     swap1, dup2,
-    raw mstore 6 retMem (UInt256.ofNat 5) (by decide) mem_cost
+    raw rawMstore 6 retMem (UInt256.ofNat 5) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨194⟩, jump (by jump_dest)]
   exact RD.ballotReturnOneWord194OfMem rd194 hmload64 hread128

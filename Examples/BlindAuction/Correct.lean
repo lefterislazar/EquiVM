@@ -651,21 +651,21 @@ theorem blindAuctionInitcodeBiddingOverflowRevert
     callvalue, dup1, iszero, push1 ⟨9⟩,
     jumpiT (by rw [hwv]; decide) (by blind_ctor_jd),
     jumpdest, pop, push1 ⟨32⟩, push2 ⟨2347⟩, push0,
-    raw codecopy 3 (blindAuctionBeneficiaryMem biddingTime revealTime beneficiaryAddress)
+    raw rawCodecopy 3 (blindAuctionBeneficiaryMem biddingTime revealTime beneficiaryAddress)
       (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mload 0 (EVM.word beneficiaryAddress) (UInt256.ofNat 1)
+    raw rawMload 0 (EVM.word beneficiaryAddress) (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       (blindAuctionBeneficiaryMem_mload biddingTime revealTime beneficiaryAddress)
       (by decide) (by evm_ov),
     dup1, push20 solcAddrMask, and, push0]
   obtain ⟨kSload, CSload, rdAfterSload⟩ :=
-    rdBeforeSload.sload (by blind_ctor_decode) (by evm_ov)
+    rdBeforeSload.rawSload (by blind_ctor_decode) (by evm_ov)
   have rdBeforeStore := blind_ctor_run rdAfterSload with [
     push20 solcAddrMask, not, and, or, swap1, pop, push0]
   have hpacked :
@@ -677,17 +677,17 @@ theorem blindAuctionInitcodeBiddingOverflowRevert
       u256_land_comm solcAddrMask (EVM.word beneficiaryAddress)]
   rw [hpacked] at rdBeforeStore
   obtain ⟨k', C', rdAfterStore⟩ :=
-    rdBeforeStore.sstore hperm (by blind_ctor_decode) (by evm_ov)
+    rdBeforeStore.rawSstore hperm (by blind_ctor_decode) (by evm_ov)
   have rdBeforeLt := blind_ctor_run rdAfterStore with [
     push1 ⟨32⟩, push2 ⟨2283⟩, push0,
-    raw codecopy 0 (blindAuctionBiddingMem biddingTime revealTime beneficiaryAddress)
+    raw rawCodecopy 0 (blindAuctionBiddingMem biddingTime revealTime beneficiaryAddress)
       (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mload 0 biddingTime (UInt256.ofNat 1)
+    raw rawMload 0 biddingTime (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       (blindAuctionBiddingMem_mload biddingTime revealTime beneficiaryAddress)
@@ -735,21 +735,21 @@ theorem blindAuctionInitcodeRevealOverflowRevert
     callvalue, dup1, iszero, push1 ⟨9⟩,
     jumpiT (by rw [hwv]; decide) (by blind_ctor_jd),
     jumpdest, pop, push1 ⟨32⟩, push2 ⟨2347⟩, push0,
-    raw codecopy 3 (blindAuctionBeneficiaryMem biddingTime revealTime beneficiaryAddress)
+    raw rawCodecopy 3 (blindAuctionBeneficiaryMem biddingTime revealTime beneficiaryAddress)
       (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mload 0 (EVM.word beneficiaryAddress) (UInt256.ofNat 1)
+    raw rawMload 0 (EVM.word beneficiaryAddress) (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       (blindAuctionBeneficiaryMem_mload biddingTime revealTime beneficiaryAddress)
       (by decide) (by evm_ov),
     dup1, push20 solcAddrMask, and, push0]
   obtain ⟨kSload, CSload, rdAfterSload⟩ :=
-    rdBeforeSload.sload (by blind_ctor_decode) (by evm_ov)
+    rdBeforeSload.rawSload (by blind_ctor_decode) (by evm_ov)
   have rdBeforeStore := blind_ctor_run rdAfterSload with [
     push20 solcAddrMask, not, and, or, swap1, pop, push0]
   have hpacked :
@@ -761,17 +761,17 @@ theorem blindAuctionInitcodeRevealOverflowRevert
       u256_land_comm solcAddrMask (EVM.word beneficiaryAddress)]
   rw [hpacked] at rdBeforeStore
   obtain ⟨k', C', rdAfterBeneficiaryStore⟩ :=
-    rdBeforeStore.sstore hperm (by blind_ctor_decode) (by evm_ov)
+    rdBeforeStore.rawSstore hperm (by blind_ctor_decode) (by evm_ov)
   have rdBeforeBidLt := blind_ctor_run rdAfterBeneficiaryStore with [
     push1 ⟨32⟩, push2 ⟨2283⟩, push0,
-    raw codecopy 0 (blindAuctionBiddingMem biddingTime revealTime beneficiaryAddress)
+    raw rawCodecopy 0 (blindAuctionBiddingMem biddingTime revealTime beneficiaryAddress)
       (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mload 0 biddingTime (UInt256.ofNat 1)
+    raw rawMload 0 biddingTime (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       (blindAuctionBiddingMem_mload biddingTime revealTime beneficiaryAddress)
@@ -784,31 +784,31 @@ theorem blindAuctionInitcodeRevealOverflowRevert
   have rdBeforeBiddingEndStore := blind_ctor_run rdBeforeBidJump with [
     swap1, pop, push1 ⟨142⟩, jumpiNT (by decide),
     push0,
-    raw mload 0 biddingTime (UInt256.ofNat 1)
+    raw rawMload 0 biddingTime (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       (blindAuctionBiddingMem_mload biddingTime revealTime beneficiaryAddress)
       (by decide) (by evm_ov),
     timestamp, add, push1 ⟨1⟩]
   obtain ⟨k'', C'', rdAfterBiddingEndStore⟩ :=
-    rdBeforeBiddingEndStore.sstore hperm (by blind_ctor_decode) (by evm_ov)
+    rdBeforeBiddingEndStore.rawSstore hperm (by blind_ctor_decode) (by evm_ov)
   have rdBeforeRevealLtSload := blind_ctor_run rdAfterBiddingEndStore with [
     push1 ⟨32⟩, push2 ⟨2315⟩, push0,
-    raw codecopy 0 (blindAuctionRevealMem biddingTime revealTime beneficiaryAddress)
+    raw rawCodecopy 0 (blindAuctionRevealMem biddingTime revealTime beneficiaryAddress)
       (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mload 0 revealTime (UInt256.ofNat 1)
+    raw rawMload 0 revealTime (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       (blindAuctionRevealMem_mload biddingTime revealTime beneficiaryAddress)
       (by decide) (by evm_ov),
     push1 ⟨1⟩]
   obtain ⟨kSloadBid, CSloadBid, rdAfterBidSload⟩ :=
-    rdBeforeRevealLtSload.sload (by blind_ctor_decode) (by evm_ov)
+    rdBeforeRevealLtSload.rawSload (by blind_ctor_decode) (by evm_ov)
   let biddingEndWord : UInt256 :=
     ((sstoreAccountMap I.codeOwner
       (sstoreAccountMap I.codeOwner σ ⟨0⟩ beneficiaryStoreWord)
@@ -878,21 +878,21 @@ theorem blindAuctionInitcodeSuccess
     callvalue, dup1, iszero, push1 ⟨9⟩,
     jumpiT (by rw [hwv]; decide) (by blind_ctor_jd),
     jumpdest, pop, push1 ⟨32⟩, push2 ⟨2347⟩, push0,
-    raw codecopy 3 (blindAuctionBeneficiaryMem biddingTime revealTime beneficiaryAddress)
+    raw rawCodecopy 3 (blindAuctionBeneficiaryMem biddingTime revealTime beneficiaryAddress)
       (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mload 0 (EVM.word beneficiaryAddress) (UInt256.ofNat 1)
+    raw rawMload 0 (EVM.word beneficiaryAddress) (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       (blindAuctionBeneficiaryMem_mload biddingTime revealTime beneficiaryAddress)
       (by decide) (by evm_ov),
     dup1, push20 solcAddrMask, and, push0]
   obtain ⟨kSload, CSload, rdAfterSload⟩ :=
-    rdBeforeSload.sload (by blind_ctor_decode) (by evm_ov)
+    rdBeforeSload.rawSload (by blind_ctor_decode) (by evm_ov)
   have rdBeforeStore := blind_ctor_run rdAfterSload with [
     push20 solcAddrMask, not, and, or, swap1, pop, push0]
   have hpacked :
@@ -904,17 +904,17 @@ theorem blindAuctionInitcodeSuccess
       u256_land_comm solcAddrMask (EVM.word beneficiaryAddress)]
   rw [hpacked] at rdBeforeStore
   obtain ⟨k', C', rdAfterBeneficiaryStore⟩ :=
-    rdBeforeStore.sstore hperm (by blind_ctor_decode) (by evm_ov)
+    rdBeforeStore.rawSstore hperm (by blind_ctor_decode) (by evm_ov)
   have rdBeforeBidLt := blind_ctor_run rdAfterBeneficiaryStore with [
     push1 ⟨32⟩, push2 ⟨2283⟩, push0,
-    raw codecopy 0 (blindAuctionBiddingMem biddingTime revealTime beneficiaryAddress)
+    raw rawCodecopy 0 (blindAuctionBiddingMem biddingTime revealTime beneficiaryAddress)
       (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mload 0 biddingTime (UInt256.ofNat 1)
+    raw rawMload 0 biddingTime (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       (blindAuctionBiddingMem_mload biddingTime revealTime beneficiaryAddress)
@@ -927,31 +927,31 @@ theorem blindAuctionInitcodeSuccess
   have rdBeforeBiddingEndStore := blind_ctor_run rdBeforeBidJump with [
     swap1, pop, push1 ⟨142⟩, jumpiNT (by decide),
     push0,
-    raw mload 0 biddingTime (UInt256.ofNat 1)
+    raw rawMload 0 biddingTime (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       (blindAuctionBiddingMem_mload biddingTime revealTime beneficiaryAddress)
       (by decide) (by evm_ov),
     timestamp, add, push1 ⟨1⟩]
   obtain ⟨k'', C'', rdAfterBiddingEndStore⟩ :=
-    rdBeforeBiddingEndStore.sstore hperm (by blind_ctor_decode) (by evm_ov)
+    rdBeforeBiddingEndStore.rawSstore hperm (by blind_ctor_decode) (by evm_ov)
   have rdBeforeRevealLtSload := blind_ctor_run rdAfterBiddingEndStore with [
     push1 ⟨32⟩, push2 ⟨2315⟩, push0,
-    raw codecopy 0 (blindAuctionRevealMem biddingTime revealTime beneficiaryAddress)
+    raw rawCodecopy 0 (blindAuctionRevealMem biddingTime revealTime beneficiaryAddress)
       (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0,
-    raw mload 0 revealTime (UInt256.ofNat 1)
+    raw rawMload 0 revealTime (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       (blindAuctionRevealMem_mload biddingTime revealTime beneficiaryAddress)
       (by decide) (by evm_ov),
     push1 ⟨1⟩]
   obtain ⟨kSloadBid, CSloadBid, rdAfterBidSload⟩ :=
-    rdBeforeRevealLtSload.sload (by blind_ctor_decode) (by evm_ov)
+    rdBeforeRevealLtSload.rawSload (by blind_ctor_decode) (by evm_ov)
   let biddingEndWord : UInt256 :=
     ((sstoreAccountMap I.codeOwner
       (sstoreAccountMap I.codeOwner σ ⟨0⟩ beneficiaryStoreWord)
@@ -976,21 +976,21 @@ theorem blindAuctionInitcodeSuccess
   have rdBeforeRevealEndStore := blind_ctor_run rdBeforeRevealJump with [
     swap1, pop, push1 ⟨142⟩, jumpiNT (by decide),
     push0,
-    raw mload 0 revealTime (UInt256.ofNat 1)
+    raw rawMload 0 revealTime (UInt256.ofNat 1)
       (by blind_ctor_decode)
       mem_cost
       (blindAuctionRevealMem_mload biddingTime revealTime beneficiaryAddress)
       (by decide) (by evm_ov),
     push1 ⟨1⟩]
   obtain ⟨kSloadBid', CSloadBid', rdAfterBidSload'⟩ :=
-    rdBeforeRevealEndStore.sload (by blind_ctor_decode) (by evm_ov)
+    rdBeforeRevealEndStore.rawSload (by blind_ctor_decode) (by evm_ov)
   have rdBeforeRevealEndStore' := blind_ctor_run rdAfterBidSload' with [
     add, push1 ⟨2⟩]
   obtain ⟨k''', C''', rdAfterRevealEndStore⟩ :=
-    rdBeforeRevealEndStore'.sstore hperm (by blind_ctor_decode) (by evm_ov)
+    rdBeforeRevealEndStore'.rawSstore hperm (by blind_ctor_decode) (by evm_ov)
   have rdBeforeReturn := blind_ctor_run rdAfterRevealEndStore with [
     push2 ⟨2137⟩, push2 ⟨146⟩, push0,
-    raw codecopy 206 (blindAuctionReturnMem biddingTime revealTime beneficiaryAddress)
+    raw rawCodecopy 206 (blindAuctionReturnMem biddingTime revealTime beneficiaryAddress)
       (UInt256.ofNat 67)
       (by blind_ctor_decode)
       mem_cost
@@ -1000,7 +1000,7 @@ theorem blindAuctionInitcodeSuccess
   simpa [beneficiaryStoreWord, oldBeneficiarySlot, blindAuctionCtorBiddingEndWord,
     blindAuctionCtorAfterBiddingEndMap, blindAuctionCtorBeneficiaryStoreWord,
     blindAuctionCtorOldBeneficiarySlot, u256_add_comm, u256_add_assoc] using
-    rdBeforeReturn.ret 0 blindAuctionBytecode
+    rdBeforeReturn.rawRet 0 blindAuctionBytecode
       (by blind_ctor_decode)
       mem_cost
       (blindAuctionReturnMem_read biddingTime revealTime beneficiaryAddress)

@@ -53,7 +53,7 @@ theorem blindAuctionX_ended {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, callvalue, dup1, iszero, push2 ⟨226⟩,
     jumpiT (by rw [hwv]; decide) (by jump_dest),
     jumpdest, pop, push1 ⟨3⟩]
-  obtain ⟨_, _, rd231₀⟩ := rd228.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd231₀⟩ := rd228.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd231⟩ :
       ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨231⟩
         [endedWord σ I, blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3)
@@ -63,12 +63,12 @@ theorem blindAuctionX_ended {cA gh bl σ σ₀ A I} {g : Sat256}
     push2 ⟨240⟩, swap1, push1 ⟨255⟩, and, dup2, jump (by jump_dest)]
   have rd206 := evm_run rd240 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
     swap1, iszero, iszero, dup2,
-    raw mstore 6 (solcReturnMem (endedReturnWord σ I)) (UInt256.ofNat 5)
+    raw rawMstore 6 (solcReturnMem (endedReturnWord σ I)) (UInt256.ofNat 5)
       (by decide) mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]

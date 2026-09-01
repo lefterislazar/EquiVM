@@ -111,7 +111,7 @@ theorem pausableX_pause_success {cA gh bl σ σ₀ A I} {g : Sat256}
       (R := [⟨157⟩, ⟨97⟩, pausableSelWord I]) rd332 hzero
       (by jump_dest) (by simp)
   have rd283 := evm_run rd280 with [jumpdest, push0, dup1]
-  obtain ⟨_, _, rd284₀⟩ := rd283.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd284₀⟩ := rd283.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd284⟩ : ∃ k C, RD pausableBenchBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨284⟩
       [pausedRawWord σ I, ⟨0⟩, ⟨157⟩, ⟨97⟩, pausableSelWord I] solcFreePtrMem
@@ -131,7 +131,7 @@ theorem pausableX_pause_success {cA gh bl σ σ₀ A I} {g : Sat256}
     exact u256_lor_comm ⟨1⟩
       (UInt256.land (pausedRawWord σ I) (UInt256.lnot ⟨255⟩))
   rw [hlor] at rd291
-  obtain ⟨_, _, rd293₀⟩ := rd291.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd293₀⟩ := rd291.rawSstore hperm (by decide) (by evm_ov)
   obtain ⟨_, _, rd293⟩ : ∃ k C, RD pausableBenchBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨293⟩
       [⟨157⟩, ⟨97⟩, pausableSelWord I]
@@ -142,7 +142,7 @@ theorem pausableX_pause_success {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd243 := evm_run rd326 with [push2 ⟨243⟩, caller, swap1, jump (by jump_dest), jumpdest]
   have rd247 := evm_run rd243 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov)]
   have rd258₀ := evm_run rd247 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap1, swap2, and, dup2]
@@ -156,18 +156,18 @@ theorem pausableX_pause_success {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [pausableSenderWord] using solcAddrMask_clean_left (pausableSenderWord_canonical I)
   rw [hcaller] at rd258
   have rd260 := evm_run rd258 with [
-    raw mstore 6 (pausableEventMem I) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (pausableEventMem I) (UInt256.ofNat 5) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd270 := evm_run rd260 with [
     push1 ⟨32⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost (pausableEventMem_mload64 I) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   have hlen32 : ((⟨32⟩ : UInt256) + ⟨128⟩).sub ⟨128⟩ = ⟨32⟩ := by
     decide
   have rd270' := rd270
   rw [hlen32] at rd270'
-  have rd271 := RD.log1 0 (UInt256.ofNat 5) rd270' (by decide) hperm
+  have rd271 := RD.rawLog1 0 (UInt256.ofNat 5) rd270' (by decide) hperm
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]

@@ -15,7 +15,7 @@ theorem erc20StorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
   simpa [erc20Uint256Loc, uint256Loc] using storageLocStore_uint256 evm slot val
 
-/-- `EVM.storageStore`'s account map is exactly the map carried by `RD.sstore`. -/
+/-- `EVM.storageStore`'s account map is exactly the map carried by `RD.rawSstore`. -/
 theorem erc20StorageStore_accountMap (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).accountMap =
       sstoreAccountMap a evm.accountMap slot val := by

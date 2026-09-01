@@ -40,7 +40,7 @@ theorem uniswapMintRuntimeLiquidityZeroReverts
       (by rw [hmem]; decide) (by native_decide) hmem64
   have rd3853 := evm_run rd3850 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
+    raw rawMload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
       mem_cost hmload64 (by native_decide) (by evm_ov)]
   have rd3860 := rd3853.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
     (by decide) (by decide) (by evm_ov)
@@ -51,7 +51,7 @@ theorem uniswapMintRuntimeLiquidityZeroReverts
       (by rw [hmem]; omega) (by decide)
   have rd3862 := evm_run rd3860 with [
     push1 ⟨229⟩, shl, dup2,
-    raw mstore 0 mem0 feeToStaticcallActiveWords (by native_decide)
+    raw rawMstore 0 mem0 feeToStaticcallActiveWords (by native_decide)
       mem_cost (by unfold mem0 solcErrorStringSelector; rfl) (by native_decide) (by evm_ov)]
   let mem1 : ByteArray := (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 mem0 132 32
   have hmem1 : mem1.size = 164 := by
@@ -60,7 +60,7 @@ theorem uniswapMintRuntimeLiquidityZeroReverts
       (by rw [hmem0]; omega) (by decide)
   have rd3875pre := evm_run rd3862 with [
     push1 ⟨4⟩, add, dup1, dup1, push1 ⟨32⟩, add, dup3, dup2, sub, dup3,
-    raw mstore 0 mem1 feeToStaticcallActiveWords (by native_decide)
+    raw rawMstore 0 mem1 feeToStaticcallActiveWords (by native_decide)
       mem_cost (by unfold mem1; rfl) (by native_decide) (by evm_ov)]
   let mem2 : ByteArray := (UInt256.toByteArray (⟨40⟩ : UInt256)).write 0 mem1 164 32
   have hmem2 : mem2.size = 196 := by
@@ -69,7 +69,7 @@ theorem uniswapMintRuntimeLiquidityZeroReverts
       (by rw [hmem1]) (by decide)
   have rd3882 := evm_run rd3875pre with [
     push1 ⟨40⟩, dup2,
-    raw mstore 3 mem2 (UInt256.ofNat 7) (by native_decide)
+    raw rawMstore 3 mem2 (UInt256.ofNat 7) (by native_decide)
       mem_cost (by unfold mem2; rfl) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, add, dup1]
   have rd3886 := evm_run rd3882 with [push2 ⟨8741⟩]
@@ -108,13 +108,13 @@ theorem uniswapMintRuntimeLiquidityZeroReverts
       hread64_mem3
   have rd3890 := evm_run rd3886 with [
     push1 ⟨40⟩, swap2,
-    raw codecopy 3 mem3 (UInt256.ofNat 8) (by native_decide)
+    raw rawCodecopy 3 mem3 (UInt256.ofNat 8) (by native_decide)
       mem_cost (by unfold mem3; rfl) (by native_decide) (by evm_ov)]
   exact evm_run rd3890 with [
     push1 ⟨64⟩, add, swap2, pop, pop, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
       mem_cost hmload64_mem3 (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw rev 3 (by native_decide) mem_cost (by evm_ov)]
+    raw rawRev 3 (by native_decide) mem_cost (by evm_ov)]
 
 end UniswapV2Pair

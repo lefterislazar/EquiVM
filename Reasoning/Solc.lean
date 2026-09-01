@@ -1445,7 +1445,7 @@ theorem solcGuardPrologueRD {cA gh bl σ σ₀ A I} {g : Sat256} {code : ByteArr
         hmem0 haw0 hrdata0 hacc0 hee0 ⟨rfl, rfl, rfl⟩
       |>.push1 ⟨128⟩ hd0 (by decide)
       |>.push1 ⟨64⟩ hd2 (by decide)
-      |>.mstore 9 solcFreePtrMem (UInt256.ofNat 3) hd4
+      |>.rawMstore 9 solcFreePtrMem (UInt256.ofNat 3) hd4
         mem_cost
         (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
         (by decide) (by decide)
@@ -2141,7 +2141,7 @@ theorem RD.solcExternalStaticArgsShortReverts {cA gh bl σ σ₀ A I} {g : Sat25
   have rd18 := rd17.jumpiNT hd17 (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   have rd20 := rd18.push1 ⟨0⟩ hd18 (by evm_ov)
   have rd21 := rd20.dup1 hd20 (by evm_ov)
-  exact rd21.rev 0 hd21 mem_cost (by evm_ov)
+  exact rd21.rawRev 0 hd21 mem_cost (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.solcTwoAddressExternalMaskAndJumpMasked {code : ByteArray} {g : Sat256}
@@ -3004,7 +3004,7 @@ theorem RD.solcAddressSlotGetter {code : ByteArray} {g : Sat256} {s0 : State}
   rcases hwf with ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10⟩
   have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
   have rd3 := rd1.push1 slot hd1 (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rd4⟩ := rd3.sload hd2 (by simp only [List.length_cons]; omega)
+  obtain ⟨_, _, rd4⟩ := rd3.rawSload hd2 (by simp only [List.length_cons]; omega)
   have rd6 := rd4.push1 ⟨1⟩ hd3 (by simp only [List.length_cons]; omega)
   have rd8 := rd6.push1 ⟨1⟩ hd4 (by simp only [List.length_cons]; omega)
   have rd10 := rd8.push1 ⟨160⟩ hd5 (by simp only [List.length_cons]; omega)
@@ -3032,7 +3032,7 @@ theorem RD.solcWordSlotGetter {code : ByteArray} {g : Sat256} {s0 : State}
   rcases hwf with ⟨hd0, hd1, hd2, hd3, hd4⟩
   have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
   have rd3 := rd1.push1 slot hd1 (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rd4⟩ := rd3.sload hd2 (by simp only [List.length_cons]; omega)
+  obtain ⟨_, _, rd4⟩ := rd3.rawSload hd2 (by simp only [List.length_cons]; omega)
   have rd5 := rd4.dup2 hd3 (by omega)
   have rdRet := rd5.jump hd4 hret (by simp only [List.length_cons]; omega)
   exact ⟨_, _, rdRet⟩
@@ -3172,19 +3172,19 @@ theorem RD.solcSingleMappingLoadToRoutineMem {code : ByteArray} {g : Sat256} {s0
     raw push1 ⟨0⟩ hd11 (by evm_ov),
     raw swap1 hd13 (by evm_ov),
     raw dup2 hd14 (by evm_ov)]
-  have rdAfterKey := rdMstore0Prefix.mstore 0 (wordAt0Mem key mem)
+  have rdAfterKey := rdMstore0Prefix.rawMstore 0 (wordAt0Mem key mem)
     (UInt256.ofNat 3) hd15 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdAfterKey with [
     raw push1 baseSlot hd16 (by evm_ov),
     raw push1 ⟨32⟩ hd18 (by evm_ov)]
-  have rdHashMem := rdMstoreSlotPrefix.mstore 0 (twoWordHashMem key baseSlot mem)
+  have rdHashMem := rdMstoreSlotPrefix.rawMstore 0 (twoWordHashMem key baseSlot mem)
     (UInt256.ofNat 3) hd20 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
     raw push1 ⟨64⟩ hd21 (by evm_ov),
     raw swap1 hd23 (by evm_ov)]
-  have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot baseSlot key)
+  have rdSlot := rdKeccakPrefix.rawKeccak256 0 (solcMappingSlot baseSlot key)
     (UInt256.ofNat 3) hd24 mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rdLoaded⟩ := rdSlot.sload hd25 (by simp only [List.length_cons]; omega)
+  obtain ⟨_, _, rdLoaded⟩ := rdSlot.rawSload hd25 (by simp only [List.length_cons]; omega)
   have rdJump := evm_run rdLoaded with [
     raw push2 afterLoadPc hd26 (by evm_ov),
     raw swap1 hd29 (by evm_ov),
@@ -3322,26 +3322,26 @@ theorem RD.solcSingleMappingStoreDebitMem {code : ByteArray} {g : Sat256} {s0 : 
     raw push1 ⟨0⟩ hd12 (by evm_ov),
     raw swap1 hd14 (by evm_ov),
     raw dup2 hd15 (by evm_ov)]
-  have rdAfterKey := rdMstore0Prefix.mstore 0
+  have rdAfterKey := rdMstore0Prefix.rawMstore 0
     (wordAt0Mem key (twoWordHashMem key baseSlot mem))
     (UInt256.ofNat 3) hd16 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdAfterKey with [
     raw push1 baseSlot hd17 (by evm_ov),
     raw push1 ⟨32⟩ hd19 (by evm_ov)]
-  have rdHashMem := rdMstoreSlotPrefix.mstore 0
+  have rdHashMem := rdMstoreSlotPrefix.rawMstore 0
     (twoWordHashMem key baseSlot (twoWordHashMem key baseSlot mem))
     (UInt256.ofNat 3) hd21 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
     raw push1 ⟨64⟩ hd22 (by evm_ov),
     raw dup1 hd24 (by evm_ov),
     raw dup3 hd25 (by evm_ov)]
-  have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot baseSlot key)
+  have rdSlot := rdKeccakPrefix.rawKeccak256 0 (solcMappingSlot baseSlot key)
     (UInt256.ofNat 3) hd26 mem_cost hslot (by native_decide) (by evm_ov)
   have rdBeforeStore := evm_run rdSlot with [
     raw swap4 hd27 (by evm_ov),
     raw swap1 hd28 (by evm_ov),
     raw swap4 hd29 (by evm_ov)]
-  obtain ⟨_, _, rdOut⟩ := rdBeforeStore.sstore hperm hd30
+  obtain ⟨_, _, rdOut⟩ := rdBeforeStore.rawSstore hperm hd30
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa [solcSingleMappingStoreDebitOutPc] using rdOut⟩
 
@@ -3476,27 +3476,27 @@ theorem RD.solcSingleMappingStoreCreditMem {code : ByteArray} {g : Sat256} {s0 :
     raw push1 ⟨0⟩ hd12 (by evm_ov),
     raw dup2 hd14 (by evm_ov),
     raw dup2 hd15 (by evm_ov)]
-  have rdAfterKey := rdMstore0Prefix.mstore 0 (wordAt0Mem key mem)
+  have rdAfterKey := rdMstore0Prefix.rawMstore 0 (wordAt0Mem key mem)
     (UInt256.ofNat 3) hd16 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdAfterKey with [
     raw push1 baseSlot hd17 (by evm_ov),
     raw push1 ⟨32⟩ hd19 (by evm_ov),
     raw swap1 hd21 (by evm_ov),
     raw dup2 hd22 (by evm_ov)]
-  have rdHashMem := rdMstoreSlotPrefix.mstore 0 (twoWordHashMem key baseSlot mem)
+  have rdHashMem := rdMstoreSlotPrefix.rawMstore 0 (twoWordHashMem key baseSlot mem)
     (UInt256.ofNat 3) hd23 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
     raw push1 ⟨64⟩ hd24 (by evm_ov),
     raw swap2 hd26 (by evm_ov),
     raw dup3 hd27 (by evm_ov),
     raw swap1 hd28 (by evm_ov)]
-  have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot baseSlot key)
+  have rdSlot := rdKeccakPrefix.rawKeccak256 0 (solcMappingSlot baseSlot key)
     (UInt256.ofNat 3) hd29 mem_cost hslot (by native_decide) (by evm_ov)
   have rdBeforeStore := evm_run rdSlot with [
     raw swap5 hd30 (by evm_ov),
     raw swap1 hd31 (by evm_ov),
     raw swap5 hd32 (by evm_ov)]
-  obtain ⟨_, _, rdOut⟩ := rdBeforeStore.sstore hperm hd33
+  obtain ⟨_, _, rdOut⟩ := rdBeforeStore.rawSstore hperm hd33
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa [solcSingleMappingStoreCreditOutPc] using rdOut⟩
 
@@ -3615,14 +3615,14 @@ theorem RD.solcNestedMappingStoreInnerHash {code : ByteArray} {g : Sat256} {s0 :
     raw push1 ⟨0⟩ hd12 (by evm_ov),
     raw dup2 hd14 (by evm_ov),
     raw dup2 hd15 (by evm_ov)]
-  have rdInnerKey := rdMstore0Prefix.mstore 0 (wordAt0Mem owner mem)
+  have rdInnerKey := rdMstore0Prefix.rawMstore 0 (wordAt0Mem owner mem)
     (UInt256.ofNat 3) hd16 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdInnerMemPrefix := evm_run rdInnerKey with [
     raw push1 baseSlot hd17 (by evm_ov),
     raw push1 ⟨32⟩ hd19 (by evm_ov),
     raw swap1 hd21 (by evm_ov),
     raw dup2 hd22 (by evm_ov)]
-  have rdInnerMem := rdInnerMemPrefix.mstore 0 (twoWordHashMem owner baseSlot mem)
+  have rdInnerMem := rdInnerMemPrefix.rawMstore 0 (twoWordHashMem owner baseSlot mem)
     (UInt256.ofNat 3) hd23 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdInnerHashPrefix := evm_run rdInnerMem with [
     raw push1 ⟨64⟩ hd24 (by evm_ov),
@@ -3630,7 +3630,7 @@ theorem RD.solcNestedMappingStoreInnerHash {code : ByteArray} {g : Sat256} {s0 :
     raw dup4 hd27 (by evm_ov)]
   exact ⟨_, _, by
     simpa [solcNestedMappingStoreInnerHashOutPc] using
-      rdInnerHashPrefix.keccak256 0 (solcMappingSlot baseSlot owner)
+      rdInnerHashPrefix.rawKeccak256 0 (solcMappingSlot baseSlot owner)
         (UInt256.ofNat 3) hd28 mem_cost hslot (by native_decide) (by evm_ov)⟩
 
 @[reducible] def solcNestedMappingStoreOuterSstoreWf
@@ -3722,23 +3722,23 @@ theorem RD.solcNestedMappingStoreOuterSstore {code : ByteArray} {g : Sat256} {s0
   have rdOuterKeyPrefix := evm_run rdMasked with [
     raw dup1 hd3 (by evm_ov),
     raw dup5 hd4 (by evm_ov)]
-  have rdOuterKey := rdOuterKeyPrefix.mstore 0 (wordAt0Mem spender mem)
+  have rdOuterKey := rdOuterKeyPrefix.rawMstore 0 (wordAt0Mem spender mem)
     (UInt256.ofNat 3) hd5 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdOuterMemPrefix := evm_run rdOuterKey with [
     raw swap5 hd6 (by evm_ov),
     raw dup3 hd7 (by evm_ov)]
-  have rdOuterMem := rdOuterMemPrefix.mstore 0 (twoWordHashMem spender innerSlot mem)
+  have rdOuterMem := rdOuterMemPrefix.rawMstore 0 (twoWordHashMem spender innerSlot mem)
     (UInt256.ofNat 3) hd8 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdHashPrefix := evm_run rdOuterMem with [
     raw swap2 hd9 (by evm_ov),
     raw dup3 hd10 (by evm_ov),
     raw swap1 hd11 (by evm_ov)]
-  have rdSlot := rdHashPrefix.keccak256 0 (solcMappingSlot innerSlot spender)
+  have rdSlot := rdHashPrefix.rawKeccak256 0 (solcMappingSlot innerSlot spender)
     (UInt256.ofNat 3) hd12 mem_cost hslot (by native_decide) (by evm_ov)
   have rdBeforeStore := evm_run rdSlot with [
     raw dup6 hd13 (by evm_ov),
     raw swap1 hd14 (by evm_ov)]
-  obtain ⟨_, _, rdOut⟩ := rdBeforeStore.sstore hperm hd15
+  obtain ⟨_, _, rdOut⟩ := rdBeforeStore.rawSstore hperm hd15
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa [solcNestedMappingStoreOuterSstoreOutPc] using rdOut⟩
 
@@ -3901,37 +3901,37 @@ theorem RD.solcNestedMappingCallerStoreMem
     raw push1 ⟨0⟩ hd11 (by evm_ov),
     raw swap1 hd13 (by evm_ov),
     raw dup2 hd14 (by evm_ov)]
-  have rdInnerKey := rdMstore0Prefix.mstore 0 (wordAt0Mem owner mem)
+  have rdInnerKey := rdMstore0Prefix.rawMstore 0 (wordAt0Mem owner mem)
     (UInt256.ofNat 3) hd15 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdInnerMemPrefix := evm_run rdInnerKey with [
     raw push1 baseSlot hd16 (by evm_ov),
     raw push1 ⟨32⟩ hd18 (by evm_ov),
     raw swap1 hd20 (by evm_ov),
     raw dup2 hd21 (by evm_ov)]
-  have rdInnerMem := rdInnerMemPrefix.mstore 0 (twoWordHashMem owner baseSlot mem)
+  have rdInnerMem := rdInnerMemPrefix.rawMstore 0 (twoWordHashMem owner baseSlot mem)
     (UInt256.ofNat 3) hd22 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdInnerHashPrefix := evm_run rdInnerMem with [
     raw push1 ⟨64⟩ hd23 (by evm_ov),
     raw dup1 hd25 (by evm_ov),
     raw dup4 hd26 (by evm_ov)]
-  have rdInnerHash := rdInnerHashPrefix.keccak256 0 (solcMappingSlot baseSlot owner)
+  have rdInnerHash := rdInnerHashPrefix.rawKeccak256 0 (solcMappingSlot baseSlot owner)
     (UInt256.ofNat 3) hd27 mem_cost hinner (by native_decide) (by evm_ov)
   have rdCaller := evm_run rdInnerHash with [
     raw caller hd28 (by evm_ov),
     raw dup5 hd29 (by evm_ov)]
-  have rdOuterKey := rdCaller.mstore 0
+  have rdOuterKey := rdCaller.rawMstore 0
     (wordAt0Mem (solcSourceWord ee) (twoWordHashMem owner baseSlot mem))
     (UInt256.ofNat 3) hd30 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdOuterMemPrefix := evm_run rdOuterKey with [
     raw swap1 hd31 (by evm_ov),
     raw swap2 hd32 (by evm_ov)]
-  have rdOuterMem := rdOuterMemPrefix.mstore 0 (solcNestedMappingCallerHashMem baseSlot owner ee mem)
+  have rdOuterMem := rdOuterMemPrefix.rawMstore 0 (solcNestedMappingCallerHashMem baseSlot owner ee mem)
     (UInt256.ofNat 3) hd33 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdOuterHashPrefix := evm_run rdOuterMem with [raw swap1 hd34 (by evm_ov)]
-  have rdOuterHash := rdOuterHashPrefix.keccak256 0
+  have rdOuterHash := rdOuterHashPrefix.rawKeccak256 0
     (solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord ee))
     (UInt256.ofNat 3) hd35 mem_cost houter (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rdOut⟩ := rdOuterHash.sstore hperm hd36
+  obtain ⟨_, _, rdOut⟩ := rdOuterHash.rawSstore hperm hd36
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa [solcNestedMappingCallerStoreMemOutPc] using rdOut⟩
 
@@ -4085,37 +4085,37 @@ theorem RD.solcNestedMappingCallerLoad {code : ByteArray} {g : Sat256} {s0 : Sta
     raw push1 ⟨0⟩ hd11 (by evm_ov),
     raw swap1 hd13 (by evm_ov),
     raw dup2 hd14 (by evm_ov)]
-  have rdInnerKey := rdMstore0Prefix.mstore 0 (wordAt0Mem owner mem)
+  have rdInnerKey := rdMstore0Prefix.rawMstore 0 (wordAt0Mem owner mem)
     (UInt256.ofNat 3) hd15 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdInnerMemPrefix := evm_run rdInnerKey with [
     raw push1 baseSlot hd16 (by evm_ov),
     raw push1 ⟨32⟩ hd18 (by evm_ov),
     raw swap1 hd20 (by evm_ov),
     raw dup2 hd21 (by evm_ov)]
-  have rdInnerMem := rdInnerMemPrefix.mstore 0 (twoWordHashMem owner baseSlot mem)
+  have rdInnerMem := rdInnerMemPrefix.rawMstore 0 (twoWordHashMem owner baseSlot mem)
     (UInt256.ofNat 3) hd22 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdInnerHashPrefix := evm_run rdInnerMem with [
     raw push1 ⟨64⟩ hd23 (by evm_ov),
     raw dup1 hd25 (by evm_ov),
     raw dup4 hd26 (by evm_ov)]
-  have rdInnerHash := rdInnerHashPrefix.keccak256 0 (solcMappingSlot baseSlot owner)
+  have rdInnerHash := rdInnerHashPrefix.rawKeccak256 0 (solcMappingSlot baseSlot owner)
     (UInt256.ofNat 3) hd27 mem_cost hinner (by native_decide) (by evm_ov)
   have rdCaller := evm_run rdInnerHash with [
     raw caller hd28 (by evm_ov),
     raw dup5 hd29 (by evm_ov)]
-  have rdOuterKey := rdCaller.mstore 0
+  have rdOuterKey := rdCaller.rawMstore 0
     (wordAt0Mem (solcSourceWord ee) (twoWordHashMem owner baseSlot mem))
     (UInt256.ofNat 3) hd30 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdOuterMemPrefix := evm_run rdOuterKey with [
     raw swap1 hd31 (by evm_ov),
     raw swap2 hd32 (by evm_ov)]
-  have rdOuterMem := rdOuterMemPrefix.mstore 0 (solcNestedMappingCallerHashMem baseSlot owner ee mem)
+  have rdOuterMem := rdOuterMemPrefix.rawMstore 0 (solcNestedMappingCallerHashMem baseSlot owner ee mem)
     (UInt256.ofNat 3) hd33 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdOuterHashPrefix := evm_run rdOuterMem with [raw dup2 hd34 (by evm_ov)]
-  have rdOuterHash := rdOuterHashPrefix.keccak256 0
+  have rdOuterHash := rdOuterHashPrefix.rawKeccak256 0
     (solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord ee))
     (UInt256.ofNat 3) hd35 mem_cost houter (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rdLoaded⟩ := rdOuterHash.sload hd36
+  obtain ⟨_, _, rdLoaded⟩ := rdOuterHash.rawSload hd36
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by
     simpa [solcNestedMappingCallerLoadOutPc, solcSlotWord, solcSourceWord] using rdLoaded⟩
@@ -4331,37 +4331,37 @@ theorem RD.solcNestedMappingCallerReloadToRoutineMem
     raw push1 ⟨0⟩ hd10 (by evm_ov),
     raw swap1 hd12 (by evm_ov),
     raw dup2 hd13 (by evm_ov)]
-  have rdInnerKey := rdMstore0Prefix.mstore 0 (wordAt0Mem owner mem)
+  have rdInnerKey := rdMstore0Prefix.rawMstore 0 (wordAt0Mem owner mem)
     (UInt256.ofNat 3) hd14 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdInnerMemPrefix := evm_run rdInnerKey with [
     raw push1 baseSlot hd15 (by evm_ov),
     raw push1 ⟨32⟩ hd17 (by evm_ov),
     raw swap1 hd19 (by evm_ov),
     raw dup2 hd20 (by evm_ov)]
-  have rdInnerMem := rdInnerMemPrefix.mstore 0 (twoWordHashMem owner baseSlot mem)
+  have rdInnerMem := rdInnerMemPrefix.rawMstore 0 (twoWordHashMem owner baseSlot mem)
     (UInt256.ofNat 3) hd21 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdInnerHashPrefix := evm_run rdInnerMem with [
     raw push1 ⟨64⟩ hd22 (by evm_ov),
     raw dup1 hd24 (by evm_ov),
     raw dup4 hd25 (by evm_ov)]
-  have rdInnerHash := rdInnerHashPrefix.keccak256 0 (solcMappingSlot baseSlot owner)
+  have rdInnerHash := rdInnerHashPrefix.rawKeccak256 0 (solcMappingSlot baseSlot owner)
     (UInt256.ofNat 3) hd26 mem_cost hinner (by native_decide) (by evm_ov)
   have rdCaller := evm_run rdInnerHash with [
     raw caller hd27 (by evm_ov),
     raw dup5 hd28 (by evm_ov)]
-  have rdOuterKey := rdCaller.mstore 0
+  have rdOuterKey := rdCaller.rawMstore 0
     (wordAt0Mem (solcSourceWord ee) (twoWordHashMem owner baseSlot mem))
     (UInt256.ofNat 3) hd29 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdOuterMemPrefix := evm_run rdOuterKey with [
     raw swap1 hd30 (by evm_ov),
     raw swap2 hd31 (by evm_ov)]
-  have rdOuterMem := rdOuterMemPrefix.mstore 0 (solcNestedMappingCallerHashMem baseSlot owner ee mem)
+  have rdOuterMem := rdOuterMemPrefix.rawMstore 0 (solcNestedMappingCallerHashMem baseSlot owner ee mem)
     (UInt256.ofNat 3) hd32 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rdOuterHashPrefix := evm_run rdOuterMem with [raw swap1 hd33 (by evm_ov)]
-  have rdOuterHash := rdOuterHashPrefix.keccak256 0
+  have rdOuterHash := rdOuterHashPrefix.rawKeccak256 0
     (solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord ee))
     (UInt256.ofNat 3) hd34 mem_cost houter (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rdLoaded⟩ := rdOuterHash.sload hd35
+  obtain ⟨_, _, rdLoaded⟩ := rdOuterHash.rawSload hd35
     (by simp only [List.length_cons]; omega)
   have rdJump := evm_run rdLoaded with [
     raw push2 contPc hd36 (by evm_ov),
@@ -4437,11 +4437,11 @@ theorem RD.solcPreparedSingleMappingLoadToRoutineMem
     raw and hd2 (by evm_ov)]
   rw [hmask] at rdMasked
   have rdBeforeHash := evm_run rdMasked with [raw dup2 hd3 (by evm_ov)]
-  have rdHashMem := rdBeforeHash.mstore 0 (wordAt0Mem key mem)
+  have rdHashMem := rdBeforeHash.rawMstore 0 (wordAt0Mem key mem)
     (UInt256.ofNat 3) hd4 mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rdSlot := rdHashMem.keccak256 0 (solcMappingSlot baseSlot key)
+  have rdSlot := rdHashMem.rawKeccak256 0 (solcMappingSlot baseSlot key)
     (UInt256.ofNat 3) hd5 mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rdLoaded⟩ := rdSlot.sload hd6 (by simp only [List.length_cons]; omega)
+  obtain ⟨_, _, rdLoaded⟩ := rdSlot.rawSload hd6 (by simp only [List.length_cons]; omega)
   have rdJump := evm_run rdLoaded with [
     raw push2 afterLoadPc hd7 (by evm_ov),
     raw swap1 hd10 (by evm_ov),
@@ -4590,22 +4590,22 @@ theorem RD.solcSingleMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
   have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
   have rd3 := rd1.push1 baseSlot hd1 (by evm_ov)
   have rd5 := rd3.push1 ⟨32⟩ hd3 (by evm_ov)
-  have rd6 := rd5.mstore 0 (solcMappingBaseSlotMem baseSlot)
+  have rd6 := rd5.rawMstore 0 (solcMappingBaseSlotMem baseSlot)
     (UInt256.ofNat 3) hd5 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rd8 := rd6.push1 ⟨0⟩ hd6 (by evm_ov)
   have rd9 := rd8.swap1 hd8 (by evm_ov)
   have rd10 := rd9.dup2 hd9 (by evm_ov)
-  have rd11 := rd10.mstore 0 (solcMappingHashMem baseSlot key)
+  have rd11 := rd10.rawMstore 0 (solcMappingHashMem baseSlot key)
     (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rd13 := rd11.push1 ⟨64⟩ hd11 (by evm_ov)
   have rd14 := rd13.swap1 hd13 (by evm_ov)
   have hslot := solcMappingKeccakSlot baseSlot key
-  have rd15 := rd14.keccak256 0 (solcMappingSlot baseSlot key)
+  have rd15 := rd14.rawKeccak256 0 (solcMappingSlot baseSlot key)
     (UInt256.ofNat 3) hd14 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
     (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd16⟩ := rd15.sload hd15 (by evm_ov)
+  obtain ⟨_, _, rd16⟩ := rd15.rawSload hd15 (by evm_ov)
   have rd17 := rd16.dup2 hd16 (by evm_ov)
   exact ⟨_, _, rd17.jump hd17 hret (by evm_ov)⟩
 
@@ -4631,18 +4631,18 @@ theorem RD.solcNestedMappingInnerHash {code : ByteArray} {g : Sat256} {s0 : Stat
   have rd5 := rd3.push1 ⟨32⟩ hd3 (by evm_ov)
   have rd6 := rd5.swap1 hd5 (by evm_ov)
   have rd7 := rd6.dup2 hd6 (by evm_ov)
-  have rd9 := rd7.mstore 0 (solcMappingBaseSlotMem baseSlot)
+  have rd9 := rd7.rawMstore 0 (solcMappingBaseSlotMem baseSlot)
     (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rd10 := rd9.push1 ⟨0⟩ hd8 (by evm_ov)
   have rd11 := rd10.swap3 hd10 (by evm_ov)
   have rd12 := rd11.dup4 hd11 (by evm_ov)
-  have rd14 := rd12.mstore 0 (solcMappingHashMem baseSlot owner)
+  have rd14 := rd12.rawMstore 0 (solcMappingHashMem baseSlot owner)
     (UInt256.ofNat 3) hd12 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rd15 := rd14.push1 ⟨64⟩ hd13 (by evm_ov)
   have rd16 := rd15.dup1 hd15 (by evm_ov)
   have rd17 := rd16.dup5 hd16 (by evm_ov)
   have hinner := solcMappingKeccakSlot baseSlot owner
-  have rd18 := rd17.keccak256 0 (solcMappingSlot baseSlot owner)
+  have rd18 := rd17.rawKeccak256 0 (solcMappingSlot baseSlot owner)
     (UInt256.ofNat 3) hd17 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hinner)
@@ -4671,15 +4671,15 @@ theorem RD.solcNestedMappingOuterHash {code : ByteArray} {g : Sat256} {s0 : Stat
       _hd26, _hd27, _hd28⟩
   have rd19 := h.swap1 hd18 (by evm_ov)
   have rd20 := rd19.swap2 hd19 (by evm_ov)
-  have rd21 := rd20.mstore 0 (solcNestedMappingOuterBaseMem baseSlot owner)
+  have rd21 := rd20.rawMstore 0 (solcNestedMappingOuterBaseMem baseSlot owner)
     (UInt256.ofNat 3) hd20 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rd22 := rd21.swap1 hd21 (by evm_ov)
   have rd23 := rd22.dup3 hd22 (by evm_ov)
-  have rd24 := rd23.mstore 0 (solcNestedMappingHashMem baseSlot owner spender)
+  have rd24 := rd23.rawMstore 0 (solcNestedMappingHashMem baseSlot owner spender)
     (UInt256.ofNat 3) hd23 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rd25 := rd24.swap1 hd24 (by evm_ov)
   have hslot := solcNestedMappingKeccakSlot baseSlot owner spender
-  have rd26 := rd25.keccak256 0
+  have rd26 := rd25.rawKeccak256 0
     (solcMappingSlot (solcMappingSlot baseSlot owner) spender)
     (UInt256.ofNat 3) hd25 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
@@ -4702,7 +4702,7 @@ theorem RD.solcNestedMappingLoadAndJump {code : ByteArray} {g : Sat256} {s0 : St
     ⟨_hd0, _hd1, _hd3, _hd5, _hd6, _hd7, _hd8, _hd10, _hd11, _hd12, _hd13,
       _hd15, _hd16, _hd17, _hd18, _hd19, _hd20, _hd21, _hd22, _hd23, _hd24,
       _hd25, hd26, hd27, hd28⟩
-  obtain ⟨_, _, rd27⟩ := h.sload hd26 (by evm_ov)
+  obtain ⟨_, _, rd27⟩ := h.rawSload hd26 (by evm_ov)
   have rd28 := rd27.dup2 hd27 (by evm_ov)
   exact ⟨_, _, rd28.jump hd28 hret (by evm_ov)⟩
 
@@ -4748,7 +4748,7 @@ theorem RD.solcLockEnterOk {code : ByteArray} {g : Sat256} {s0 : State}
     ⟨hd0, hd1, hd3, hd4, hd6, hd7, hd10, hdOk, hdOk1, hdOk3, hdOk5⟩
   have rd1 := h.jumpdest hd0 (by omega)
   have rd3 := rd1.push1 slot hd1 (by omega)
-  obtain ⟨_, _, rd4₀⟩ := rd3.sload hd3 (by omega)
+  obtain ⟨_, _, rd4₀⟩ := rd3.rawSload hd3 (by omega)
   have rd4 := rd4₀
   have hunlockedRaw :
       (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) =
@@ -4764,7 +4764,7 @@ theorem RD.solcLockEnterOk {code : ByteArray} {g : Sat256} {s0 : State}
   have rdOk1 := rdOk.jumpdest hdOk (by omega)
   have rdOk3 := rdOk1.push1 locked hdOk1 (by omega)
   have rdOk5 := rdOk3.push1 slot hdOk3 (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rdAfter⟩ := rdOk5.sstore hperm hdOk5 (by omega)
+  obtain ⟨_, _, rdAfter⟩ := rdOk5.rawSstore hperm hdOk5 (by omega)
   have hpcOut :
       okPc + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ =
         okPc + UInt256.ofNat 6 := by
@@ -5026,7 +5026,7 @@ theorem RD.solcErrorStringRevertTail {code : ByteArray} {g : Sat256} {s0 : State
   have rdMload := evm_run h with [
     raw push1 ⟨64⟩ hd0 (by evm_ov),
     raw dup1 hd2 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd3
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) hd3
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
@@ -5036,19 +5036,19 @@ theorem RD.solcErrorStringRevertTail {code : ByteArray} {g : Sat256} {s0 : State
     raw push1 ⟨229⟩ hd8 (by evm_ov),
     raw shl hd10 (by evm_ov),
     raw dup2 hd11 (by evm_ov),
-    raw mstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
+    raw rawMstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
       hd12 mem_cost (by rfl) (by decide) (by evm_ov),
     raw push1 ⟨32⟩ hd13 (by evm_ov),
     raw push1 ⟨4⟩ hd15 (by evm_ov),
     raw dup3 hd17 (by evm_ov),
     raw add hd18 (by evm_ov),
-    raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
+    raw rawMstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
       hd19 mem_cost (by rfl) (by decide) (by evm_ov),
     raw push1 len hd20 (by evm_ov),
     raw push1 ⟨36⟩ hd22 (by evm_ov),
     raw dup3 hd24 (by evm_ov),
     raw add hd25 (by evm_ov),
-    raw mstore 3 (solcErrorStringMem2 len mem)
+    raw rawMstore 3 (solcErrorStringMem2 len mem)
       (UInt256.ofNat 7) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst rawWord (width := width) (op := op)
     hpush hd27 (by simp only [List.length_cons]; omega)
@@ -5060,10 +5060,10 @@ theorem RD.solcErrorStringRevertTail {code : ByteArray} {g : Sat256} {s0 : State
     raw push1 ⟨68⟩ hd68 (by evm_ov),
     raw dup3 hdDup3 (by evm_ov),
     raw add hdAdd (by evm_ov),
-    raw mstore 3 (solcErrorStringMem3 len word mem)
+    raw rawMstore 3 (solcErrorStringMem3 len word mem)
       (UInt256.ofNat 8) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
     raw swap1 hdSwap (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
       mem_cost
       (solcErrorStringMem3_mload64 len word hmem hread64)
       (by decide) (by evm_ov),
@@ -5074,7 +5074,7 @@ theorem RD.solcErrorStringRevertTail {code : ByteArray} {g : Sat256} {s0 : State
     raw push1 ⟨100⟩ hd100 (by evm_ov),
     raw add hdAdd2 (by evm_ov),
     raw swap1 hdSwap4 (by evm_ov),
-    raw rev 0 hdRev mem_cost (by evm_ov)]
+    raw rawRev 0 hdRev mem_cost (by evm_ov)]
 
 @[reducible] def solcLockEnterGuardWf
     (code : ByteArray) (pc okPc slot unlocked : UInt256) : Prop :=
@@ -5125,7 +5125,7 @@ theorem RD.solcLockEnterLockedStringRevert {code : ByteArray} {g : Sat256} {s0 :
     exact u256_eq_of_ne (by intro hbad; exact hlockedWord_ne hbad.symm)
   have rd1 := h.jumpdest hd0 (by omega)
   have rd3 := rd1.push1 slot hd1 (by omega)
-  obtain ⟨_, _, rd4₀⟩ := rd3.sload hd3 (by omega)
+  obtain ⟨_, _, rd4₀⟩ := rd3.rawSload hd3 (by omega)
   have rd4 := rd4₀
   have hraw :
       (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) =
@@ -5495,14 +5495,14 @@ theorem RD.solcMaskedTransferLog3AndJump {code : ByteArray} {g : Sat256} {s0 : S
     solcAddrMask_clean hcanonSrc
   have rd2 := evm_run h with [
     raw dup1 hd0 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd1
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) hd1
       mem_cost hmload (by decide) (by evm_ov)]
   have rd4 := evm_run rd2 with [raw dup6 hd2 (by evm_ov), raw dup2 hd3 (by evm_ov)]
-  have rd5 := rd4.mstore 6 ((UInt256.toByteArray value).write 0 mem 128 32)
+  have rd5 := rd4.rawMstore 6 ((UInt256.toByteArray value).write 0 mem 128 32)
     (UInt256.ofNat 5) hd4 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rd12 := evm_run rd5 with [
     raw swap1 hd5 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) hd6
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) hd6
       mem_cost hlogMload (by decide) (by evm_ov),
     raw swap2 hd7 (by evm_ov),
     raw swap4 hd8 (by evm_ov),
@@ -5521,7 +5521,7 @@ theorem RD.solcMaskedTransferLog3AndJump {code : ByteArray} {g : Sat256} {s0 : S
     raw sub hd50 (by evm_ov),
     raw add hd51 (by evm_ov),
     raw swap1 hd52 (by evm_ov)]
-  have rd54 := rd53.log3 0 (UInt256.ofNat 5) hd53 hperm mem_cost
+  have rd54 := rd53.rawLog3 0 (UInt256.ofNat 5) hd53 hperm mem_cost
     (by decide) (by simp only [List.length_cons]; omega)
   have rd57 := evm_run rd54 with [
     raw pop hd54 (by evm_ov),
@@ -5607,14 +5607,14 @@ theorem RD.solcPlainLog3AndJump {code : ByteArray} {g : Sat256} {s0 : State}
       hd45, hd46, hd47, hd48, hd49, hd50, hd51, hd52⟩
   have rd2 := evm_run h with [
     raw dup2 hd0 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd1
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) hd1
       mem_cost hmload (by decide) (by evm_ov)]
   have rd4 := evm_run rd2 with [raw dup6 hd2 (by evm_ov), raw dup2 hd3 (by evm_ov)]
-  have rd5 := rd4.mstore 6 ((UInt256.toByteArray value).write 0 mem 128 32)
+  have rd5 := rd4.rawMstore 6 ((UInt256.toByteArray value).write 0 mem 128 32)
     (UInt256.ofNat 5) hd4 mem_cost (by rfl) (by native_decide) (by evm_ov)
   have rd7 := evm_run rd5 with [
     raw swap2 hd5 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) hd6
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) hd6
       mem_cost hlogMload (by decide) (by evm_ov)]
   have rd40 := rd7.pushConst topic (width := 32) (op := .PUSH32)
     (by decide) hd7 (by evm_ov)
@@ -5627,7 +5627,7 @@ theorem RD.solcPlainLog3AndJump {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap2 hd45 (by evm_ov),
     raw add hd46 (by evm_ov),
     raw swap1 hd47 (by evm_ov)]
-  have rd49 := rd48.log3 0 (UInt256.ofNat 5) hd48 hperm mem_cost
+  have rd49 := rd48.rawLog3 0 (UInt256.ofNat 5) hd48 hperm mem_cost
     (by decide) (by simp only [List.length_cons]; omega)
   have rd52 := evm_run rd49 with [
     raw pop hd49 (by evm_ov),
@@ -5712,13 +5712,13 @@ theorem RD.solcReturnWordFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     raw jumpdest hd0 (by evm_ov),
     raw push1 ⟨64⟩ hd1 (by evm_ov),
     raw dup1 hd3 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd4 mem_cost hmload64 (by decide) (by evm_ov),
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) hd4 mem_cost hmload64 (by decide) (by evm_ov),
     raw swap2 hd5 (by evm_ov),
     raw dup3 hd6 (by evm_ov),
-    raw mstore 6 memout (UInt256.ofNat 5) hd7 mem_cost
+    raw rawMstore 6 memout (UInt256.ofNat 5) hd7 mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; exact hmemout)
       (by decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) hd8 mem_cost hmemoutLoad64 (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) hd8 mem_cost hmemoutLoad64 (by decide)
       (by evm_ov),
     raw swap1 hd9 (by evm_ov),
     raw dup2 hd10 (by evm_ov),
@@ -5727,7 +5727,7 @@ theorem RD.solcReturnWordFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     raw push1 ⟨32⟩ hd13 (by evm_ov),
     raw add hd15 (by evm_ov),
     raw swap1 hd16 (by evm_ov),
-    raw ret 0 (UInt256.toByteArray val) hd17 mem_cost
+    raw rawRet 0 (UInt256.toByteArray val) hd17 mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
           show ((⟨32⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 32
@@ -5857,7 +5857,7 @@ theorem RD.solcReturnAddressFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     raw jumpdest hd0 (by evm_ov),
     raw push1 ⟨64⟩ hd1 (by evm_ov),
     raw dup1 hd3 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd4 mem_cost hmload64 (by decide) (by evm_ov),
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) hd4 mem_cost hmload64 (by decide) (by evm_ov),
     raw push1 ⟨1⟩ hd5 (by evm_ov),
     raw push1 ⟨1⟩ hd7 (by evm_ov),
     raw push1 ⟨160⟩ hd9 (by evm_ov),
@@ -5867,14 +5867,14 @@ theorem RD.solcReturnAddressFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap3 hd14 (by evm_ov),
     raw and hd15 (by evm_ov),
     raw dup3 hd16 (by evm_ov),
-    raw mstore 6 memout (UInt256.ofNat 5) hd17 mem_cost
+    raw rawMstore 6 memout (UInt256.ofNat 5) hd17 mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by decide,
           show (⟨128⟩ : UInt256).toNat = 128 from by decide]
         exact hmemout)
       (by decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) hd18 mem_cost hmemoutLoad64 (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) hd18 mem_cost hmemoutLoad64 (by decide)
       (by evm_ov),
     raw swap1 hd19 (by evm_ov),
     raw dup2 hd20 (by evm_ov),
@@ -5883,7 +5883,7 @@ theorem RD.solcReturnAddressFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     raw push1 ⟨32⟩ hd23 (by evm_ov),
     raw add hd25 (by evm_ov),
     raw swap1 hd26 (by evm_ov),
-    raw ret 0 (UInt256.toByteArray (UInt256.land val solcAddrMask)) hd27 mem_cost
+    raw rawRet 0 (UInt256.toByteArray (UInt256.land val solcAddrMask)) hd27 mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
           show ((⟨32⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 32
@@ -5985,18 +5985,18 @@ theorem RD.solcReturnUint8FromMem {code : ByteArray} {g : Sat256} {s0 : State}
     raw jumpdest hd0 (by evm_ov),
     raw push1 ⟨64⟩ hd1 (by evm_ov),
     raw dup1 hd3 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd4 mem_cost hmload64 (by decide) (by evm_ov),
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) hd4 mem_cost hmload64 (by decide) (by evm_ov),
     raw push1 ⟨255⟩ hd5 (by evm_ov),
     raw swap1 hd7 (by evm_ov),
     raw swap3 hd8 (by evm_ov),
     raw and hd9 (by evm_ov),
     raw dup3 hd10 (by evm_ov),
-    raw mstore 6 memout (UInt256.ofNat 5) hd11 mem_cost
+    raw rawMstore 6 memout (UInt256.ofNat 5) hd11 mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
         exact hmemout)
       (by decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) hd12 mem_cost hmemoutLoad64 (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) hd12 mem_cost hmemoutLoad64 (by decide)
       (by evm_ov),
     raw swap1 hd13 (by evm_ov),
     raw dup2 hd14 (by evm_ov),
@@ -6005,7 +6005,7 @@ theorem RD.solcReturnUint8FromMem {code : ByteArray} {g : Sat256} {s0 : State}
     raw push1 ⟨32⟩ hd17 (by evm_ov),
     raw add hd19 (by evm_ov),
     raw swap1 hd20 (by evm_ov),
-    raw ret 0 (UInt256.toByteArray (UInt256.land val ⟨255⟩)) hd21 mem_cost
+    raw rawRet 0 (UInt256.toByteArray (UInt256.land val ⟨255⟩)) hd21 mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
           show ((⟨32⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 32
@@ -6102,17 +6102,17 @@ theorem RD.solcReturnBoolFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     raw jumpdest hd0 (by evm_ov),
     raw push1 ⟨64⟩ hd1 (by evm_ov),
     raw dup1 hd3 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) hd4 mem_cost hmload64 (by decide) (by evm_ov),
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) hd4 mem_cost hmload64 (by decide) (by evm_ov),
     raw swap2 hd5 (by evm_ov),
     raw iszero hd6 (by evm_ov),
     raw iszero hd7 (by evm_ov),
     raw dup3 hd8 (by evm_ov),
-    raw mstore 0 memout (UInt256.ofNat 5) hd9 mem_cost
+    raw rawMstore 0 memout (UInt256.ofNat 5) hd9 mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
         exact hmemout)
       (by decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) hd10 mem_cost hmemoutLoad64 (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) hd10 mem_cost hmemoutLoad64 (by decide)
       (by evm_ov),
     raw swap1 hd11 (by evm_ov),
     raw dup2 hd12 (by evm_ov),
@@ -6121,7 +6121,7 @@ theorem RD.solcReturnBoolFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     raw push1 ⟨32⟩ hd15 (by evm_ov),
     raw add hd17 (by evm_ov),
     raw swap1 hd18 (by evm_ov),
-    raw ret 0 (UInt256.toByteArray (UInt256.isZero (UInt256.isZero val))) hd19 mem_cost
+    raw rawRet 0 (UInt256.toByteArray (UInt256.isZero (UInt256.isZero val))) hd19 mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
           show ((⟨32⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 32
@@ -6240,7 +6240,7 @@ theorem RD.revertStub {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
     RDrev code g s0 :=
   h.push0 hd0 (by omega)
     |>.push0 hd1 (by simp only [List.length_cons]; omega)
-    |>.rev 0 hd2 (fun s _ hstks => memExpRevert0 s hstks) (by omega)
+    |>.rawRev 0 hd2 (fun s _ hstks => memExpRevert0 s hstks) (by omega)
 
 /-- Legacy solc `revert(0,0)` terminal emitted as `PUSH1 0; DUP1; REVERT`. -/
 theorem RD.solcPush1Dup1Revert0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
@@ -6255,7 +6255,7 @@ theorem RD.solcPush1Dup1Revert0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat2
     RDrev code g s0 :=
   h.push1 ⟨0⟩ hd0 (by omega)
     |>.dup1 hd1 (by omega)
-    |>.rev 0 hd2 (fun s _ hstks => memExpRevert0 s hstks) (by omega)
+    |>.rawRev 0 hd2 (fun s _ hstks => memExpRevert0 s hstks) (by omega)
 
 set_option maxHeartbeats 2000000 in
 /-- Generic solc high-level-call uint256 return decoder after a successful CALL-like opcode. -/
@@ -6338,7 +6338,7 @@ theorem RD.solcUint256ReturnWordDecodeOk {code : ByteArray} {ee : ExecutionEnv}
   have rdPop1 := RD.pop rdPop0 hPop1 (by simp only [List.length_cons]; omega)
   have rdPop2 := RD.pop rdPop1 hPop2 (by omega)
   have rdPush64 := RD.push1 rdPop2 ⟨64⟩ hPush64 (by omega)
-  have rdMload64 := RD.mload 0 ⟨128⟩ aw rdPush64 hMload64
+  have rdMload64 := RD.rawMload 0 ⟨128⟩ aw rdPush64 hMload64
     hMload64Cost
     hMload64Value
     hMload64Aw
@@ -6364,7 +6364,7 @@ theorem RD.solcUint256ReturnWordDecodeOk {code : ByteArray} {ee : ExecutionEnv}
   have rdJumpdest := RD.jumpdest rdJumpi hJumpdest
     (by simp only [List.length_cons]; omega)
   have rdPopLen := RD.pop rdJumpdest hPopLen (by simp only [List.length_cons]; omega)
-  have rdMload128 := RD.mload 0 retWord aw rdPopLen hMload128
+  have rdMload128 := RD.rawMload 0 retWord aw rdPopLen hMload128
     hMload128Cost
     hMload128Value
     hMload128Aw
@@ -6453,7 +6453,7 @@ theorem RD.solcUint256ReturnWordDecodeShortReverts {code : ByteArray} {ee : Exec
   have rdPop1 := RD.pop rdPop0 hPop1 (by simp only [List.length_cons]; omega)
   have rdPop2 := RD.pop rdPop1 hPop2 (by omega)
   have rdPush64 := RD.push1 rdPop2 ⟨64⟩ hPush64 (by omega)
-  have rdMload64 := RD.mload 0 ⟨128⟩ aw rdPush64 hMload64
+  have rdMload64 := RD.rawMload 0 ⟨128⟩ aw rdPush64 hMload64
     hMload64Cost
     hMload64Value
     hMload64Aw
@@ -6558,7 +6558,7 @@ theorem RD.solcExtcodesizeGuardOkGas {code : ByteArray} {ee : ExecutionEnv}
     RD.solcExtcodesizeGuardOk h hcodeSize hExt hIszero0 hDup1 hIszero1 hPush hJumpi
       hjd hJumpdest hPop hov
   obtain ⟨gasWord, rdGas⟩ :=
-    RD.gas rdReady hGas (by simp only [List.length_cons]; omega)
+    RD.rawGas rdReady hGas (by simp only [List.length_cons]; omega)
   exact ⟨gasWord, _, _, rdGas⟩
 
 /-- Generic solc high-level-call `EXTCODESIZE` guard for the branch where the target account has no
@@ -6728,7 +6728,7 @@ theorem RD.solcCallSuccessGuardMissing {code : ByteArray} {ee : ExecutionEnv}
   let len := UInt256.ofNat rdata.size
   let memout := rdata.write 0 mem 0 len.toNat
   let awout := UInt256.ofNat (MachineState.M aw.toNat 0 len.toNat)
-  have rdCopy := RD.returndatacopy
+  have rdCopy := RD.rawReturndatacopy
     (Cₘ awout - Cₘ aw) memout awout rdDupZero hReturndatacopy
     (by
       change 0 + len.toNat ≤ rdata.size
@@ -6743,7 +6743,7 @@ theorem RD.solcCallSuccessGuardMissing {code : ByteArray} {ee : ExecutionEnv}
     (by simp only [List.length_cons]; omega)
   have rdPushRevert0 := RD.push1 rdReturndatasizeRevert ⟨0⟩ hPushRevert0
     (by simp only [List.length_cons]; omega)
-  exact RD.rev (Cₘ (UInt256.ofNat (MachineState.M awout.toNat 0 len.toNat)) - Cₘ awout)
+  exact RD.rawRev (Cₘ (UInt256.ofNat (MachineState.M awout.toNat 0 len.toNat)) - Cₘ awout)
     rdPushRevert0 hRevert
     (fun s haw hstk => by
       simpa [awout, len, haw] using memExpRevertZeroOff s hstk)

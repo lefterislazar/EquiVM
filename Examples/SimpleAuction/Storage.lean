@@ -92,7 +92,7 @@ theorem simpleAuctionStorageLocStore_bool_true_offset0 (evm : EVM.State) (slot :
             (UInt256.lnot ⟨255⟩)) ⟨1⟩)) := by
   simpa [simpleAuctionBoolLoc, boolOffset0Loc] using storageLocStore_bool_true_offset0 evm slot
 
-/-- `EVM.storageStore`'s account map is exactly the map carried by `RD.sstore`. -/
+/-- `EVM.storageStore`'s account map is exactly the map carried by `RD.rawSstore`. -/
 theorem simpleAuctionStorageStore_accountMap
     (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).accountMap =

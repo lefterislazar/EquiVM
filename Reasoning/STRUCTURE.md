@@ -19,7 +19,7 @@ trusted spec of the FFI hash; asserts nothing about collision resistance).
 | `EVMWord.lean` | `UInt256` arithmetic: no-wrap `toNat` lemmas, bitwise normalization, unsigned comparisons, signed `SLT`, `compare` order instances, the word-rounding used by solc memory allocation. |
 | `SolmBody.lean` | The Solm side: `ExecTransitionBody`/`ExecStmt`/`ExecBlock` lemmas. Non-payable guard, call wrappers (external/checked/low-level/delegate), loop rules, block sequencing (`execBlock_append`), locals lookup, storage-access collapse. |
 | `Memory.lean` | Byte-level memory: little-endian word arithmetic, `MSTORE`/`MLOAD` read-write facts, scratch memory for mapping hashes, selector extraction, calldata decode coupling, mapping-slot keccak facts. Home of the `keccak_size` axiom. |
-| `Reach.lean` | The EVM trace layer. `RD` (reached-or-out-of-gas invariant), one forward step lemma per opcode (`RD.<op>`), `CALL`/`STATICCALL` with the callee treated as an opaque `Θ` result, terminal forms `RDret`/`RDrev` with the `reEquiv_*` case builders for `runtimeEquivalenceFor` and the `reEquivElim` eliminators, `Cursor`/`RDc`, and the `evm_run` macro that chains steps with auto-discharged decode/overflow side conditions. |
+| `Reach.lean` | The EVM trace layer. `RD` (reached-or-out-of-gas invariant) and its canonical forward rules (`RD.<op>`) expose deterministic memory, hashing, storage-map, gas, and terminal results directly as symbolic terms. Warm/cold rules retain existential counters; `RD.pack`, `RD.normalizePC`, and `RD.normalizeCounters` support generated blocks. The module also contains opaque-`Θ` call rules, terminal `RDret`/`RDrev` forms, `Cursor`/`RDc`, and the `evm_run` chain builder. Low-level alias-parameterized proof kernels remain explicitly named `RD.raw*` for legacy handwritten proofs, rather than competing for the standard opcode names. |
 | `ABI.lean` | Calldata decoding and return-value encoding: per-shape decode lemmas (address/uint256/bool/bytes32/string/dynamic-array combinations), decode-mode variants, failure cases (short, huge, non-canonical), return encodings. |
 | `MemCascade.lean` | Collapsing chains of memory writes into a canonical form. |
 | `JumpDest.lean` | The `@[valid_jumps]` attribute and `jump_dest` tactic discharging jump-target validity (via `native_decide`, deliberately). |
@@ -57,6 +57,10 @@ Constructor ← Reach, SolmBody     Initcode ← EVMWord     JumpDest ← (Ether
 ## Where to look
 
 - Run one opcode of a concrete trace → `Stepping` (`<op>_xstep`), chained via `Reach` (`evm_run`).
+- Generate straight-line block summaries from bytecode → `scripts/generate_rd_blocks.py`; its output
+  imports `Reach` and is ordinary checkable Lean source. The generated `ReachGenerated*Test.lean`
+  modules cover deterministic arithmetic/memory, `SSTORE` → `SLOAD` continuation, deep stack
+  operations, and splitting around unsupported instructions.
 - Word arithmetic side condition → `EVMWord`.
 - Memory read/write or keccak slot → `Memory` (chains of writes: `MemCascade`).
 - Decode calldata / encode a return value → `ABI` (solc-specific length checks: `Solc`).
@@ -70,5 +74,33 @@ Constructor ← Reach, SolmBody     Initcode ← EVMWord     JumpDest ← (Ether
 
 ## Build
 
-`lake build Reasoning` builds all fourteen files. A bare `lake build` builds only `Solm`
+`lake build Reasoning` builds the complete reasoning library. A bare `lake build` builds only `Solm`
 (the default target) — use explicit targets.
+
+## Generated RD block summaries
+
+For an inline bytecode literal:
+
+```console
+python3 scripts/generate_rd_blocks.py \
+  --hex 6001600055600054600201604052 --name storageDemo \
+  --output StorageDemoBlocks.lean
+lake env lean StorageDemoBlocks.lean
+```
+
+The input can instead be a raw binary, hex file, solc JSON artifact, stdin, or a Lean source file
+containing a `ByteArray` literal (hex or decimal bytes). To summarize an existing Lean bytecode
+definition, pass `--code-term Contract.bytecode --import Contract.Bytecode`; the input is still
+used to discover instruction and block boundaries. Standard length-suffixed solc CBOR metadata is
+excluded from block discovery while the full byte array remains in every theorem; use
+`--keep-metadata` to override that. An unsupported instruction splits its basic block into maximal
+supported segments. The generator emits summaries for every segment before and after the boundary,
+restarting the suffix from a fresh symbolic RD state, and leaves a prominent comment for the one
+unproved transition. Use `--fail-on-unsupported` when CI should reject any such boundary.
+
+Every nonterminal theorem has the form `RD entry ... → RD exit ...`. Deterministic blocks retain
+exact counters and combine all fixed gas into one constant plus the remaining symbolic costs.
+Warm/cold operations (`SLOAD`, `SSTORE`, and `EXTCODESIZE`) switch only the counters to
+`∃ k' C'`; the generated proof immediately destructs that result and continues applying steppers,
+so storage does not split the basic block. `JUMPI` produces separate taken and fallthrough
+summaries, and halting blocks produce `RDret`/`RDrev`.

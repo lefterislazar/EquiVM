@@ -883,7 +883,7 @@ theorem transferRevertStub {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest,
     push0,
     dup1]
-  exact rd804.rev 0 (by vyper_erc20_transfer_decode)
+  exact rd804.rawRev 0 (by vyper_erc20_transfer_decode)
     (fun s _ hstks => memExpRevert0 s hstks) (by omega)
 
 theorem calldataSizeGuard68_short {n : Nat}
@@ -939,22 +939,22 @@ theorem erc20X_transferAfterBalanceGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
     jumpiNT (by simpa [transferToWord, calldataWord] using hcanonToGuard),
     push1 ⟨64⟩,
-    raw mstore 6 (transferToArgMem (transferToWord I)) (UInt256.ofNat 3)
+    raw rawMstore 6 (transferToArgMem (transferToWord I)) (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨36⟩, calldataload,
     push0, caller, push1 ⟨32⟩,
-    raw mstore 0 (transferSenderKeyMem (transferToWord I) (approveOwnerWord I))
+    raw rawMstore 0 (transferSenderKeyMem (transferToWord I) (approveOwnerWord I))
       (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost rfl (by decide) (by evm_ov),
     push0,
-    raw mstore 0 (transferSenderHashMem (transferToWord I) (approveOwnerWord I))
+    raw rawMstore 0 (transferSenderHashMem (transferToWord I) (approveOwnerWord I))
       (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (transferSenderSlotI I)
+    raw rawKeccak256 0 (transferSenderSlotI I)
       (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost hslotFrom (by decide) (by evm_ov)]
-  obtain ⟨k1, C1, rdAfterSenderLoad⟩ := rdBeforeSenderLoad.sload
+  obtain ⟨k1, C1, rdAfterSenderLoad⟩ := rdBeforeSenderLoad.rawSload
     (by vyper_erc20_transfer_decode) (by evm_ov)
   have rdAfterBalanceGuard := evm_run rdAfterSenderLoad with [
     lt, push2 ⟨801⟩,
@@ -974,19 +974,19 @@ theorem erc20X_transferBeforeSecondSenderLoad {cA gh bl σ σ₀ A I} {g : Sat25
   have hslotFrom := transferSenderKeccakSlotAgain I
   have rdBeforeSenderStore := evm_run rd80 with [
     push0, caller, push1 ⟨32⟩,
-    raw mstore 0 (transferSenderKeyMemAgain (transferToWord I) (approveOwnerWord I))
+    raw rawMstore 0 (transferSenderKeyMemAgain (transferToWord I) (approveOwnerWord I))
       (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost
       (by unfold transferSenderKeyMemAgain wordAt32Mem approveOwnerWord; rfl)
       (by decide) (by evm_ov),
     push0,
-    raw mstore 0 (transferSenderHashMemAgain (transferToWord I) (approveOwnerWord I))
+    raw rawMstore 0 (transferSenderHashMemAgain (transferToWord I) (approveOwnerWord I))
       (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost
       (by unfold transferSenderHashMemAgain wordAt0Mem; rfl)
       (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (transferSenderSlotI I)
+    raw rawKeccak256 0 (transferSenderSlotI I)
       (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost hslotFrom (by decide) (by evm_ov),
     dup1]
@@ -1002,7 +1002,7 @@ theorem erc20X_transferAfterSecondSenderLoad {cA gh bl σ σ₀ A I} {g : Sat256
       (transferSenderHashMemAgain (transferToWord I) (approveOwnerWord I))
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   obtain ⟨k, C, rd92⟩ := hreach
-  obtain ⟨k1, C1, rdAfterSenderLoad⟩ := rd92.sload
+  obtain ⟨k1, C1, rdAfterSenderLoad⟩ := rd92.rawSload
     (by vyper_erc20_transfer_decode) (by evm_ov)
   exact ⟨_, _, by simpa [transferSenderBalanceRaw] using rdAfterSenderLoad⟩
 
@@ -1081,7 +1081,7 @@ theorem erc20X_transferAfterSenderStore {cA gh bl σ σ₀ A I} {g : Sat256}
         (transferDebitWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
   obtain ⟨k, C, rd111⟩ := hreach
   obtain ⟨k1, C1, rdAfterStore⟩ :=
-    rd111.sstore hperm (by vyper_erc20_transfer_decode) (by evm_ov)
+    rd111.rawSstore hperm (by vyper_erc20_transfer_decode) (by evm_ov)
   exact ⟨_, _, evm_run rdAfterStore with [pop]⟩
 
 theorem erc20X_transferBeforeToLoad {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1102,7 +1102,7 @@ theorem erc20X_transferBeforeToLoad {cA gh bl σ σ₀ A I} {g : Sat256}
   have hslotTo := transferToKeccakSlot I hcanonTo
   have rdBeforeToLoad := evm_run rd113 with [
     push0, push1 ⟨64⟩,
-    raw mload 0 (transferToWord I) (UInt256.ofNat 3)
+    raw rawMload 0 (transferToWord I) (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
@@ -1113,19 +1113,19 @@ theorem erc20X_transferBeforeToLoad {cA gh bl σ σ₀ A I} {g : Sat256}
           (transferSenderHashMemAgain_read64 (transferToWord I) (approveOwnerWord I)))
       (by decide) (by evm_ov),
     push1 ⟨32⟩,
-    raw mstore 0 (transferToKeyMem (transferToWord I) (approveOwnerWord I))
+    raw rawMstore 0 (transferToKeyMem (transferToWord I) (approveOwnerWord I))
       (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost
       (by unfold transferToKeyMem wordAt32Mem; rfl)
       (by decide) (by evm_ov),
     push0,
-    raw mstore 0 (transferToHashMem (transferToWord I) (approveOwnerWord I))
+    raw rawMstore 0 (transferToHashMem (transferToWord I) (approveOwnerWord I))
       (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost
       (by unfold transferToHashMem wordAt0Mem; rfl)
       (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (transferToSlot I)
+    raw rawKeccak256 0 (transferToSlot I)
       (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost hslotTo (by decide) (by evm_ov),
     dup1]
@@ -1147,7 +1147,7 @@ theorem erc20X_transferAfterToLoad {cA gh bl σ σ₀ A I} {g : Sat256}
       (cA, sstoreAccountMap I.codeOwner σ (transferSenderSlotI I)
         (transferDebitWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
   obtain ⟨k, C, rd127⟩ := hreach
-  obtain ⟨k1, C1, rdAfterToLoad⟩ := rd127.sload
+  obtain ⟨k1, C1, rdAfterToLoad⟩ := rd127.rawSload
     (by vyper_erc20_transfer_decode) (by evm_ov)
   exact ⟨_, _, by simpa [transferToBalanceRawAfterDebit] using rdAfterToLoad⟩
 
@@ -1233,7 +1233,7 @@ theorem erc20X_transferAfterToStore {cA gh bl σ σ₀ A I} {g : Sat256}
         (transferToSlot I) (transferNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
   obtain ⟨k, C, rd146⟩ := hreach
   obtain ⟨k1, C1, rdAfterStore⟩ :=
-    rd146.sstore hperm (by vyper_erc20_transfer_decode) (by evm_ov)
+    rd146.rawSstore hperm (by vyper_erc20_transfer_decode) (by evm_ov)
   exact ⟨_, _, evm_run rdAfterStore with [pop]⟩
 
 theorem erc20X_transferBeforeLog {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1257,7 +1257,7 @@ theorem erc20X_transferBeforeLog {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨k, C, rd148⟩ := hreach
   have rdAfterTopic := (evm_run rd148 with [
     push1 ⟨64⟩,
-    raw mload 0 (transferToWord I) (UInt256.ofNat 3)
+    raw rawMload 0 (transferToWord I) (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
@@ -1272,7 +1272,7 @@ theorem erc20X_transferBeforeLog {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdBeforeLog := evm_run rdAfterTopic with [
     push1 ⟨36⟩, calldataload,
     push1 ⟨96⟩,
-    raw mstore 3 (transferLogMem (transferToWord I) (approveOwnerWord I) (transferValueWord I))
+    raw rawMstore 3 (transferLogMem (transferToWord I) (approveOwnerWord I) (transferValueWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_transfer_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨96⟩]
@@ -1304,7 +1304,7 @@ theorem erc20X_transferAfterLog {cA gh bl σ σ₀ A I} {g : Sat256}
           (transferDebitWord (initState cA gh bl σ σ₀ g A I) I))
         (transferToSlot I) (transferNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
   obtain ⟨k, C, rd195⟩ := hreach
-  exact ⟨_, _, rd195.log3 0 (UInt256.ofNat 4)
+  exact ⟨_, _, rd195.rawLog3 0 (UInt256.ofNat 4)
     (by vyper_erc20_transfer_decode) hperm mem_cost (by decide) (by evm_ov)⟩
 
 theorem erc20X_transferReturnFromAfterLog {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1325,11 +1325,11 @@ theorem erc20X_transferReturnFromAfterLog {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨k, C, rd196⟩ := hreach
   have rdBeforeReturn := evm_run rd196 with [
     push1 ⟨1⟩, push1 ⟨96⟩,
-    raw mstore 0 (transferReturnMem (transferToWord I) (approveOwnerWord I) (transferValueWord I))
+    raw rawMstore 0 (transferReturnMem (transferToWord I) (approveOwnerWord I) (transferValueWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_transfer_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨96⟩]
-  exact rdBeforeReturn.ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256))
+  exact rdBeforeReturn.rawRet 0 (UInt256.toByteArray (⟨1⟩ : UInt256))
     (by vyper_erc20_transfer_decode)
     mem_cost
     (transferReturnMem_read96 (transferToWord I) (approveOwnerWord I) (transferValueWord I))
@@ -1469,22 +1469,22 @@ theorem erc20TransferX_insufficient {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
     jumpiNT (by simpa [transferToWord, calldataWord] using hcanonToGuard),
     push1 ⟨64⟩,
-    raw mstore 6 (transferToArgMem (transferToWord I)) (UInt256.ofNat 3)
+    raw rawMstore 6 (transferToArgMem (transferToWord I)) (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨36⟩, calldataload,
     push0, caller, push1 ⟨32⟩,
-    raw mstore 0 (transferSenderKeyMem (transferToWord I) (approveOwnerWord I))
+    raw rawMstore 0 (transferSenderKeyMem (transferToWord I) (approveOwnerWord I))
       (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost rfl (by decide) (by evm_ov),
     push0,
-    raw mstore 0 (transferSenderHashMem (transferToWord I) (approveOwnerWord I))
+    raw rawMstore 0 (transferSenderHashMem (transferToWord I) (approveOwnerWord I))
       (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (transferSenderSlotI I)
+    raw rawKeccak256 0 (transferSenderSlotI I)
       (UInt256.ofNat 3)
       (by vyper_erc20_transfer_decode) mem_cost hslotFrom (by decide) (by evm_ov)]
-  obtain ⟨k1, C1, rdAfterSenderLoad⟩ := rdBeforeSenderLoad.sload
+  obtain ⟨k1, C1, rdAfterSenderLoad⟩ := rdBeforeSenderLoad.rawSload
     (by vyper_erc20_transfer_decode) (by evm_ov)
   have rd801 := evm_run rdAfterSenderLoad with [
     lt, push2 ⟨801⟩,
@@ -1604,11 +1604,11 @@ theorem erc20X_transferReach {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨1⟩, shl, push2 ⟨805⟩, add, push1 ⟨30⟩]
   have rdBeforeCopy := by
     simpa [hword, transferSelectorWord] using rdBeforeCopy0
-  have rdAfterCopy := rdBeforeCopy.codecopy 3 transferDispatchMem (UInt256.ofNat 1)
+  have rdAfterCopy := rdBeforeCopy.rawCodecopy 3 transferDispatchMem (UInt256.ofNat 1)
     (by vyper_erc20_transfer_decode) mem_cost (by native_decide) (by decide) (by evm_ov)
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
-    raw mload 0 ⟨24⟩ (UInt256.ofNat 1)
+    raw rawMload 0 ⟨24⟩ (UInt256.ofNat 1)
       (by vyper_erc20_transfer_decode)
       mem_cost
       transferDispatchMem_mload0

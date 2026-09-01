@@ -79,7 +79,7 @@ theorem blindAuctionStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt25
     (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)]
   simpa [blindAuctionBoolLoc, boolOffset0Loc] using storageLocLoad_bool_offset0 evm slot
 
-/-- `EVM.storageStore`'s account map is exactly the map carried by `RD.sstore`. -/
+/-- `EVM.storageStore`'s account map is exactly the map carried by `RD.rawSstore`. -/
 theorem blindAuctionStorageStore_accountMap
     (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).accountMap =

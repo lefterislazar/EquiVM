@@ -1015,7 +1015,7 @@ theorem scratch_RD_placeBid_true_nonzero_overflow_anyMem {g : Sat256} {s0 : Stat
       scratch_reveal_aw_M_ge3 (aw := aw2) (off := (⟨0⟩ : UInt256))
         (len := (⟨64⟩ : UInt256)) haw2
   have rd1538 := evm_run rd with [jumpdest, push0, push1 ⟨6⟩]
-  obtain ⟨_, _, rd1539₀⟩ := rd1538.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1539₀⟩ := rd1538.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1539⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1539⟩
       (scratch_placeBidHighestBidWord σ I :: ⟨0⟩ :: value :: bidder :: ret :: R)
       mem aw rdata (cA, σ) k' C' := by
@@ -1026,7 +1026,7 @@ theorem scratch_RD_placeBid_true_nonzero_overflow_anyMem {g : Sat256} {s0 : Stat
   rw [hgt] at rd1540
   have rd1554 := evm_run rd1540 with [push2 ⟨1551⟩, jumpiT one_ne_zero_uint (by jump_dest),
     jumpdest, push1 ⟨5⟩]
-  obtain ⟨_, _, rd1555₀⟩ := rd1554.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1555₀⟩ := rd1554.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1555⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1555⟩
       (scratch_placeBidHighestBidderWord σ I :: ⟨0⟩ :: value :: bidder :: ret :: R)
       mem aw rdata (cA, σ) k' C' := by
@@ -1044,13 +1044,13 @@ theorem scratch_RD_placeBid_true_nonzero_overflow_anyMem {g : Sat256} {s0 : Stat
   have rd1565 := rd1565₀
   rw [isZero_eq_zero_of_ne hmaskNonzero] at rd1565
   have rd1571 := evm_run rd1565 with [push2 ⟨1618⟩, jumpiNT (by decide), push1 ⟨6⟩]
-  obtain ⟨_, _, rd1572₀⟩ := rd1571.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1572₀⟩ := rd1571.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1572⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1572⟩
       (scratch_placeBidHighestBidWord σ I :: ⟨0⟩ :: value :: bidder :: ret :: R)
       mem aw rdata (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [scratch_placeBidHighestBidWord] using rd1572₀⟩
   have rd1574 := evm_run rd1572 with [push1 ⟨5⟩]
-  obtain ⟨_, _, rd1575₀⟩ := rd1574.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1575₀⟩ := rd1574.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1575⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1575⟩
       (scratch_placeBidHighestBidderWord σ I :: scratch_placeBidHighestBidWord σ I ::
         ⟨0⟩ :: value :: bidder :: ret :: R)
@@ -1068,14 +1068,14 @@ theorem scratch_RD_placeBid_true_nonzero_overflow_anyMem {g : Sat256} {s0 : Stat
   have rd1587 := rd1587₀
   rw [hmask] at rd1587
   have rd1588 := evm_run rd1587 with [
-    raw mstore (Cₘ aw1 - Cₘ aw) memKey aw1 (by decide)
+    raw rawMstore (Cₘ aw1 - Cₘ aw) memKey aw1 (by decide)
       (fun s haws hstks => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw1])
       (by simp [memKey, scratch_placeBidPendingKeyMem, key])
       (by rfl) (by evm_ov)]
   have rd1593 := evm_run rd1588 with [
     push1 ⟨7⟩, push1 ⟨32⟩,
-    raw mstore (Cₘ aw2 - Cₘ aw1) memHash aw2 (by decide)
+    raw rawMstore (Cₘ aw2 - Cₘ aw1) memHash aw2 (by decide)
       (fun s haws hstks => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw2])
       (by
@@ -1087,13 +1087,13 @@ theorem scratch_RD_placeBid_true_nonzero_overflow_anyMem {g : Sat256} {s0 : Stat
     (scratch_placeBidHighestBidderWord σ I)
   have hslot := scratch_placeBidPendingKeccak_any mem key hkeyCanon
   have rd1597 := evm_run rd1593 with [
-    raw keccak256 (Cₘ aw3 - Cₘ aw2) (scratch_placeBidPendingSlot σ I) aw3 (by decide)
+    raw rawKeccak256 (Cₘ aw3 - Cₘ aw2) (scratch_placeBidPendingSlot σ I) aw3 (by decide)
       (fun s haws hstks => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw3,
           show (⟨64⟩ : UInt256).toNat = 64 by native_decide])
       (by simpa [memHash, key, scratch_placeBidPendingSlot] using hslot) (by rfl) (by evm_ov),
     dup1]
-  obtain ⟨_, _, rd1598₀⟩ := rd1597.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1598₀⟩ := rd1597.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1599⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1599⟩
       (scratch_placeBidPendingWord σ I :: scratch_placeBidPendingSlot σ I ::
         ⟨0⟩ :: scratch_placeBidHighestBidWord σ I :: ⟨0⟩ :: value :: bidder :: ret :: R)

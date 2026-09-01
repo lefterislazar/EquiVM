@@ -536,7 +536,7 @@ theorem erc6909X_balanceOf {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd440 := evm_run rd407 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and,
     push0, swap1, dup2,
-    raw mstore 0 (balanceOfOwnerMem (balanceOfOwnerWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (balanceOfOwnerMem (balanceOfOwnerWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -544,47 +544,47 @@ theorem erc6909X_balanceOf {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, dup2, dup2,
-    raw mstore 0 (balanceOfInnerHashMem (balanceOfOwnerWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (balanceOfInnerHashMem (balanceOfOwnerWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup4,
-    raw keccak256 0 (balanceOfInnerSlot (balanceOfOwnerWord I)) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (balanceOfInnerSlot (balanceOfOwnerWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     dup5, dup5,
-    raw mstore 0 (balanceOfOuterIdMem (balanceOfOwnerWord I) (balanceOfIdWord I))
+    raw rawMstore 0 (balanceOfOuterIdMem (balanceOfOwnerWord I) (balanceOfIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     swap1, swap2,
-    raw mstore 0 (balanceOfOuterHashMem (balanceOfOwnerWord I) (balanceOfIdWord I))
+    raw rawMstore 0 (balanceOfOuterHashMem (balanceOfOwnerWord I) (balanceOfIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw keccak256 0 (balanceOfSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (balanceOfSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hslot (by decide) (by evm_ov) ]
-  obtain ⟨_, _, rd441⟩ := rd440.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd441⟩ := rd440.rawSload (by decide) (by evm_ov)
   have rd155 := evm_run rd441 with [
     jumpdest, swap3, swap2, pop, pop, jump (by jump_dest) ]
   have rd165 := evm_run rd155 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (balanceOfOuterHashMem_mload64 (balanceOfOwnerWord I) (balanceOfIdWord I))
       (by decide) (by evm_ov),
     swap1, dup2,
-    raw mstore 6
+    raw rawMstore 6
       (balanceOfReturnMem (balanceOfOwnerWord I) (balanceOfIdWord I) (balanceOfWord σ I))
       (UInt256.ofNat 5) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, add ]
   exact evm_run rd165 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (balanceOfReturnMem_mload64 (balanceOfOwnerWord I) (balanceOfIdWord I)
         (balanceOfWord σ I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (balanceOfWord σ I)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (balanceOfWord σ I)) (by decide)
       mem_cost
       (by
         rw [show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32

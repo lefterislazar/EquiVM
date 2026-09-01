@@ -27,7 +27,7 @@ theorem erc20X_transferFromAllowanceStoreAfterOuterKeyStore {cA gh bl σ σ₀ A
       (UInt256.ofNat 5) ByteArray.empty
       (cA, σ) k C := by
   obtain ⟨k, C, rd483⟩ := hreach
-  have rd484 := rd483.mstore 0
+  have rd484 := rd483.rawMstore 0
     (wordAt32Mem (approveOwnerWord I) (transferFromAllowanceInnerScratchMemI σ I))
     (UInt256.ofNat 5)
     (by native_decide) mem_cost rfl (by decide) (by evm_ov)

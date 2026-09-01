@@ -935,7 +935,7 @@ theorem tinyCtorInitcodeToBody
     RD.initState hcode
   have rd79 := tiny_ctor_run rd0 with [
     push1 ⟨192⟩, push1 ⟨64⟩,
-    raw mstore 9 tinyCtorFreePtrMem (UInt256.ofNat 3) (by tiny_ctor_decode) mem_cost
+    raw rawMstore 9 tinyCtorFreePtrMem (UInt256.ofNat 3) (by tiny_ctor_decode) mem_cost
       (by
         unfold tinyCtorFreePtrMem Reasoning.Theory.writeWord
         rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide])
@@ -943,10 +943,10 @@ theorem tinyCtorInitcodeToBody
     callvalue, dup1, iszero, push2 ⟨15⟩,
     jumpiT (by rw [hwv]; decide) (by tiny_ctor_jd),
     jumpdest, pop, push1 ⟨64⟩,
-    raw mload 0 ⟨192⟩ (UInt256.ofNat 3) (by tiny_ctor_decode) mem_cost
+    raw rawMload 0 ⟨192⟩ (UInt256.ofNat 3) (by tiny_ctor_decode) mem_cost
       tinyCtorFreePtrMem_mload64 (by decide) (by evm_ov),
     push2 ⟨634⟩, codesize, sub, dup1, push2 ⟨634⟩, dup4,
-    raw codecopy 18 (tinyCtorAbiMem owner scale useScale) (UInt256.ofNat 9)
+    raw rawCodecopy 18 (tinyCtorAbiMem owner scale useScale) (UInt256.ofNat 9)
       (by tiny_ctor_decode)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
@@ -965,7 +965,7 @@ theorem tinyCtorInitcodeToBody
         decide)
       (by evm_ov),
     dup2, add, push1 ⟨64⟩, dup2, swap1,
-    raw mstore 0 (tinyCtorAbiFreeMem owner scale useScale) (UInt256.ofNat 9)
+    raw rawMstore 0 (tinyCtorAbiFreeMem owner scale useScale) (UInt256.ofNat 9)
       (by tiny_ctor_decode) mem_cost
       (by
         rw [show (⟨192⟩ : UInt256) +
@@ -987,7 +987,7 @@ theorem tinyCtorInitcodeToBody
         decide]
       decide) (by tiny_ctor_jd),
     jumpdest, dup4,
-    raw mload 0 (EVM.word (↑owner : Nat)) (UInt256.ofNat 9) (by tiny_ctor_decode)
+    raw rawMload 0 (EVM.word (↑owner : Nat)) (UInt256.ofNat 9) (by tiny_ctor_decode)
       mem_cost (tinyCtorAbiFreeMem_mload192 owner scale useScale) (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and, dup2, eq,
     push2 ⟨119⟩,
@@ -1003,10 +1003,10 @@ theorem tinyCtorInitcodeToBody
         decide]
       decide) (by tiny_ctor_jd),
     jumpdest, push1 ⟨32⟩, dup6, add,
-    raw mload 0 scale (UInt256.ofNat 9) (by tiny_ctor_decode)
+    raw rawMload 0 scale (UInt256.ofNat 9) (by tiny_ctor_decode)
       mem_cost (tinyCtorAbiFreeMem_mload224 owner scale useScale) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup7, add,
-    raw mload 0 useScale.toUInt256 (UInt256.ofNat 9) (by tiny_ctor_decode)
+    raw rawMload 0 useScale.toUInt256 (UInt256.ofNat 9) (by tiny_ctor_decode)
       mem_cost (tinyCtorAbiFreeMem_mload256 owner scale useScale) (by decide) (by evm_ov),
     swap2, swap5, pop, swap3, pop, dup1, iszero, iszero, dup2, eq,
     push2 ⟨147⟩, jumpiT (by cases useScale <;> decide) (by tiny_ctor_jd),
@@ -1036,7 +1036,7 @@ theorem tinyCtorInitcodeSuccessTrue
   have rd158 := tiny_ctor_run rd46 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and,
     push1 ⟨128⟩,
-    raw mstore 0 (tinyCtorOwnerMem owner scale true) (UInt256.ofNat 9)
+    raw rawMstore 0 (tinyCtorOwnerMem owner scale true) (UInt256.ofNat 9)
       (by tiny_ctor_decode) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1049,7 +1049,7 @@ theorem tinyCtorInitcodeSuccessTrue
       (by decide) (by evm_ov),
     dup1, iszero, push2 ⟨71⟩, jumpiNT (by decide),
     push1 ⟨160⟩, dup3, swap1,
-    raw mstore 0 (tinyCtorDecodedMem owner scale true) (UInt256.ofNat 9)
+    raw rawMstore 0 (tinyCtorDecodedMem owner scale true) (UInt256.ofNat 9)
       (by tiny_ctor_decode) mem_cost
       (by
         unfold tinyCtorDecodedMem Reasoning.Theory.writeWord
@@ -1059,26 +1059,26 @@ theorem tinyCtorInitcodeSuccessTrue
     jumpdest, pop, pop, pop, push2 ⟨158⟩, jump (by tiny_ctor_jd)]
   exact tiny_ctor_run rd158 with [
     jumpdest, push1 ⟨128⟩,
-    raw mload 0 (EVM.word (↑owner : Nat)) (UInt256.ofNat 9)
+    raw rawMload 0 (EVM.word (↑owner : Nat)) (UInt256.ofNat 9)
       (by tiny_ctor_decode) mem_cost (tinyCtorDecodedMem_mload128 owner scale true)
       (by decide) (by evm_ov),
     push1 ⟨160⟩,
-    raw mload 0 scale (UInt256.ofNat 9)
+    raw rawMload 0 scale (UInt256.ofNat 9)
       (by tiny_ctor_decode) mem_cost (tinyCtorDecodedMem_mload160_true owner scale)
       (by decide) (by evm_ov),
     push2 ⟨432⟩, push2 ⟨202⟩, push0,
-    raw codecopy 15 tinyImmutableBytecode (UInt256.ofNat 14)
+    raw rawCodecopy 15 tinyImmutableBytecode (UInt256.ofNat 14)
       (by tiny_ctor_decode) mem_cost (tinyCtorRuntime_codecopy_mem owner scale true)
       (by decide) (by evm_ov),
     push0, dup2, dup2, push1 ⟨186⟩, add,
-    raw mstore 0 (writeWord tinyImmutableBytecode 186 scale) (UInt256.ofNat 14)
+    raw rawMstore 0 (writeWord tinyImmutableBytecode 186 scale) (UInt256.ofNat 14)
       (by tiny_ctor_decode) mem_cost
       (by
         unfold Reasoning.Theory.writeWord
         rw [show ((⟨186⟩ : UInt256) + ⟨0⟩).toNat = 186 from by decide])
       (by decide) (by evm_ov),
     push2 ⟨361⟩, add,
-    raw mstore 0 (writeWord (writeWord tinyImmutableBytecode 186 scale) 361 scale)
+    raw rawMstore 0 (writeWord (writeWord tinyImmutableBytecode 186 scale) 361 scale)
       (UInt256.ofNat 14)
       (by tiny_ctor_decode) mem_cost
       (by
@@ -1086,7 +1086,7 @@ theorem tinyCtorInitcodeSuccessTrue
         rw [show ((⟨361⟩ : UInt256) + ⟨0⟩).toNat = 361 from by decide])
       (by decide) (by evm_ov),
     push0, dup2, dup2, push1 ⟨72⟩, add,
-    raw mstore 0
+    raw rawMstore 0
       (writeWord (writeWord (writeWord tinyImmutableBytecode 186 scale) 361 scale) 72
         (EVM.word (↑owner : Nat)))
       (UInt256.ofNat 14)
@@ -1096,7 +1096,7 @@ theorem tinyCtorInitcodeSuccessTrue
         rw [show ((⟨72⟩ : UInt256) + ⟨0⟩).toNat = 72 from by decide])
       (by decide) (by evm_ov),
     push1 ⟨245⟩, add,
-    raw mstore 0 (tinyCtorPatchedRuntime owner scale) (UInt256.ofNat 14)
+    raw rawMstore 0 (tinyCtorPatchedRuntime owner scale) (UInt256.ofNat 14)
       (by tiny_ctor_decode) mem_cost
       (by
         simp [tinyCtorPatchedRuntime, Reasoning.Theory.writeCascade,
@@ -1104,7 +1104,7 @@ theorem tinyCtorInitcodeSuccessTrue
           show ((⟨245⟩ : UInt256) + ⟨0⟩).toNat = 245 from by decide])
       (by decide) (by evm_ov),
     push2 ⟨432⟩, push0,
-    raw ret 0 (patchedRuntime { owner := owner, scale := scale })
+    raw rawRet 0 (patchedRuntime { owner := owner, scale := scale })
       (by tiny_ctor_decode) mem_cost (tinyCtorPatchedRuntime_read owner scale) (by evm_ov)]
 
 theorem tinyCtorInitcodeSuccessFalse
@@ -1129,7 +1129,7 @@ theorem tinyCtorInitcodeSuccessFalse
   have rd158Raw := tiny_ctor_run rd46 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and,
     push1 ⟨128⟩,
-    raw mstore 0 (tinyCtorOwnerMem owner scale false) (UInt256.ofNat 9)
+    raw rawMstore 0 (tinyCtorOwnerMem owner scale false) (UInt256.ofNat 9)
       (by tiny_ctor_decode) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1146,26 +1146,26 @@ theorem tinyCtorInitcodeSuccessFalse
     simpa [tinyCtorDecodedMem] using rd158Raw
   exact tiny_ctor_run rd158 with [
     jumpdest, push1 ⟨128⟩,
-    raw mload 0 (EVM.word (↑owner : Nat)) (UInt256.ofNat 9)
+    raw rawMload 0 (EVM.word (↑owner : Nat)) (UInt256.ofNat 9)
       (by tiny_ctor_decode) mem_cost (tinyCtorDecodedMem_mload128 owner scale false)
       (by decide) (by evm_ov),
     push1 ⟨160⟩,
-    raw mload 0 (⟨0⟩ : UInt256) (UInt256.ofNat 9)
+    raw rawMload 0 (⟨0⟩ : UInt256) (UInt256.ofNat 9)
       (by tiny_ctor_decode) mem_cost (tinyCtorDecodedMem_mload160_false owner scale)
       (by decide) (by evm_ov),
     push2 ⟨432⟩, push2 ⟨202⟩, push0,
-    raw codecopy 15 tinyImmutableBytecode (UInt256.ofNat 14)
+    raw rawCodecopy 15 tinyImmutableBytecode (UInt256.ofNat 14)
       (by tiny_ctor_decode) mem_cost (tinyCtorRuntime_codecopy_mem owner scale false)
       (by decide) (by evm_ov),
     push0, dup2, dup2, push1 ⟨186⟩, add,
-    raw mstore 0 (writeWord tinyImmutableBytecode 186 (⟨0⟩ : UInt256)) (UInt256.ofNat 14)
+    raw rawMstore 0 (writeWord tinyImmutableBytecode 186 (⟨0⟩ : UInt256)) (UInt256.ofNat 14)
       (by tiny_ctor_decode) mem_cost
       (by
         unfold Reasoning.Theory.writeWord
         rw [show ((⟨186⟩ : UInt256) + ⟨0⟩).toNat = 186 from by decide])
       (by decide) (by evm_ov),
     push2 ⟨361⟩, add,
-    raw mstore 0 (writeWord (writeWord tinyImmutableBytecode 186 (⟨0⟩ : UInt256)) 361
+    raw rawMstore 0 (writeWord (writeWord tinyImmutableBytecode 186 (⟨0⟩ : UInt256)) 361
         (⟨0⟩ : UInt256)) (UInt256.ofNat 14)
       (by tiny_ctor_decode) mem_cost
       (by
@@ -1173,7 +1173,7 @@ theorem tinyCtorInitcodeSuccessFalse
         rw [show ((⟨361⟩ : UInt256) + ⟨0⟩).toNat = 361 from by decide])
       (by decide) (by evm_ov),
     push0, dup2, dup2, push1 ⟨72⟩, add,
-    raw mstore 0
+    raw rawMstore 0
       (writeWord (writeWord (writeWord tinyImmutableBytecode 186 (⟨0⟩ : UInt256)) 361
         (⟨0⟩ : UInt256)) 72 (EVM.word (↑owner : Nat)))
       (UInt256.ofNat 14)
@@ -1183,7 +1183,7 @@ theorem tinyCtorInitcodeSuccessFalse
         rw [show ((⟨72⟩ : UInt256) + ⟨0⟩).toNat = 72 from by decide])
       (by decide) (by evm_ov),
     push1 ⟨245⟩, add,
-    raw mstore 0 (tinyCtorPatchedRuntime owner (⟨0⟩ : UInt256)) (UInt256.ofNat 14)
+    raw rawMstore 0 (tinyCtorPatchedRuntime owner (⟨0⟩ : UInt256)) (UInt256.ofNat 14)
       (by tiny_ctor_decode) mem_cost
       (by
         simp [tinyCtorPatchedRuntime, Reasoning.Theory.writeCascade,
@@ -1191,7 +1191,7 @@ theorem tinyCtorInitcodeSuccessFalse
           show ((⟨245⟩ : UInt256) + ⟨0⟩).toNat = 245 from by decide])
       (by decide) (by evm_ov),
     push2 ⟨432⟩, push0,
-    raw ret 0 (patchedRuntime { owner := owner, scale := (⟨0⟩ : UInt256) })
+    raw rawRet 0 (patchedRuntime { owner := owner, scale := (⟨0⟩ : UInt256) })
       (by tiny_ctor_decode) mem_cost (tinyCtorPatchedRuntime_read owner (⟨0⟩ : UInt256))
       (by evm_ov)]
 
@@ -1216,7 +1216,7 @@ theorem tinyCtorInitcodeNonpayableRevert
     RD.initState hcode
   have rd12 := tiny_ctor_run rd0 with [
     push1 ⟨192⟩, push1 ⟨64⟩,
-    raw mstore 9 tinyCtorFreePtrMem (UInt256.ofNat 3)
+    raw rawMstore 9 tinyCtorFreePtrMem (UInt256.ofNat 3)
       (by tiny_ctor_decode)
       mem_cost
       (by

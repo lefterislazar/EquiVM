@@ -760,7 +760,7 @@ theorem blindAuctionBidX_timeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd1426⟩ := blindAuctionBidX_decoded (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hsz36 hsize hszhi hreach
   have rd1429 := evm_run rd1426 with [jumpdest, push1 ⟨1⟩]
-  obtain ⟨_, _, rd1430₀⟩ := rd1429.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1430₀⟩ := rd1429.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1430⟩ : ∃ k C, RD blindAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1430⟩
       [biddingEndWord σ I, bidBlindedWord I, ⟨276⟩, blindAuctionSelWord I]
@@ -776,23 +776,23 @@ theorem blindAuctionBidX_timeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd1437 := evm_run rd1433 with [push2 ⟨1464⟩, jumpiNT (by decide)]
   have rd1450 := evm_run rd1437 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push4 ⟨0x348f2b41⟩, push1 ⟨225⟩, shl, dup2,
-    raw mstore 6 (solcReturnMem bidTooLateSelector) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (solcReturnMem bidTooLateSelector) (UInt256.ofNat 5) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd1457 := evm_run rd1450 with [
     push1 ⟨4⟩, dup2, add, dup3, swap1,
-    raw mstore 3 (bidTooLateMem (biddingEndWord σ I)) (UInt256.ofNat 6) (by decide)
+    raw rawMstore 3 (bidTooLateMem (biddingEndWord σ I)) (UInt256.ofNat 6) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd600 := evm_run rd1457 with
     [push1 ⟨36⟩, add, push2 ⟨600⟩, jump (by jump_dest)]
   have rd608 := evm_run rd600 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost (bidTooLateMem_mload64 (biddingEndWord σ I)) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
-  exact rd608.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd608.rawRev 0 (by decide) mem_cost (by evm_ov)
 
 set_option maxHeartbeats 1200000 in
 theorem blindAuctionBidX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -809,7 +809,7 @@ theorem blindAuctionBidX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd1426⟩ := blindAuctionBidX_decoded (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hsz36 hsize hszhi hreach
   have rd1429 := evm_run rd1426 with [jumpdest, push1 ⟨1⟩]
-  obtain ⟨_, _, rd1430₀⟩ := rd1429.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1430₀⟩ := rd1429.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1430⟩ : ∃ k C, RD blindAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1430⟩
       [biddingEndWord σ I, bidBlindedWord I, ⟨276⟩, blindAuctionSelWord I]
@@ -825,32 +825,32 @@ theorem blindAuctionBidX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd1464 := evm_run rd1433 with [push2 ⟨1464⟩, jumpiT one_ne_zero_uint (by jump_dest)]
   have rd1470 := evm_run rd1464 with [jumpdest, pop, caller, push0, swap1, dup2]
   have rd1471 := evm_run rd1470 with [
-    raw mstore 0 (bidSourceMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (bidSourceMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd1478 := evm_run rd1471 with [
     push1 ⟨4⟩, push1 ⟨32⟩, swap1, dup2,
-    raw mstore 0 (bidHashMemExec I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (bidHashMemExec I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup4,
-    raw keccak256 0 (bidLengthSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (bidLengthSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost (bidMappingBaseKeccakExec I) (by decide) (by evm_ov),
     dup2]
   have rd1485 := evm_run rd1478 with [
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (bidHashMemExec_mload64 I) (by decide) (by evm_ov),
     dup1, dup4, add, swap1, swap3]
   have rd1491 := evm_run rd1485 with [
-    raw mstore 0 (bidAllocMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (bidAllocMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd1501 := evm_run rd1491 with [
     swap4, dup2,
-    raw mstore 6 (bidBlindedMem I) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (bidBlindedMem I) (UInt256.ofNat 5) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     callvalue, dup2, dup4, add, swap1, dup2,
-    raw mstore 3 (bidStructMem I) (UInt256.ofNat 6) (by decide)
+    raw rawMstore 3 (bidStructMem I) (UInt256.ofNat 6) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     dup5]
-  obtain ⟨_, _, rd1503₀⟩ := rd1501.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1503₀⟩ := rd1501.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1503⟩ : ∃ k C, RD blindAuctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1503⟩
       [bidLengthWord σ I, ⟨160⟩, ⟨128⟩, ⟨32⟩, ⟨0⟩, bidLengthSlot I,
@@ -858,7 +858,7 @@ theorem blindAuctionBidX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
       (bidStructMem I) (UInt256.ofNat 6) ByteArray.empty (cA, σ) k C := by
     exact ⟨_, _, by simpa [bidLengthWord, initState] using rd1503₀⟩
   have rd1508 := evm_run rd1503 with [push1 ⟨1⟩, dup2, dup2, add, dup8]
-  obtain ⟨_, _, rd1510₀⟩ := rd1508.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1510₀⟩ := rd1508.rawSstore hperm (by decide) (by evm_ov)
   let evm0 := initState cA gh bl σ σ₀ g A I
   obtain ⟨_, _, rd1510⟩ : ∃ k C, RD blindAuctionBytecode I g evm0 ⟨1510⟩
       [⟨1⟩, bidLengthWord σ I, ⟨160⟩, ⟨128⟩, ⟨32⟩, ⟨0⟩, bidLengthSlot I,
@@ -871,14 +871,14 @@ theorem blindAuctionBidX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
         u256_add_comm] using rd1510₀⟩
   have rd1516 := evm_run rd1510 with [
     swap6, dup6,
-    raw mstore 0 (bidElemBaseMemExec I (bidLengthSlot I)) (UInt256.ofNat 6) (by decide)
+    raw rawMstore 0 (bidElemBaseMemExec I (bidLengthSlot I)) (UInt256.ofNat 6) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     swap3, swap1, swap4,
-    raw keccak256 0 (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (bidLengthSlot I))))
+    raw rawKeccak256 0 (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (bidLengthSlot I))))
       (UInt256.ofNat 6) (by decide)
       mem_cost (bidArrayDataKeccakExec I (bidLengthSlot I)) (by decide) (by evm_ov),
     swap1,
-    raw mload 0 (bidBlindedWord I) (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 (bidBlindedWord I) (UInt256.ofNat 6) (by decide)
       mem_cost (bidElemBaseMemExec_blinded_mload I (bidLengthSlot I)) (by decide) (by evm_ov),
     push1 ⟨2⟩, swap1, swap3, mul, add]
   have hElemSlotR :
@@ -889,10 +889,10 @@ theorem blindAuctionBidX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd1516' := rd1516
   rw [hElemSlotR] at rd1516'
   have rd1526 := evm_run rd1516' with [swap1, dup2]
-  obtain ⟨_, _, rd1528₀⟩ := rd1526.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1528₀⟩ := rd1526.rawSstore hperm (by decide) (by evm_ov)
   have rd1531 := evm_run rd1528₀ with [
     swap1,
-    raw mload 0 I.weiValue (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 I.weiValue (UInt256.ofNat 6) (by decide)
       mem_cost (bidElemBaseMemExec_deposit_mload I (bidLengthSlot I)) (by decide) (by evm_ov),
     swap2, add]
   have hDepositSlot :
@@ -902,7 +902,7 @@ theorem blindAuctionBidX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [u256_add_comm]
   have rd1531' := rd1531
   rw [hDepositSlot] at rd1531'
-  obtain ⟨_, _, rd1533₀⟩ := rd1531'.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1533₀⟩ := rd1531'.rawSstore hperm (by decide) (by evm_ov)
   have rd276 := evm_run rd1533₀ with [jump (by jump_dest), jumpdest]
   simpa [evm0, bidPostState, bidAfterBlindedState, bidAfterLengthState, initState, worldOf,
     storageStore_executionEnv, blindAuctionStorageStore_createdAccounts,

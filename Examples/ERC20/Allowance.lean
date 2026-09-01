@@ -609,33 +609,33 @@ theorem erc20X_allowance {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hslot := allowanceOuterKeccakSlot I hcanonOwner hcanonSpender
   have rd1797 := evm_run rd1768 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨32⟩,
-    raw mstore 0 allowanceInnerBaseMem (UInt256.ofNat 3) (by decide) mem_cost
+    raw rawMstore 0 allowanceInnerBaseMem (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     dup2, push0,
-    raw mstore 0 (allowanceInnerHashMem (allowanceOwnerWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (allowanceInnerHashMem (allowanceOwnerWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (allowanceInnerSlot (allowanceOwnerWord I)) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (allowanceInnerSlot (allowanceOwnerWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩,
-    raw mstore 0 (allowanceOuterBaseMem (allowanceOwnerWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (allowanceOuterBaseMem (allowanceOwnerWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     dup1, push0,
-    raw mstore 0 (allowanceOuterHashMem (allowanceOwnerWord I) (allowanceSpenderWord I))
+    raw rawMstore 0 (allowanceOuterHashMem (allowanceOwnerWord I) (allowanceSpenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (allowanceSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (allowanceSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hslot (by decide) (by evm_ov),
     push0, swap2, pop, swap2, pop, pop ]
-  obtain ⟨k1, C1, rd1798⟩ := rd1797.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd1798⟩ := rd1797.rawSload (by decide) (by evm_ov)
   have rd348 := evm_run rd1798 with [
     dup2, jump erc20_jd ]
   have rd2073 := evm_run rd348 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (allowanceOuterHashMem_mload64 (allowanceOwnerWord I) (allowanceSpenderWord I))
       (by decide) (by evm_ov),
@@ -645,13 +645,13 @@ theorem erc20X_allowance {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rd2073 (by rfl) erc20_jd (by simp only [List.length_cons, List.length_nil]; omega)
   exact evm_run rd361 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (allowanceReturnMem_mload64 (allowanceOwnerWord I) (allowanceSpenderWord I)
         (allowanceWord σ I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (allowanceWord σ I)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (allowanceWord σ I)) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, erc20SubRet32_toNat]

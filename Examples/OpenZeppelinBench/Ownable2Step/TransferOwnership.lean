@@ -431,7 +431,7 @@ theorem ownable2StepX_transferOwnership_success {cA gh bl σ σ₀ A I} {g : Sat
     rd387 (by simpa [ownable2StepOnlyOwnerWord, transferOwnershipOwnerWord] using howner)
     (by jump_dest) (by evm_ov)
   have rd287 := evm_run rd283 with [jumpdest, push1 ⟨1⟩, dup1]
-  obtain ⟨_, _, rd288₀⟩ := rd287.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd288₀⟩ := rd287.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd288⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨288⟩
       [transferOwnershipPendingOwnerWord σ I, ⟨1⟩, transferOwnershipNewOwnerWord I, ⟨97⟩,
@@ -456,7 +456,7 @@ theorem ownable2StepX_transferOwnership_success {cA gh bl σ σ₀ A I} {g : Sat
         solcAddrMask by decide] at rd312
   rw [hset] at rd312
   have rd314 := evm_run rd312 with [swap1, swap2]
-  obtain ⟨_, _, rd315₀⟩ := rd314.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd315₀⟩ := rd314.rawSstore hperm (by decide) (by evm_ov)
   obtain ⟨_, _, rd315⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨315⟩
       [UInt256.land (transferOwnershipNewOwnerWord I) solcAddrMask,
@@ -466,7 +466,7 @@ theorem ownable2StepX_transferOwnership_success {cA gh bl σ σ₀ A I} {g : Sat
     exact ⟨_, _, by simpa [transferOwnershipAfterPendingMap] using rd315₀⟩
   let σp := transferOwnershipAfterPendingMap σ I
   have rd319 := evm_run rd315 with [push2 ⟨331⟩, push0]
-  obtain ⟨_, _, rd320₀⟩ := rd319.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd320₀⟩ := rd319.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd320⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨320⟩
       [transferOwnershipOwnerWordAfterPending σ I, ⟨331⟩,
@@ -485,15 +485,15 @@ theorem ownable2StepX_transferOwnership_success {cA gh bl σ σ₀ A I} {g : Sat
     (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
   have rd383₀ := evm_run rd374 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   have rd383 := rd383₀
   rw [show UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ = ⟨0⟩ by decide] at rd383
-  have rd385 := rd383.log3 0 (UInt256.ofNat 3) (by decide) hperm mem_cost
+  have rd385 := rd383.rawLog3 0 (UInt256.ofNat 3) (by decide) hperm mem_cost
     (by decide) (by evm_ov)
   have rd97 := evm_run rd385 with [pop, jump (by jump_dest)]
   have rd98 := evm_run rd97 with [jumpdest]

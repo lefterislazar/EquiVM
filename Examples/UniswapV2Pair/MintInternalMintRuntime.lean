@@ -20,7 +20,7 @@ theorem uniswapInternalMintRuntimeTotalSupplyAddEntry
       (value :: uniswapSlotWord ⟨0⟩ σ ee :: ⟨8147⟩ :: value :: recipient :: ret :: R)
       mem aw rdata (cA, σ) k' C' := by
   have rd8131 := evm_run rd8128 with [jumpdest, push1 ⟨0⟩]
-  obtain ⟨k8132, C8132, rd8132₀⟩ := rd8131.sload (by native_decide) (by evm_ov)
+  obtain ⟨k8132, C8132, rd8132₀⟩ := rd8131.rawSload (by native_decide) (by evm_ov)
   have rd8132 : RD uniswapV2PairBytecode ee g s0 ⟨8132⟩
       (uniswapSlotWord ⟨0⟩ σ ee :: value :: recipient :: ret :: R)
       mem aw rdata (cA, σ) k8132 C8132 := by
@@ -65,7 +65,7 @@ theorem uniswapInternalMintRuntimeTotalSupplyStoredEntry
       (⟨0⟩ :: value :: recipient :: ret :: R) mem aw rdata
       (cA, sstoreAccountMap ee.codeOwner σ ⟨0⟩ newSupply) k' C' := by
   have rd8152 := evm_run rd8147 with [jumpdest, push1 ⟨0⟩, swap1, dup2]
-  obtain ⟨_, _, rd8153⟩ := rd8152.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd8153⟩ := rd8152.rawSstore hperm (by native_decide) (by evm_ov)
   exact ⟨_, _, rd8153⟩
 
 noncomputable abbrev uniswapInternalMintBalanceHashMem
@@ -485,20 +485,20 @@ theorem uniswapInternalMintRuntimeRecipientBalanceAddEntry
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide] at rd8163pre
   have rd8164 := evm_run rd8163pre with [dup2]
-  have rd8165 := rd8164.mstore 0 (wordAt0Mem key mem) feeToStaticcallActiveWords
+  have rd8165 := rd8164.rawMstore 0 (wordAt0Mem key mem) feeToStaticcallActiveWords
     (by native_decide) mem_cost (by unfold key wordAt0Mem; rfl) (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd8170pre := evm_run rd8165 with [push1 ⟨1⟩, push1 ⟨32⟩]
-  have rd8170 := rd8170pre.mstore 0 (uniswapInternalMintBalanceHashMem recipient mem)
+  have rd8170 := rd8170pre.rawMstore 0 (uniswapInternalMintBalanceHashMem recipient mem)
     feeToStaticcallActiveWords (by native_decide) mem_cost
     (by unfold uniswapInternalMintBalanceHashMem twoWordHashMem wordAt32Mem key; rfl)
     (by native_decide) (by simp only [List.length_cons]; omega)
   have rd8174 := evm_run rd8170 with [push1 ⟨64⟩, swap1]
-  have rd8175 := rd8174.keccak256 0 (uniswapInternalMintBalanceHashSlot recipient mem)
+  have rd8175 := rd8174.rawKeccak256 0 (uniswapInternalMintBalanceHashSlot recipient mem)
     feeToStaticcallActiveWords (by native_decide) mem_cost
     (by unfold uniswapInternalMintBalanceHashSlot; rfl) (by native_decide)
     (by simp only [List.length_cons]; omega)
-  obtain ⟨k8175, C8175, rd8175₀⟩ := rd8175.sload (by native_decide) (by evm_ov)
+  obtain ⟨k8175, C8175, rd8175₀⟩ := rd8175.rawSload (by native_decide) (by evm_ov)
   have rd8175' : RD uniswapV2PairBytecode ee g s0 ⟨8175⟩
       (uniswapCodeOwnerStorageWord ee σ (uniswapInternalMintBalanceHashSlot recipient mem) ::
         value :: recipient :: ret :: R)
@@ -554,21 +554,21 @@ theorem uniswapInternalMintRuntimeRecipientBalanceStoredEntry
     push1 ⟨0⟩, dup2, dup2]
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide] at rd8205pre
-  have rd8206 := rd8205pre.mstore 0 (wordAt0Mem key mem) feeToStaticcallActiveWords
+  have rd8206 := rd8205pre.rawMstore 0 (wordAt0Mem key mem) feeToStaticcallActiveWords
     (by native_decide) mem_cost (by unfold key wordAt0Mem; rfl) (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd8212pre := evm_run rd8206 with [push1 ⟨1⟩, push1 ⟨32⟩, swap1, dup2]
-  have rd8213 := rd8212pre.mstore 0 (uniswapInternalMintBalanceHashMem recipient mem)
+  have rd8213 := rd8212pre.rawMstore 0 (uniswapInternalMintBalanceHashMem recipient mem)
     feeToStaticcallActiveWords (by native_decide) mem_cost
     (by unfold uniswapInternalMintBalanceHashMem twoWordHashMem wordAt32Mem key; rfl)
     (by native_decide) (by simp only [List.length_cons]; omega)
   have rd8217 := evm_run rd8213 with [push1 ⟨64⟩, dup1, dup4]
-  have rd8218 := rd8217.keccak256 0 (uniswapInternalMintBalanceHashSlot recipient mem)
+  have rd8218 := rd8217.rawKeccak256 0 (uniswapInternalMintBalanceHashSlot recipient mem)
     feeToStaticcallActiveWords (by native_decide) mem_cost
     (by unfold uniswapInternalMintBalanceHashSlot; rfl) (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd8221 := evm_run rd8218 with [swap5, swap1, swap5]
-  obtain ⟨_, _, rd8222⟩ := rd8221.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd8222⟩ := rd8221.rawSstore hperm (by native_decide) (by evm_ov)
   exact ⟨_, _, by simpa [key] using rd8222⟩
 
 set_option maxHeartbeats 1000000 in
@@ -603,23 +603,23 @@ theorem uniswapInternalMintRuntimeEmitAndJump
       (uniswapInternalMintLogMem value mem) feeToStaticcallActiveWords rdata acc k' C' := by
   have rd8226 := evm_run rd8222 with [
     dup4,
-    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
+    raw rawMload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
       mem_cost hmload64 (by native_decide) (by evm_ov),
     dup6, dup2]
-  have rd8227 := rd8226.mstore 0 (uniswapInternalMintLogMem value mem)
+  have rd8227 := rd8226.rawMstore 0 (uniswapInternalMintLogMem value mem)
     feeToStaticcallActiveWords (by native_decide) mem_cost
     (by unfold uniswapInternalMintLogMem; rfl) (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd8233 := evm_run rd8227 with [
     swap4,
-    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
+    raw rawMload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
       mem_cost hlogMload64 (by native_decide) (by evm_ov),
     swap3, swap4, swap2, swap3]
   have rd8266 := rd8233.pushConst uniswapTransferTopic (width := 32) (op := .PUSH32)
     (by native_decide) (by native_decide) (by evm_ov)
   have rd8274 := evm_run rd8266 with [
     swap3, dup2, swap1, sub, swap1, swap2, add, swap1]
-  have rd8275 := rd8274.log3 0 feeToStaticcallActiveWords (by native_decide) hperm
+  have rd8275 := rd8274.rawLog3 0 feeToStaticcallActiveWords (by native_decide) hperm
     mem_cost (by native_decide) (by simp only [List.length_cons]; omega)
   exact ⟨_, _, evm_run rd8275 with [pop, pop, jump hret]⟩
 

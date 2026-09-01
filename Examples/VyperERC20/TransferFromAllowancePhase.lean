@@ -39,18 +39,18 @@ theorem erc20X_transferFromAfterAllowanceSLoad {cA gh bl σ σ₀ A I} {g : Sat2
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
     jumpiNT (by simpa [transferFromFromWord, calldataWord] using hcanonFromGuard),
     push1 ⟨64⟩,
-    raw mstore 6 (transferFromFromArgMem (transferFromFromWord I)) (UInt256.ofNat 3)
+    raw rawMstore 6 (transferFromFromArgMem (transferFromFromWord I)) (UInt256.ofNat 3)
       (by vyper_erc20_transferFrom_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨36⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
     jumpiNT (by simpa [transferFromToWord, calldataWord] using hcanonToGuard),
     push1 ⟨96⟩,
-    raw mstore 3
+    raw rawMstore 3
       (transferFromArgsMem (transferFromFromWord I) (transferFromToWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_transferFrom_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨1⟩,
     push1 ⟨64⟩,
-    raw mload 0 (transferFromFromWord I) (UInt256.ofNat 4)
+    raw rawMload 0 (transferFromFromWord I) (UInt256.ofNat 4)
       (by vyper_erc20_transferFrom_decode)
       mem_cost
       (by
@@ -62,38 +62,38 @@ theorem erc20X_transferFromAfterAllowanceSLoad {cA gh bl σ σ₀ A I} {g : Sat2
           (transferFromArgsMem_read64 (transferFromFromWord I) (transferFromToWord I)))
       (by decide) (by evm_ov),
     push1 ⟨32⟩,
-    raw mstore 0
+    raw rawMstore 0
       (transferFromAllowanceInnerKeyMem (transferFromFromWord I) (transferFromToWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_transferFrom_decode) mem_cost rfl (by decide) (by evm_ov),
     push0,
-    raw mstore 0
+    raw rawMstore 0
       (transferFromAllowanceInnerHashMem (transferFromFromWord I) (transferFromToWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_transferFrom_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0
+    raw rawKeccak256 0
       (transferFromAllowanceInnerSlotWord (transferFromFromWord I) (transferFromToWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_transferFrom_decode) mem_cost rfl (by decide) (by evm_ov),
     dup1, caller, push1 ⟨32⟩,
-    raw mstore 0
+    raw rawMstore 0
       (transferFromAllowanceOuterKeyMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_transferFrom_decode) mem_cost rfl (by decide) (by evm_ov),
     push0,
-    raw mstore 0
+    raw rawMstore 0
       (transferFromAllowanceOuterHashMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I))
       (UInt256.ofNat 4)
       (by vyper_erc20_transferFrom_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (transferFromAllowanceSlotI I)
+    raw rawKeccak256 0 (transferFromAllowanceSlotI I)
       (UInt256.ofNat 4)
       (by vyper_erc20_transferFrom_decode) mem_cost hslot (by decide) (by evm_ov),
     swap1, pop]
-  obtain ⟨k1, C1, rdAfterLoad⟩ := rd412.sload
+  obtain ⟨k1, C1, rdAfterLoad⟩ := rd412.rawSload
     (by vyper_erc20_transferFrom_decode) (by evm_ov)
   exact ⟨_, _, by simpa [transferFromCurrentAllowanceRaw] using rdAfterLoad⟩
 
@@ -118,7 +118,7 @@ theorem erc20X_transferFromAfterAllowanceLoad {cA gh bl σ σ₀ A I} {g : Sat25
     hwv hsz100 hsize hcanonFrom hcanonTo hreach
   have rdAfterStore := evm_run rdAfterLoad with [
     push1 ⟨128⟩,
-    raw mstore 3
+    raw rawMstore 3
       (transferFromAllowanceMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
         (transferFromCurrentAllowanceRaw σ I))
@@ -156,7 +156,7 @@ theorem erc20X_transferFromAfterAllowanceGuard {cA gh bl σ σ₀ A I} {g : Sat2
   have rd423 := evm_run rd412 with [
     push1 ⟨68⟩, calldataload,
     push1 ⟨128⟩,
-    raw mload 0 (transferFromCurrentAllowanceRaw σ I) (UInt256.ofNat 5)
+    raw rawMload 0 (transferFromCurrentAllowanceRaw σ I) (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
@@ -198,7 +198,7 @@ theorem erc20TransferFromX_insufficientAllowance {cA gh bl σ σ₀ A I} {g : Sa
   have rd801 := evm_run rd412 with [
     push1 ⟨68⟩, calldataload,
     push1 ⟨128⟩,
-    raw mload 0 (transferFromCurrentAllowanceRaw σ I) (UInt256.ofNat 5)
+    raw rawMload 0 (transferFromCurrentAllowanceRaw σ I) (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding

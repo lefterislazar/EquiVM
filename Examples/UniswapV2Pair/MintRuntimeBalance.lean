@@ -66,7 +66,7 @@ theorem uniswapMintRuntimeFirstBalanceOfExtcodesize
   obtain ⟨_, _, rd3378⟩ :=
     uniswapMintRuntimeReservesLoaded (g := g) hlockEntered
   have rd3380 := evm_run rd3378 with [push1 ⟨6⟩]
-  obtain ⟨k3381, C3381, rd3381₀⟩ := rd3380.sload (by native_decide) (by evm_ov)
+  obtain ⟨k3381, C3381, rd3381₀⟩ := rd3380.rawSload (by native_decide) (by evm_ov)
   have rd3381 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3381⟩
       [token0Word, reserve1Word σLock I, reserve0Word σLock I,
@@ -75,19 +75,19 @@ theorem uniswapMintRuntimeFirstBalanceOfExtcodesize
     simpa [σLock, token0Word, uniswapSlotWord] using rd3381₀
   have rd3394 := evm_run rd3381 with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push4 balanceOfSelectorWord, push1 ⟨224⟩, shl, dup2]
-  have rd3395 := rd3394.mstore 6 balanceOfThisSelectorMem (UInt256.ofNat 5)
+  have rd3395 := rd3394.rawMstore 6 balanceOfThisSelectorMem (UInt256.ofNat 5)
     (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)
   have rd3400 := evm_run rd3395 with [
     address, push1 ⟨4⟩, dup3, add]
-  have rd3401 := rd3400.mstore 3
+  have rd3401 := rd3400.rawMstore 3
     (balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)) (UInt256.ofNat 6)
     (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)
   have rd3423₀ := evm_run rd3401 with [
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost (balanceOfThisCalldataMem_mload64 (UInt256.ofNat I.codeOwner.val))
       (by decide) (by evm_ov),
     swap4, swap6, pop, swap2, swap4, pop, push1 ⟨0⟩, swap3,
@@ -442,7 +442,7 @@ theorem uniswapMintRuntimeSecondBalanceOfExtcodesizeFromFirst
   let token1Word := uniswapSlotWord ⟨7⟩ σ' I
   let token1Clean := UInt256.land solcAddrMask token1Word
   have rd3507 := evm_run rd3505 with [push1 ⟨7⟩]
-  obtain ⟨k3508, C3508, rd3508₀⟩ := rd3507.sload (by native_decide) (by evm_ov)
+  obtain ⟨k3508, C3508, rd3508₀⟩ := rd3507.rawSload (by native_decide) (by evm_ov)
   have rd3508 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3508⟩
       [token1Word, balance0, ⟨0⟩, reserve1Word σLock I, reserve0Word σLock I,
@@ -452,27 +452,27 @@ theorem uniswapMintRuntimeSecondBalanceOfExtcodesizeFromFirst
     simpa [σLock, token1Word, uniswapSlotWord] using rd3508₀
   have rd3520 := evm_run rd3508 with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords (by decide)
+    raw rawMload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords (by decide)
       mem_cost
       (balanceOfThisStaticcallMem_mload64_of_size_ge
         (UInt256.ofNat I.codeOwner.val) o ho32 hoSize)
       (by decide) (by evm_ov),
     push4 balanceOfSelectorWord, push1 ⟨224⟩, shl, dup2]
-  have rd3522 := rd3520.mstore 0
+  have rd3522 := rd3520.rawMstore 0
     ((UInt256.toByteArray balanceOfSelectorShifted).write 0
       (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) o) 128 32)
     balanceOfThisStaticcallActiveWords
     (by native_decide) mem_cost (by rfl) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3527 := evm_run rd3522 with [address, push1 ⟨4⟩, dup3, add]
-  have rd3528 := rd3527.mstore 0
+  have rd3528 := rd3527.rawMstore 0
     (balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o)
     balanceOfThisStaticcallActiveWords
     (by native_decide) mem_cost (by rfl) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3547₀ := evm_run rd3528 with [
     swap1,
-    raw mload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords (by decide)
+    raw rawMload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords (by decide)
       mem_cost
       (balanceOfThisRebuiltCalldataMem_mload64_of_size_ge
         (UInt256.ofNat I.codeOwner.val) o ho32 hoSize)

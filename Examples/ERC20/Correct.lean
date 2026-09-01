@@ -687,57 +687,57 @@ theorem erc20InitcodeSuccess
     jumpiT (by rw [hwv]; decide) (by erc20_ctor_jd),
     jumpdest, pop,
     push1 ⟨128⟩, push1 ⟨64⟩,
-    raw mstore 9 solcFreePtrMem (UInt256.ofNat 3)
+    raw rawMstore 9 solcFreePtrMem (UInt256.ofNat 3)
       (by erc20_ctor_decode)
       mem_cost
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, push2 ⟨2763⟩, push1 ⟨64⟩,
-    raw codecopy 0 (erc20CtorArgMem initialSupply) (UInt256.ofNat 3)
+    raw rawCodecopy 0 (erc20CtorArgMem initialSupply) (UInt256.ofNat 3)
       (by erc20_ctor_decode)
       mem_cost
       (erc20CtorArg_codecopy_mem initialSupply)
       (by decide) (by evm_ov),
     push1 ⟨64⟩,
-    raw mload 0 initialSupply (UInt256.ofNat 3)
+    raw rawMload 0 initialSupply (UInt256.ofNat 3)
       (by erc20_ctor_decode)
       mem_cost
       (erc20CtorArgMem_mload64 initialSupply)
       (by decide) (by evm_ov),
     dup1, caller, push0,
-    raw mstore 0 (wordAt0Mem (UInt256.ofNat I.source.val) (erc20CtorArgMem initialSupply))
+    raw rawMstore 0 (wordAt0Mem (UInt256.ofNat I.source.val) (erc20CtorArgMem initialSupply))
       (UInt256.ofNat 3)
       (by erc20_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push0, push1 ⟨32⟩,
-    raw mstore 0 (erc20CtorHashMem I.source initialSupply) (UInt256.ofNat 3)
+    raw rawMstore 0 (erc20CtorHashMem I.source initialSupply) (UInt256.ofNat 3)
       (by erc20_ctor_decode)
       mem_cost
       rfl
       (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (erc20BalanceOfSlot (.address I.source)) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (erc20BalanceOfSlot (.address I.source)) (UInt256.ofNat 3)
       (by erc20_ctor_decode)
       mem_cost
       (erc20CtorKeccakSlot I.source initialSupply)
       (by decide) (by evm_ov)]
   obtain ⟨k', C', rdAfterBalanceStore⟩ :=
-    rdBeforeBalanceStore.sstore hperm (by erc20_ctor_decode) (by evm_ov)
+    rdBeforeBalanceStore.rawSstore hperm (by erc20_ctor_decode) (by evm_ov)
   have rdBeforeTotalSupplyStore := erc20_ctor_run rdAfterBalanceStore with [
     push1 ⟨2⟩]
   obtain ⟨k'', C'', rdAfterTotalSupplyStore⟩ :=
-    rdBeforeTotalSupplyStore.sstore hperm (by erc20_ctor_decode) (by evm_ov)
+    rdBeforeTotalSupplyStore.rawSstore hperm (by erc20_ctor_decode) (by evm_ov)
   have rdBeforeReturn := erc20_ctor_run rdAfterTotalSupplyStore with [
     push2 ⟨2708⟩, push1 ⟨55⟩, push0,
-    raw codecopy 260 (erc20CtorReturnMem I.source initialSupply) (UInt256.ofNat 85)
+    raw rawCodecopy 260 (erc20CtorReturnMem I.source initialSupply) (UInt256.ofNat 85)
       (by erc20_ctor_decode)
       mem_cost
       (erc20CtorRuntime_codecopy_mem I.source initialSupply)
       (by decide) (by evm_ov),
     push2 ⟨2708⟩, push0]
-  exact rdBeforeReturn.ret 0 erc20Bytecode
+  exact rdBeforeReturn.rawRet 0 erc20Bytecode
     (by erc20_ctor_decode)
     mem_cost
     (erc20CtorReturnMem_read I.source initialSupply)

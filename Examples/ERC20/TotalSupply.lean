@@ -43,12 +43,12 @@ theorem erc20X_totalSupply {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd610 := evm_run rd148 with [
     jumpdest, push2 ⟨156⟩, push2 ⟨607⟩, jump (by jump_dest),
     jumpdest, push1 ⟨2⟩ ]
-  obtain ⟨k1, C1, rd611⟩ := rd610.sload (by decide) (by evm_ov)
+  obtain ⟨k1, C1, rd611⟩ := rd610.rawSload (by decide) (by evm_ov)
   have rd156 := evm_run rd611 with [
     dup2, jump (by jump_dest) ]
   have rd2073 := evm_run rd156 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
@@ -58,12 +58,12 @@ theorem erc20X_totalSupply {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     omega)
   exact evm_run rd169 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (solcReturnMem_mload64 (totalSupplyWord σ I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (totalSupplyWord σ I)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (totalSupplyWord σ I)) (by decide)
       mem_cost
       (by
         unfold totalSupplyWord

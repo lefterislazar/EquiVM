@@ -95,7 +95,7 @@ theorem RD.erc20RoutineEncodeUint256 {g : Sat256} {s0 : State} {ee : ExecutionEn
     jump (by jump_dest),
     raw erc20Routine0766 (by jump_dest) (by evm_ov),
     jumpdest, dup3,
-    raw mstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide) mem_cost
+    raw rawMstore 6 (solcReturnMem val) (UInt256.ofNat 5) (by decide) mem_cost
       (by rw [show ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
     pop, pop,
@@ -259,18 +259,18 @@ theorem RD.erc20MappingHashSuffix {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
   rcases hwf with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10⟩
   have rd1 := h.dup2 hd0 (by evm_ov)
-  have rd2 := rd1.mstore 0 memKey (UInt256.ofNat 3) hd1 mem_cost hkey
+  have rd2 := rd1.rawMstore 0 memKey (UInt256.ofNat 3) hd1 mem_cost hkey
     (by native_decide) (by evm_ov)
   have rd3 := rd2.push1 ⟨32⟩ hd2 (by evm_ov)
   have rd4 := rd3.add hd3 (by evm_ov)
   have rd5 := rd4.swap1 hd4 (by evm_ov)
   have rd6 := rd5.dup2 hd5 (by evm_ov)
-  have rd7 := rd6.mstore 0 memHash (UInt256.ofNat 3) hd6 mem_cost hbase
+  have rd7 := rd6.rawMstore 0 memHash (UInt256.ofNat 3) hd6 mem_cost hbase
     (by native_decide) (by evm_ov)
   have rd8 := rd7.push1 ⟨32⟩ hd7 (by evm_ov)
   have rd9 := rd8.add hd8 (by evm_ov)
   have rd10 := rd9.push0 hd9 (by evm_ov)
-  exact ⟨_, _, rd10.keccak256 0 slot (UInt256.ofNat 3) hd10 mem_cost hslot
+  exact ⟨_, _, rd10.rawKeccak256 0 slot (UInt256.ofNat 3) hd10 mem_cost hslot
     (by native_decide) (by evm_ov)⟩
 
 end Reasoning.Reach
@@ -295,7 +295,7 @@ theorem erc20RoutineEncodeUint256FromMem {g : Sat256} {s0 : State} {ee : Executi
     jump erc20_jd,
     raw erc20Routine0766 erc20_jd (by evm_ov),
     jumpdest, dup3,
-    raw mstore 6 memout (UInt256.ofNat 5) (by decide) mem_cost
+    raw rawMstore 6 memout (UInt256.ofNat 5) (by decide) mem_cost
       (by rw [show ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 from by decide]; exact hmemout)
       (by decide) (by evm_ov),
     pop, pop,

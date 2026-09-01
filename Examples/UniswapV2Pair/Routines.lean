@@ -516,7 +516,7 @@ theorem RD.uniswapSafeMathSubUnderflow_aw6_size164_shared {g : Sat256} {s0 : Sta
     push2 ⟨2911⟩, jumpiNT (by decide)]
   have rd6895 := evm_run rd6891 with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
@@ -524,15 +524,15 @@ theorem RD.uniswapSafeMathSubUnderflow_aw6_size164_shared {g : Sat256} {s0 : Sta
     (by decide) (by decide) (by evm_ov)
   have rd6918 := evm_run rd6899 with [
     push1 ⟨229⟩, shl, dup2,
-    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 6)
+    raw rawMstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 6)
       (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
-    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
+    raw rawMstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
       (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨21⟩, push1 ⟨36⟩, dup3, add,
-    raw mstore 3
+    raw rawMstore 3
       (solcErrorStringMem2 (⟨21⟩ : UInt256) mem)
       (UInt256.ofNat 7) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov)]
@@ -541,7 +541,7 @@ theorem RD.uniswapSafeMathSubUnderflow_aw6_size164_shared {g : Sat256} {s0 : Sta
     (width := 21) (op := .PUSH21) (by decide) (by decide) (by evm_ov)
   exact evm_run rd6940 with [
     push1 ⟨88⟩, shl, push1 ⟨68⟩, dup3, add,
-    raw mstore 3
+    raw rawMstore 3
       (solcErrorStringMem3 (⟨21⟩ : UInt256)
         (UInt256.shiftLeft
           (⟨146807710733670254765134916515197633279875231805303⟩ : UInt256)
@@ -549,7 +549,7 @@ theorem RD.uniswapSafeMathSubUnderflow_aw6_size164_shared {g : Sat256} {s0 : Sta
       (UInt256.ofNat 8) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
       mem_cost
       (solcErrorStringMem3_mload64_of_size164 (⟨21⟩ : UInt256)
         (UInt256.shiftLeft
@@ -557,7 +557,7 @@ theorem RD.uniswapSafeMathSubUnderflow_aw6_size164_shared {g : Sat256} {s0 : Sta
           ⟨88⟩) hmem hread64)
       (by decide) (by evm_ov),
     swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,
-    raw rev 0 (by decide) mem_cost (by evm_ov)]
+    raw rawRev 0 (by decide) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeMathAddSuccess {g : Sat256} {s0 : State} {ee : ExecutionEnv}

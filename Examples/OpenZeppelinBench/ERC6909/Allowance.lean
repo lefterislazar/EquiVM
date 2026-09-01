@@ -830,7 +830,7 @@ theorem erc6909X_allowance {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd308 := evm_run rd280 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap3, dup4, and,
     push0, swap1, dup2,
-    raw mstore 0 (allowanceOwnerMem (allowanceOwnerWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (allowanceOwnerMem (allowanceOwnerWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -839,17 +839,17 @@ theorem erc6909X_allowance {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         rfl)
       (by decide) (by evm_ov),
     push1 ⟨2⟩, push1 ⟨32⟩, swap1, dup2,
-    raw mstore 0 (allowanceOwnerHashMem (allowanceOwnerWord I)) (UInt256.ofNat 3)
+    raw rawMstore 0 (allowanceOwnerHashMem (allowanceOwnerWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup4,
-    raw keccak256 0 (allowanceOwnerSlotWord (allowanceOwnerWord I)) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (allowanceOwnerSlotWord (allowanceOwnerWord I)) (UInt256.ofNat 3)
       (by decide) mem_cost hownerSlot (by decide) (by evm_ov) ]
   have rd309 := RD.swap5 rd308 (by decide) (by evm_ov)
   have rd310 := evm_run rd309 with [swap1]
   have rd311 := RD.swap6 rd310 (by decide) (by evm_ov)
   have rd326 := evm_run rd311 with [
     and, dup3,
-    raw mstore 0 (allowanceSpenderMem (allowanceOwnerWord I) (allowanceSpenderWord I))
+    raw rawMstore 0 (allowanceSpenderMem (allowanceOwnerWord I) (allowanceSpenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -858,33 +858,33 @@ theorem erc6909X_allowance {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         rfl)
       (by decide) (by evm_ov),
     swap3, dup4,
-    raw mstore 0 (allowanceSpenderHashMem (allowanceOwnerWord I) (allowanceSpenderWord I))
+    raw rawMstore 0 (allowanceSpenderHashMem (allowanceOwnerWord I) (allowanceSpenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     dup4, dup2,
-    raw keccak256 0 (allowanceSpenderSlotWord (allowanceOwnerWord I) (allowanceSpenderWord I))
+    raw rawKeccak256 0 (allowanceSpenderSlotWord (allowanceOwnerWord I) (allowanceSpenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost hspenderSlot (by decide) (by evm_ov),
     swap2, dup2,
-    raw mstore 0 (allowanceIdMem (allowanceOwnerWord I) (allowanceSpenderWord I)
+    raw rawMstore 0 (allowanceIdMem (allowanceOwnerWord I) (allowanceSpenderWord I)
         (allowanceIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap2,
-    raw mstore 0 (allowanceIdHashMem (allowanceOwnerWord I) (allowanceSpenderWord I)
+    raw rawMstore 0 (allowanceIdHashMem (allowanceOwnerWord I) (allowanceSpenderWord I)
         (allowanceIdWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw keccak256 0 (allowanceSlotOf I) (UInt256.ofNat 3)
+    raw rawKeccak256 0 (allowanceSlotOf I) (UInt256.ofNat 3)
       (by decide) mem_cost hslot (by decide) (by evm_ov) ]
-  obtain ⟨_, _, rd327⟩ := rd326.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd327⟩ := rd326.rawSload (by decide) (by evm_ov)
   have rd155 := evm_run rd327 with [
     swap1, jump (by jump_dest) ]
   have rd165 := evm_run rd155 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (allowanceIdHashMem_mload64 (allowanceOwnerWord I) (allowanceSpenderWord I)
         (allowanceIdWord I))
       (by decide) (by evm_ov),
     swap1, dup2,
-    raw mstore 6
+    raw rawMstore 6
       (allowanceReturnMem (allowanceOwnerWord I) (allowanceSpenderWord I)
         (allowanceIdWord I) (allowanceWord σ I))
       (UInt256.ofNat 5) (by decide) mem_cost
@@ -892,13 +892,13 @@ theorem erc6909X_allowance {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     push1 ⟨32⟩, add ]
   exact evm_run rd165 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost
       (allowanceReturnMem_mload64 (allowanceOwnerWord I) (allowanceSpenderWord I)
         (allowanceIdWord I) (allowanceWord σ I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (allowanceWord σ I)) (by decide)
+    raw rawRet 0 (UInt256.toByteArray (allowanceWord σ I)) (by decide)
       mem_cost
       (by
         rw [show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32

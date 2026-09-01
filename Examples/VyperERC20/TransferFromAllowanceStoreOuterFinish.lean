@@ -37,7 +37,7 @@ theorem erc20X_transferFromAllowanceStoreAfterOuterFinish {cA gh bl σ σ₀ A I
     exact keccakSlot_eq _
   have rd492 := evm_run rd486 with [
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (transferFromAllowanceSlotI I)
+    raw rawKeccak256 0 (transferFromAllowanceSlotI I)
       (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost hslotScratch (by decide) (by evm_ov),
     swap1, pop]

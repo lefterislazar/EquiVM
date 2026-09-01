@@ -28,7 +28,7 @@ theorem erc20X_transferFromAllowanceStoreAfterInnerLoad {cA gh bl σ σ₀ A I} 
   obtain ⟨k, C, rd465⟩ := hreach
   have rd470 := evm_run rd465 with [
     push1 ⟨1⟩, push1 ⟨64⟩,
-    raw mload 0 (transferFromFromWord I) (UInt256.ofNat 5)
+    raw rawMload 0 (transferFromFromWord I) (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding

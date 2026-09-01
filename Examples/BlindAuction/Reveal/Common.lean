@@ -413,7 +413,7 @@ theorem blindAuctionRevealX_from887_tooEarly {cA σ I} {g : Sat256}
         (revealScratchBiddingEndWord σ I).toNat) :
     RDrev blindAuctionBytecode g s0 := by
   have rd890 := evm_run rd with [jumpdest, push1 ⟨1⟩]
-  obtain ⟨_, _, rd891₀⟩ := rd890.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd891₀⟩ := rd890.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd891⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨891⟩
       [revealScratchBiddingEndWord σ I, secretsLen, secretsEnd, fakesLen, fakesEnd,
         valuesLen, valuesEnd, ⟨276⟩, blindAuctionSelWord I]
@@ -431,25 +431,25 @@ theorem blindAuctionRevealX_from887_tooEarly {cA σ I} {g : Sat256}
   let errSel : UInt256 := UInt256.shiftLeft (⟨0x0a8d68c9⟩ : UInt256) ⟨226⟩
   have rd911 := evm_run rd898 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push4 ⟨0x0a8d68c9⟩, push1 ⟨226⟩, shl, dup2,
-    raw mstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by decide)
       mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov)]
   have rd600 := evm_run rd911 with [
     push1 ⟨4⟩, dup2, add, dup3, swap1,
-    raw mstore 3 (revealTimeRevertMem (revealScratchBiddingEndWord σ I) errSel)
+    raw rawMstore 3 (revealTimeRevertMem (revealScratchBiddingEndWord σ I) errSel)
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨36⟩, add, push2 ⟨600⟩, jump (by jump_dest)]
   have rd608 := evm_run rd600 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost (revealTimeRevertMem_mload64 (revealScratchBiddingEndWord σ I) errSel)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
-  exact rd608.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd608.rawRev 0 (by decide) mem_cost (by evm_ov)
 
 theorem blindAuctionRevealX_from887_tooLate {cA σ I} {g : Sat256}
     {s0 : State} {k C : ℕ} {valuesLen valuesEnd fakesLen fakesEnd secretsLen secretsEnd : UInt256}
@@ -463,7 +463,7 @@ theorem blindAuctionRevealX_from887_tooLate {cA σ I} {g : Sat256}
         (revealScratchTimestampWord I).toNat) :
     RDrev blindAuctionBytecode g s0 := by
   have rd890 := evm_run rd with [jumpdest, push1 ⟨1⟩]
-  obtain ⟨_, _, rd891₀⟩ := rd890.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd891₀⟩ := rd890.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd891⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨891⟩
       [revealScratchBiddingEndWord σ I, secretsLen, secretsEnd, fakesLen, fakesEnd,
         valuesLen, valuesEnd, ⟨276⟩, blindAuctionSelWord I]
@@ -479,7 +479,7 @@ theorem blindAuctionRevealX_from887_tooLate {cA σ I} {g : Sat256}
       ⟨1⟩ from by simpa [revealScratchTimestampWord] using hgt] at rd894
   have rd925 := evm_run rd894 with [push2 ⟨925⟩, jumpiT one_ne_zero_uint (by jump_dest)]
   have rd928 := evm_run rd925 with [jumpdest, push1 ⟨2⟩]
-  obtain ⟨_, _, rd929₀⟩ := rd928.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd929₀⟩ := rd928.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd929⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨929⟩
       [revealScratchRevealEndWord σ I, revealScratchBiddingEndWord σ I,
         secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd,
@@ -498,25 +498,25 @@ theorem blindAuctionRevealX_from887_tooLate {cA σ I} {g : Sat256}
   let errSel : UInt256 := UInt256.shiftLeft (⟨0x348f2b41⟩ : UInt256) ⟨225⟩
   have rd949 := evm_run rd936 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push4 ⟨0x348f2b41⟩, push1 ⟨225⟩, shl, dup2,
-    raw mstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by decide)
       mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov)]
   have rd600 := evm_run rd949 with [
     push1 ⟨4⟩, dup2, add, dup3, swap1,
-    raw mstore 3 (revealTimeRevertMem (revealScratchRevealEndWord σ I) errSel)
+    raw rawMstore 3 (revealTimeRevertMem (revealScratchRevealEndWord σ I) errSel)
       (UInt256.ofNat 6) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨36⟩, add, push2 ⟨600⟩, jump (by jump_dest)]
   have rd608 := evm_run rd600 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost (revealTimeRevertMem_mload64 (revealScratchRevealEndWord σ I) errSel)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
-  exact rd608.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd608.rawRev 0 (by decide) mem_cost (by evm_ov)
 
 theorem blindAuctionRevealX_from887_afterTimeGuards_empty {cA σ I} {g : Sat256}
     {s0 : State} {k C : ℕ} {valuesEnd fakesEnd secretsEnd : UInt256}
@@ -532,7 +532,7 @@ theorem blindAuctionRevealX_from887_afterTimeGuards_empty {cA σ I} {g : Sat256}
         ⟨0⟩, secretsEnd, ⟨0⟩, fakesEnd, ⟨0⟩, valuesEnd, ⟨276⟩, blindAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd890 := evm_run rd with [jumpdest, push1 ⟨1⟩]
-  obtain ⟨_, _, rd891₀⟩ := rd890.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd891₀⟩ := rd890.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd891⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨891⟩
       [revealScratchBiddingEndWord σ I, ⟨0⟩, secretsEnd, ⟨0⟩, fakesEnd, ⟨0⟩, valuesEnd,
         ⟨276⟩, blindAuctionSelWord I]
@@ -548,7 +548,7 @@ theorem blindAuctionRevealX_from887_afterTimeGuards_empty {cA σ I} {g : Sat256}
       ⟨1⟩ from by simpa [revealScratchTimestampWord] using hgt] at rd894
   have rd925 := evm_run rd894 with [push2 ⟨925⟩, jumpiT one_ne_zero_uint (by jump_dest)]
   have rd928 := evm_run rd925 with [jumpdest, push1 ⟨2⟩]
-  obtain ⟨_, _, rd929₀⟩ := rd928.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd929₀⟩ := rd928.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd929⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨929⟩
       [revealScratchRevealEndWord σ I, revealScratchBiddingEndWord σ I,
         ⟨0⟩, secretsEnd, ⟨0⟩, fakesEnd, ⟨0⟩, valuesEnd, ⟨276⟩, blindAuctionSelWord I]
@@ -583,16 +583,16 @@ theorem blindAuctionRevealX_from887_lengthMismatch_empty {cA σ I} {g : Sat256}
       (g := g) (s0 := s0) rd hafter hbefore
   have rd968 := evm_run rd963 with [jumpdest, caller, push0, swap1, dup2]
   have rd969 := evm_run rd968 with [
-    raw mstore 0 (revealScratchBidsSourceMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (revealScratchBidsSourceMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd978 := evm_run rd969 with [
     push1 ⟨4⟩, push1 ⟨32⟩,
-    raw mstore 0 (revealScratchBidsHashMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (revealScratchBidsHashMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1,
-    raw keccak256 0 (revealScratchBidsLengthSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (revealScratchBidsLengthSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hbidsHash (by decide) (by evm_ov)]
-  obtain ⟨_, _, rd979₀⟩ := rd978.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd979₀⟩ := rd978.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd979⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨979⟩
       [revealScratchBidsLengthWord σ I, revealScratchRevealEndWord σ I,
         revealScratchBiddingEndWord σ I, ⟨0⟩, secretsEnd, ⟨0⟩, fakesEnd, ⟨0⟩,
@@ -606,7 +606,7 @@ theorem blindAuctionRevealX_from887_lengthMismatch_empty {cA σ I} {g : Sat256}
   have rd982 := rd982₀
   rw [heq0] at rd982
   have rd988 := evm_run rd982 with [push2 ⟨989⟩, jumpiNT (by decide), push0, push0]
-  exact RD.rev _ rd988 (by decide)
+  exact RD.rawRev _ rd988 (by decide)
     (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
     (by evm_ov)
 
@@ -625,7 +625,7 @@ theorem blindAuctionRevealX_from887_afterTimeGuards {cA σ I} {g : Sat256}
         ⟨276⟩, blindAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd890 := evm_run rd with [jumpdest, push1 ⟨1⟩]
-  obtain ⟨_, _, rd891₀⟩ := rd890.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd891₀⟩ := rd890.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd891⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨891⟩
       [revealScratchBiddingEndWord σ I, secretsLen, secretsEnd, fakesLen, fakesEnd,
         valuesLen, valuesEnd, ⟨276⟩, blindAuctionSelWord I]
@@ -640,7 +640,7 @@ theorem blindAuctionRevealX_from887_afterTimeGuards {cA σ I} {g : Sat256}
       ⟨1⟩ from by simpa [revealScratchTimestampWord] using hgt] at rd894
   have rd925 := evm_run rd894 with [push2 ⟨925⟩, jumpiT one_ne_zero_uint (by jump_dest)]
   have rd928 := evm_run rd925 with [jumpdest, push1 ⟨2⟩]
-  obtain ⟨_, _, rd929₀⟩ := rd928.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd929₀⟩ := rd928.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd929⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨929⟩
       [revealScratchRevealEndWord σ I, revealScratchBiddingEndWord σ I,
         secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd,
@@ -676,16 +676,16 @@ theorem blindAuctionRevealX_from887_valuesLengthMismatch {cA σ I} {g : Sat256}
       (g := g) (s0 := s0) rd hafter hbefore
   have rd968 := evm_run rd963 with [jumpdest, caller, push0, swap1, dup2]
   have rd969 := evm_run rd968 with [
-    raw mstore 0 (revealScratchBidsSourceMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (revealScratchBidsSourceMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd978 := evm_run rd969 with [
     push1 ⟨4⟩, push1 ⟨32⟩,
-    raw mstore 0 (revealScratchBidsHashMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (revealScratchBidsHashMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1,
-    raw keccak256 0 (revealScratchBidsLengthSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (revealScratchBidsLengthSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hbidsHash (by decide) (by evm_ov)]
-  obtain ⟨_, _, rd979₀⟩ := rd978.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd979₀⟩ := rd978.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd979⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨979⟩
       [revealScratchBidsLengthWord σ I, revealScratchRevealEndWord σ I,
         revealScratchBiddingEndWord σ I, secretsLen, secretsEnd, fakesLen, fakesEnd,
@@ -699,7 +699,7 @@ theorem blindAuctionRevealX_from887_valuesLengthMismatch {cA σ I} {g : Sat256}
   have rd982 := rd982₀
   rw [heq0] at rd982
   have rd988 := evm_run rd982 with [push2 ⟨989⟩, jumpiNT (by decide), push0, push0]
-  exact RD.rev _ rd988 (by decide)
+  exact RD.rawRev _ rd988 (by decide)
     (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
     (by evm_ov)
 
@@ -724,16 +724,16 @@ theorem blindAuctionRevealX_from887_fakesLengthMismatch {cA σ I} {g : Sat256}
       (g := g) (s0 := s0) rd hafter hbefore
   have rd968 := evm_run rd963 with [jumpdest, caller, push0, swap1, dup2]
   have rd969 := evm_run rd968 with [
-    raw mstore 0 (revealScratchBidsSourceMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (revealScratchBidsSourceMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd978 := evm_run rd969 with [
     push1 ⟨4⟩, push1 ⟨32⟩,
-    raw mstore 0 (revealScratchBidsHashMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (revealScratchBidsHashMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1,
-    raw keccak256 0 (revealScratchBidsLengthSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (revealScratchBidsLengthSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hbidsHash (by decide) (by evm_ov)]
-  obtain ⟨_, _, rd979₀⟩ := rd978.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd979₀⟩ := rd978.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd979⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨979⟩
       [revealScratchBidsLengthWord σ I, revealScratchRevealEndWord σ I,
         revealScratchBiddingEndWord σ I, secretsLen, secretsEnd, fakesLen, fakesEnd,
@@ -755,7 +755,7 @@ theorem blindAuctionRevealX_from887_fakesLengthMismatch {cA σ I} {g : Sat256}
   have rd993 := rd993₀
   rw [heqFakes] at rd993
   have rd999 := evm_run rd993 with [push2 ⟨1000⟩, jumpiNT (by decide), push0, push0]
-  exact RD.rev _ rd999 (by decide)
+  exact RD.rawRev _ rd999 (by decide)
     (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
     (by evm_ov)
 
@@ -781,16 +781,16 @@ theorem blindAuctionRevealX_from887_secretsLengthMismatch {cA σ I} {g : Sat256}
       (g := g) (s0 := s0) rd hafter hbefore
   have rd968 := evm_run rd963 with [jumpdest, caller, push0, swap1, dup2]
   have rd969 := evm_run rd968 with [
-    raw mstore 0 (revealScratchBidsSourceMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (revealScratchBidsSourceMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd978 := evm_run rd969 with [
     push1 ⟨4⟩, push1 ⟨32⟩,
-    raw mstore 0 (revealScratchBidsHashMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (revealScratchBidsHashMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1,
-    raw keccak256 0 (revealScratchBidsLengthSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (revealScratchBidsLengthSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hbidsHash (by decide) (by evm_ov)]
-  obtain ⟨_, _, rd979₀⟩ := rd978.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd979₀⟩ := rd978.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd979⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨979⟩
       [revealScratchBidsLengthWord σ I, revealScratchRevealEndWord σ I,
         revealScratchBiddingEndWord σ I, secretsLen, secretsEnd, fakesLen, fakesEnd,
@@ -820,7 +820,7 @@ theorem blindAuctionRevealX_from887_secretsLengthMismatch {cA σ I} {g : Sat256}
   have rd1004 := rd1004₀
   rw [heqSecrets] at rd1004
   have rd1010 := evm_run rd1004 with [push2 ⟨1011⟩, jumpiNT (by decide), push0, push0]
-  exact RD.rev _ rd1010 (by decide)
+  exact RD.rawRev _ rd1010 (by decide)
     (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
     (by evm_ov)
 
@@ -1026,16 +1026,16 @@ theorem blindAuctionRevealX_from963_lengthsOk_toLoopInit {cA σ I} {g : Sat256}
       (revealScratchBidsHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd968 := evm_run rd with [jumpdest, caller, push0, swap1, dup2]
   have rd969 := evm_run rd968 with [
-    raw mstore 0 (revealScratchBidsSourceMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (revealScratchBidsSourceMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd978 := evm_run rd969 with [
     push1 ⟨4⟩, push1 ⟨32⟩,
-    raw mstore 0 (revealScratchBidsHashMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (revealScratchBidsHashMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1,
-    raw keccak256 0 (revealScratchBidsLengthSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (revealScratchBidsLengthSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hbidsHash (by decide) (by evm_ov)]
-  obtain ⟨_, _, rd979₀⟩ := rd978.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd979₀⟩ := rd978.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd979⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨979⟩
       [revealScratchBidsLengthWord σ I, revealScratchRevealEndWord σ I,
         revealScratchBiddingEndWord σ I, secretsLen, secretsEnd, fakesLen, fakesEnd,
@@ -1103,12 +1103,12 @@ theorem blindAuctionRevealX_from963_lengthsOk_zero_toCall {cA σ I} {g : Sat256}
   have rd1331 := evm_run rd1019 with [push2 ⟨1331⟩, jumpiT one_ne_zero_uint (by jump_dest)]
   have rd1348₀ := evm_run rd1331 with [
     jumpdest, pop, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (revealScratchBidsHashMem_mload64 I)
       (by decide) (by evm_ov),
     push0, swap1, caller, swap1, dup4, swap1, dup4, dup2, dup2, dup2, dup6, dup8]
-  obtain ⟨gasArg, rd1349⟩ := rd1348₀.gas (by decide) (by evm_ov)
+  obtain ⟨gasArg, rd1349⟩ := rd1348₀.rawGas (by decide) (by evm_ov)
   exact ⟨gasArg, _, _, by
     simpa [revealScratchSenderWord, hbidsZero, hvaluesEq, hfakesEq, hsecretsEq] using rd1349⟩
 
@@ -1188,16 +1188,16 @@ theorem blindAuctionRevealX_from963_empty_toCall {cA σ I} {g : Sat256}
       (revealScratchBidsHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd968 := evm_run rd with [jumpdest, caller, push0, swap1, dup2]
   have rd969 := evm_run rd968 with [
-    raw mstore 0 (revealScratchBidsSourceMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (revealScratchBidsSourceMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd978 := evm_run rd969 with [
     push1 ⟨4⟩, push1 ⟨32⟩,
-    raw mstore 0 (revealScratchBidsHashMem I) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (revealScratchBidsHashMem I) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, swap1,
-    raw keccak256 0 (revealScratchBidsLengthSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (revealScratchBidsLengthSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hbidsHash (by decide) (by evm_ov)]
-  obtain ⟨_, _, rd979₀⟩ := rd978.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd979₀⟩ := rd978.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd979⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨979⟩
       [⟨0⟩, revealScratchRevealEndWord σ I, revealScratchBiddingEndWord σ I, ⟨0⟩,
         secretsEnd, ⟨0⟩, fakesEnd, ⟨0⟩, valuesEnd, ⟨276⟩, blindAuctionSelWord I]
@@ -1238,12 +1238,12 @@ theorem blindAuctionRevealX_from963_empty_toCall {cA σ I} {g : Sat256}
   have rd1331 := evm_run rd1019 with [push2 ⟨1331⟩, jumpiT one_ne_zero_uint (by jump_dest)]
   have rd1348₀ := evm_run rd1331 with [
     jumpdest, pop, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (revealScratchBidsHashMem_mload64 I)
       (by decide) (by evm_ov),
     push0, swap1, caller, swap1, dup4, swap1, dup4, dup2, dup2, dup2, dup6, dup8]
-  obtain ⟨gasArg, rd1349⟩ := rd1348₀.gas (by decide) (by evm_ov)
+  obtain ⟨gasArg, rd1349⟩ := rd1348₀.rawGas (by decide) (by evm_ov)
   exact ⟨gasArg, _, _, by simpa [revealScratchSenderWord] using rd1349⟩
 
 theorem blindAuctionRevealX_from963_empty_callMade {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1373,16 +1373,16 @@ theorem blindAuctionRevealX_postCallNonempty_toRequire {I} {g : Sat256} {s0 : St
       (revealScratchBidsHashMem I) 64 32
   have rd1381 := evm_run rd1363 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (revealScratchBidsHashMem_mload64 I) (by decide) (by evm_ov),
     swap2, pop, push1 ⟨31⟩, not, push1 ⟨63⟩, returndatasize, add, and, dup3, add,
     push1 ⟨64⟩,
-    raw mstore 0 mem2 (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 mem2 (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   let mem3 : ByteArray := (UInt256.toByteArray rdsz).write 0 mem2 128 32
   have rd1384 := evm_run rd1381 with [
     returndatasize, dup3,
-    raw mstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
+    raw rawMstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
       mem3 (UInt256.ofNat 5) (by decide)
       (fun s haw hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -1401,7 +1401,7 @@ theorem blindAuctionRevealX_postCallNonempty_toRequire {I} {g : Sat256} {s0 : St
         SimpleAuction.withdrawReturnDataActiveWords o := by
     simp [SimpleAuction.withdrawReturnDataActiveWords, copyDest, copyLen, hcopyDest_toNat,
       hcopyLen_toNat]
-  have rd1391 := RD.returndatacopy
+  have rd1391 := RD.rawReturndatacopy
     (Cₘ (SimpleAuction.withdrawReturnDataActiveWords o) - Cₘ (UInt256.ofNat 5))
     mem4
     (SimpleAuction.withdrawReturnDataActiveWords o)
@@ -1444,7 +1444,7 @@ theorem blindAuctionRevealX_postCallRequire_failure_revert {I} {g : Sat256} {s0 
     RDrev blindAuctionBytecode g s0 := by
   have rd1410 := evm_run rd with [
     dup1, push2 ⟨1413⟩, jumpiNT (by decide), push0, push0]
-  exact RD.rev _ rd1410 (by decide)
+  exact RD.rawRev _ rd1410 (by decide)
     (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
     (by evm_ov)
 
@@ -1477,7 +1477,7 @@ theorem scratch_blindAuctionRevealX_postCallRequire_failure_revert_general {I} {
     RDrev blindAuctionBytecode g s0 := by
   have rd1410 := evm_run rd with [
     dup1, push2 ⟨1413⟩, jumpiNT (by decide), push0, push0]
-  exact RD.rev _ rd1410 (by decide)
+  exact RD.rawRev _ rd1410 (by decide)
     (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
     (by evm_ov)
 
@@ -2555,16 +2555,16 @@ theorem scratch_blindAuctionRevealX_postCallNonempty_toRequire_general {I} {g : 
       (revealScratchBidsHashMem I) 64 32
   have rd1381 := evm_run rd1363 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost (revealScratchBidsHashMem_mload64 I) (by decide) (by evm_ov),
     swap2, pop, push1 ⟨31⟩, not, push1 ⟨63⟩, returndatasize, add, and, dup3, add,
     push1 ⟨64⟩,
-    raw mstore 0 mem2 (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 mem2 (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   let mem3 : ByteArray := (UInt256.toByteArray rdsz).write 0 mem2 128 32
   have rd1384 := evm_run rd1381 with [
     returndatasize, dup3,
-    raw mstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
+    raw rawMstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
       mem3 (UInt256.ofNat 5) (by decide)
       (fun s haw hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -2583,7 +2583,7 @@ theorem scratch_blindAuctionRevealX_postCallNonempty_toRequire_general {I} {g : 
         SimpleAuction.withdrawReturnDataActiveWords o := by
     simp [SimpleAuction.withdrawReturnDataActiveWords, copyDest, copyLen, hcopyDest_toNat,
       hcopyLen_toNat]
-  have rd1391 := RD.returndatacopy
+  have rd1391 := RD.rawReturndatacopy
     (Cₘ (SimpleAuction.withdrawReturnDataActiveWords o) - Cₘ (UInt256.ofNat 5))
     mem4
     (SimpleAuction.withdrawReturnDataActiveWords o)
@@ -2641,13 +2641,13 @@ theorem scratch_blindAuctionRevealX_postCallNonempty_toRequire_freePtr {I} {g : 
     UInt256.ofNat (MachineState.M aw1.toNat (⟨64⟩ : UInt256).toNat 32)
   have rd1381 := evm_run rd1363 with [
     push1 ⟨64⟩,
-    raw mload (Cₘ aw1 - Cₘ aw) freePtr aw1 (by decide)
+    raw rawMload (Cₘ aw1 - Cₘ aw) freePtr aw1 (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk, aw1])
       hfree (by rfl) (by evm_ov),
     swap2, pop, push1 ⟨31⟩, not, push1 ⟨63⟩, returndatasize, add, and, dup3, add,
     push1 ⟨64⟩,
-    raw mstore (Cₘ aw2 - Cₘ aw1) mem2 aw2 (by decide)
+    raw rawMstore (Cₘ aw2 - Cₘ aw1) mem2 aw2 (by decide)
       (fun s haw hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw2])
       (by rfl) (by rfl) (by evm_ov)]
@@ -2655,7 +2655,7 @@ theorem scratch_blindAuctionRevealX_postCallNonempty_toRequire_freePtr {I} {g : 
   let aw3 : UInt256 := UInt256.ofNat (MachineState.M aw2.toNat freePtr.toNat 32)
   have rd1384 := evm_run rd1381 with [
     returndatasize, dup3,
-    raw mstore (Cₘ aw3 - Cₘ aw2) mem3 aw3 (by decide)
+    raw rawMstore (Cₘ aw3 - Cₘ aw2) mem3 aw3 (by decide)
       (fun s haw hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw3])
       (by rfl) (by rfl) (by evm_ov)]
@@ -2666,7 +2666,7 @@ theorem scratch_blindAuctionRevealX_postCallNonempty_toRequire_freePtr {I} {g : 
     simpa [copyLen] using UInt256.toNat_ofNat_of_lt hosz
   let mem4 : ByteArray := o.write 0 mem3 copyDest.toNat copyLen.toNat
   let aw4 : UInt256 := UInt256.ofNat (MachineState.M aw3.toNat copyDest.toNat copyLen.toNat)
-  have rd1391 := RD.returndatacopy
+  have rd1391 := RD.rawReturndatacopy
     (Cₘ aw4 - Cₘ aw3) mem4 aw4
     rd1390 (by decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
@@ -2707,7 +2707,7 @@ theorem scratch_blindAuctionRevealX_loopExit_toCall {I} {g : Sat256} {s0 : State
     simpa using hawM
   have rd1348₀ := evm_run rd with [
     jumpdest, pop, push1 ⟨64⟩,
-    raw mload 0 freePtr aw
+    raw rawMload 0 freePtr aw
       (by decide)
       (fun s haw hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -2717,7 +2717,7 @@ theorem scratch_blindAuctionRevealX_loopExit_toCall {I} {g : Sat256} {s0 : State
       hawM'
       (by simp),
     push0, swap1, caller, swap1, dup4, swap1, dup4, dup2, dup2, dup2, dup6, dup8]
-  obtain ⟨gasArg, rd1349⟩ := rd1348₀.gas (by decide) (by evm_ov)
+  obtain ⟨gasArg, rd1349⟩ := rd1348₀.rawGas (by decide) (by evm_ov)
   exact ⟨gasArg, _, _, by simpa [revealScratchSenderWord] using rd1349⟩
 
 def scratch_revealEvmLoopStack (i refund len revealEnd biddingEnd secretsLen secretsEnd
@@ -2859,7 +2859,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
     simpa [scratch_revealEvmLoopStack] using rd
   have rd1027 := evm_run rd' with [
     caller, push0, swap1, dup2,
-    raw mstore 0 mem1 aw (by decide)
+    raw rawMstore 0 mem1 aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
         rw [haw0]
@@ -2867,7 +2867,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
       (by rfl) haw0 (by evm_ov)]
   have rd1033 := evm_run rd1027 with [
     push1 ⟨4⟩, push1 ⟨32⟩,
-    raw mstore 0 mem2 aw (by decide)
+    raw rawMstore 0 mem2 aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
         rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
@@ -2875,7 +2875,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
         simp)
       (by rfl) haw32 (by evm_ov),
     push1 ⟨64⟩, dup2,
-    raw keccak256 0 (revealScratchBidsLengthSlot I) aw (by decide)
+    raw rawKeccak256 0 (revealScratchBidsLengthSlot I) aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
         rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
@@ -2884,7 +2884,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
       (by simpa [mem2, mem1, revealScratchSenderWord] using hbaseHash) haw64
       (by evm_ov),
     dup1]
-  obtain ⟨_, _, rd1039₀⟩ := rd1033.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1039₀⟩ := rd1033.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1039⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1039⟩
       [len, revealScratchBidsLengthSlot I, ⟨0⟩, i, refund, len, revealEnd, biddingEnd,
         secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
@@ -2898,14 +2898,14 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
     push2 ⟨1054⟩, jumpiT one_ne_zero_uint (by jump_dest), jumpdest]
   have rd1062 := evm_run rd1054 with [
     swap1, push0,
-    raw mstore 0 mem3 aw (by decide)
+    raw rawMstore 0 mem3 aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
         rw [haw0]
         simp)
       (by rfl) haw0 (by evm_ov),
     push1 ⟨32⟩, push0,
-    raw keccak256 0
+    raw rawKeccak256 0
       (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
       aw (by decide)
       (fun s haws hstk => by
@@ -3249,24 +3249,24 @@ theorem scratch_blindAuctionRevealX_loopBody_packed_prefix {I} {g : Sat256}
   let aw4 := UInt256.ofNat (MachineState.M aw3.toNat secretBase.toNat 32)
   have rd1185 := evm_run rd with [
     dup3, dup3, dup3, push1 ⟨64⟩,
-    raw mload (Cₘ aw1 - Cₘ aw) fp aw1 (by decide)
+    raw rawMload (Cₘ aw1 - Cₘ aw) fp aw1 (by decide)
       (fun s haws hstks => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw1])
       hfp (by rfl) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨1207⟩, swap4, swap3, swap2, swap1, swap3, dup4,
-    raw mstore (Cₘ aw2 - Cₘ aw1) mem1 aw2 (by decide)
+    raw rawMstore (Cₘ aw2 - Cₘ aw1) mem1 aw2 (by decide)
       (fun s haws hstks => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, base, aw2])
       (by rfl) (by rfl) (by evm_ov)]
   have rd1207 := evm_run rd1185 with [
     swap1, iszero, iszero, push1 ⟨248⟩, shl, push1 ⟨32⟩, dup4, add,
-    raw mstore (Cₘ aw3 - Cₘ aw2) mem2 aw3 (by decide)
+    raw rawMstore (Cₘ aw3 - Cₘ aw2) mem2 aw3 (by decide)
       (fun s haws hstks => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, base, fakeBase,
           aw3])
       (by rfl) (by rfl) (by evm_ov),
     push1 ⟨33⟩, dup3, add,
-    raw mstore (Cₘ aw4 - Cₘ aw3) mem3 aw4 (by decide)
+    raw rawMstore (Cₘ aw4 - Cₘ aw3) mem3 aw4 (by decide)
       (fun s haws hstks => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, base, secretBase,
           aw4])
@@ -3345,35 +3345,35 @@ theorem scratch_blindAuctionRevealX_loopBody_packed_suffix {I} {g : Sat256}
   let aw5 := UInt256.ofNat (MachineState.M aw4.toNat base.toNat packedLen.toNat)
   have rd1224 := evm_run rd with [
     jumpdest, push1 ⟨64⟩,
-    raw mload (Cₘ aw1 - Cₘ aw) fp aw1 (by decide)
+    raw rawMload (Cₘ aw1 - Cₘ aw) fp aw1 (by decide)
       (fun s haws hstks => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw1])
       hfp (by rfl) (by evm_ov),
     push1 ⟨32⟩, dup2, dup4, sub, sub, dup2,
-    raw mstore (Cₘ aw2 - Cₘ aw1) mem4 aw2 (by decide)
+    raw rawMstore (Cₘ aw2 - Cₘ aw1) mem4 aw2 (by decide)
       (fun s haws hstks => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw2])
       (by rfl) (by rfl) (by evm_ov),
     swap1, push1 ⟨64⟩,
-    raw mstore (Cₘ aw3 - Cₘ aw2) mem5 aw3 (by decide)
+    raw rawMstore (Cₘ aw3 - Cₘ aw2) mem5 aw3 (by decide)
       (fun s haws hstks => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw3])
       (by rfl) (by rfl) (by evm_ov),
     dup1,
-    raw mload (Cₘ aw4 - Cₘ aw3) packedLen aw4 (by decide)
+    raw rawMload (Cₘ aw4 - Cₘ aw3) packedLen aw4 (by decide)
       (fun s haws hstks => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw4])
       (by simpa [base, newFree, packedLen, mem4, mem5, aw1, aw2, aw3] using hlen)
       (by rfl) (by evm_ov)]
   have rd1233₀ := evm_run rd1224 with [
     swap1, push1 ⟨32⟩, add,
-    raw keccak256 (Cₘ aw5 - Cₘ aw4) hash aw5 (by decide)
+    raw rawKeccak256 (Cₘ aw5 - Cₘ aw4) hash aw5 (by decide)
       (fun s haws hstks => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, base, aw5])
       (by simpa [base, newFree, packedLen, mem4, mem5] using hhash)
       (by rfl) (by evm_ov),
     dup5, push0, add]
-  obtain ⟨_, _, rd1234₀⟩ := rd1233₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1234₀⟩ := rd1233₀.rawSload (by decide) (by evm_ov)
   have rd1234 := rd1234₀
   rw [hstore] at rd1234
   have rd1235₀ := evm_run rd1234 with [eq]
@@ -3397,7 +3397,7 @@ theorem scratch_blindAuctionRevealX_zeroBlinded_toNext {I} {g : Sat256} {s0 : St
         secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
       mem aw rdata (cA, sstoreAccountMap I.codeOwner σ slot ⟨0⟩) k' C' := by
   have rd1321₀ := evm_run rd with [jumpdest, pop, pop, push0, swap1, swap2]
-  obtain ⟨_, _, rd1322₀⟩ := rd1321₀.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1322₀⟩ := rd1321₀.rawSstore hperm (by decide) (by evm_ov)
   have rd1323 := evm_run rd1322₀ with [pop, jumpdest, push1 ⟨1⟩, add,
     push2 ⟨1014⟩, jump (by jump_dest)]
   have hidx : (⟨1⟩ : UInt256) + i = i + ⟨1⟩ := u256_add_comm _ _

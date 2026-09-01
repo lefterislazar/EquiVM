@@ -535,7 +535,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntry
     RD.uniswapSafeMathSubSuccess rd6879 (Nat.le_of_lt hrootGt) (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega)
   have rd7933 := evm_run rd7930 with [jumpdest, push1 ⟨0⟩]
-  obtain ⟨k7934, C7934, rd7934₀⟩ := rd7933.sload (by native_decide) (by evm_ov)
+  obtain ⟨k7934, C7934, rd7934₀⟩ := rd7933.rawSload (by native_decide) (by evm_ov)
   have rd7934 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7934⟩
       [uniswapSlotWord ⟨0⟩ σFee I, UInt256.sub rootK rootKLast, ⟨7945⟩, ⟨0⟩,

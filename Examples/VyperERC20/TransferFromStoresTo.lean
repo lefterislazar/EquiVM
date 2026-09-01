@@ -70,7 +70,7 @@ theorem erc20X_transferFromAfterToLoad {cA gh bl σ σ₀ A I} {g : Sat256}
         (transferFromCurrentAllowanceRaw σ I)
   have rd541 := evm_run rd528 with [
     push0, push1 ⟨96⟩,
-    raw mload 0 (transferFromToWord I) (UInt256.ofNat 5)
+    raw rawMload 0 (transferFromToWord I) (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
@@ -81,21 +81,21 @@ theorem erc20X_transferFromAfterToLoad {cA gh bl σ σ₀ A I} {g : Sat256}
           hread96)
       (by decide) (by evm_ov),
     push1 ⟨32⟩,
-    raw mstore 0
+    raw rawMstore 0
       (wordAt32Mem (transferFromToWord I) (transferFromAfterFromLoadMemI σ I))
       (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost rfl (by decide) (by evm_ov),
     push0,
-    raw mstore 0
+    raw rawMstore 0
       (transferFromAfterToLoadMemI σ I)
       (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨64⟩, push0,
-    raw keccak256 0 (transferFromToSlot I)
+    raw rawKeccak256 0 (transferFromToSlot I)
       (UInt256.ofNat 5)
       (by vyper_erc20_transferFrom_decode) mem_cost hslot (by decide) (by evm_ov),
     dup1]
-  obtain ⟨k1, C1, rdAfterLoad⟩ := rd541.sload
+  obtain ⟨k1, C1, rdAfterLoad⟩ := rd541.rawSload
     (by vyper_erc20_transferFrom_decode) (by evm_ov)
   have hpc543 :
       (⟨528⟩ : UInt256) + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ +
@@ -208,7 +208,7 @@ theorem erc20X_transferFromAfterToStore {cA gh bl σ σ₀ A I} {g : Sat256}
           (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)
         (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
   obtain ⟨k, C, rd561⟩ := hreach
-  obtain ⟨k1, C1, rdAfterStore⟩ := rd561.sstore hperm
+  obtain ⟨k1, C1, rdAfterStore⟩ := rd561.rawSstore hperm
     (by vyper_erc20_transferFrom_decode) (by evm_ov)
   exact ⟨_, _, evm_run rdAfterStore with [pop]⟩
 

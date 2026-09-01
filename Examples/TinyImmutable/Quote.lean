@@ -304,7 +304,7 @@ theorem tinyQuoteX_unauthorized {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyIm
       heq (by evm_ov)]
   have rd286 := evm_run rd283 with [
     raw push1 ⟨64⟩ (by tiny_decode_at v, ⟨283⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by tiny_decode_at v, ⟨285⟩, 0x51, .MLOAD)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by tiny_decode_at v, ⟨285⟩, 0x51, .MLOAD)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov)]
   have rd290 := rd286.pushConst (⟨0x461bcd⟩ : UInt256) (width := 3) (op := .PUSH3)
     (by decide) (by tiny_decode_at v, ⟨286⟩, 0x62, (.Push .PUSH3)) (by evm_ov)
@@ -312,21 +312,21 @@ theorem tinyQuoteX_unauthorized {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyIm
     raw push1 ⟨229⟩ (by tiny_decode_at v, ⟨290⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
     raw shl (by tiny_decode_at v, ⟨292⟩, 0x1b, .SHL) (by evm_ov),
     raw dup2 (by tiny_decode_at v, ⟨293⟩, 0x81, .DUP2) (by evm_ov),
-    raw mstore 6 tinyQuoteOwnerErrorMem1 (UInt256.ofNat 5)
+    raw rawMstore 6 tinyQuoteOwnerErrorMem1 (UInt256.ofNat 5)
       (by tiny_decode_at v, ⟨294⟩, 0x52, .MSTORE)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     raw push1 ⟨32⟩ (by tiny_decode_at v, ⟨295⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
     raw push1 ⟨4⟩ (by tiny_decode_at v, ⟨297⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
     raw dup3 (by tiny_decode_at v, ⟨299⟩, 0x82, .DUP3) (by evm_ov),
     raw add (by tiny_decode_at v, ⟨300⟩, 0x01, .ADD) (by evm_ov),
-    raw mstore 3 tinyQuoteOwnerErrorMem2 (UInt256.ofNat 6)
+    raw rawMstore 3 tinyQuoteOwnerErrorMem2 (UInt256.ofNat 6)
       (by tiny_decode_at v, ⟨301⟩, 0x52, .MSTORE)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     raw push1 ⟨5⟩ (by tiny_decode_at v, ⟨302⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
     raw push1 ⟨36⟩ (by tiny_decode_at v, ⟨304⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
     raw dup3 (by tiny_decode_at v, ⟨306⟩, 0x82, .DUP3) (by evm_ov),
     raw add (by tiny_decode_at v, ⟨307⟩, 0x01, .ADD) (by evm_ov),
-    raw mstore 3 tinyQuoteOwnerErrorMem3 (UInt256.ofNat 7)
+    raw rawMstore 3 tinyQuoteOwnerErrorMem3 (UInt256.ofNat 7)
       (by tiny_decode_at v, ⟨308⟩, 0x52, .MSTORE)
       mem_cost (by native_decide) (by decide) (by evm_ov)]
   have rd342 := rd309.pushConst
@@ -337,20 +337,20 @@ theorem tinyQuoteX_unauthorized {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyIm
     raw push1 ⟨68⟩ (by tiny_decode_at v, ⟨342⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
     raw dup3 (by tiny_decode_at v, ⟨344⟩, 0x82, .DUP3) (by evm_ov),
     raw add (by tiny_decode_at v, ⟨345⟩, 0x01, .ADD) (by evm_ov),
-    raw mstore 3 tinyQuoteOwnerErrorMem (UInt256.ofNat 8)
+    raw rawMstore 3 tinyQuoteOwnerErrorMem (UInt256.ofNat 8)
       (by tiny_decode_at v, ⟨346⟩, 0x52, .MSTORE)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     raw push1 ⟨100⟩ (by tiny_decode_at v, ⟨347⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
     raw add (by tiny_decode_at v, ⟨349⟩, 0x01, .ADD) (by evm_ov)]
   have rd357 := evm_run rd350 with [
     raw push1 ⟨64⟩ (by tiny_decode_at v, ⟨350⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by tiny_decode_at v, ⟨352⟩, 0x51, .MLOAD)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 8) (by tiny_decode_at v, ⟨352⟩, 0x51, .MLOAD)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     raw dup1 (by tiny_decode_at v, ⟨353⟩, 0x80, .DUP1) (by evm_ov),
     raw swap2 (by tiny_decode_at v, ⟨354⟩, 0x91, .SWAP2) (by evm_ov),
     raw sub (by tiny_decode_at v, ⟨355⟩, 0x03, .SUB) (by evm_ov),
     raw swap1 (by tiny_decode_at v, ⟨356⟩, 0x90, .SWAP1) (by evm_ov)]
-  exact rd357.rev 0 (by tiny_decode_at v, ⟨357⟩, 0xfd, .REVERT)
+  exact rd357.rawRev 0 (by tiny_decode_at v, ⟨357⟩, 0xfd, .REVERT)
     mem_cost (by evm_ov)
 
 theorem tinyQuoteBodyCore

@@ -338,7 +338,7 @@ theorem RD.uniswapGetReservesRoutine {g : Sat256} {s0 : State} {ee : ExecutionEn
         UniswapV2Pair.reserve0Word σ ee :: R)
       mem aw rdata (cA, σ) k' C' := by
   have rd2855 := evm_run h with [jumpdest, push1 ⟨8⟩]
-  obtain ⟨_, _, rd2856⟩ := rd2855.sload (by native_decide)
+  obtain ⟨_, _, rd2856⟩ := rd2855.rawSload (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd2893 := evm_run rd2856 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup1, dup3, and, swap3,
@@ -370,17 +370,17 @@ theorem RD.uniswapReturnGetReserves705 {g : Sat256} {s0 : State} {ee : Execution
   have hmask32 : (⟨0xffffffff⟩ : UInt256) = UniswapV2Pair.reserve32Mask := by rfl
   exact evm_run h with [
     jumpdest, push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, swap5, dup6, and, dup2,
-    raw mstore 6 (UniswapV2Pair.getReservesReturn0Mem r0') (UInt256.ofNat 5)
+    raw rawMstore 6 (UniswapV2Pair.getReservesReturn0Mem r0') (UInt256.ofNat 5)
       (by decide) mem_cost
       (by rw [hmask112, u256_land_comm UniswapV2Pair.reserve112Mask r0]; rfl)
       (by decide) (by evm_ov),
     swap3, swap1, swap4, and, push1 ⟨32⟩, dup4, add,
-    raw mstore 3 (UniswapV2Pair.getReservesReturn1Mem r0' r1') (UInt256.ofNat 6)
+    raw rawMstore 3 (UniswapV2Pair.getReservesReturn1Mem r0' r1') (UInt256.ofNat 6)
       (by decide) mem_cost
       (by
         rw [hmask112, u256_land_comm UniswapV2Pair.reserve112Mask r1,
@@ -388,7 +388,7 @@ theorem RD.uniswapReturnGetReserves705 {g : Sat256} {s0 : State} {ee : Execution
         rfl)
       (by decide) (by evm_ov),
     push4 ⟨0xffffffff⟩, and, dup2, dup4, add,
-    raw mstore 3 (UniswapV2Pair.getReservesReturnMem r0' r1' ts') (UInt256.ofNat 7)
+    raw rawMstore 3 (UniswapV2Pair.getReservesReturnMem r0' r1' ts') (UInt256.ofNat 7)
       (by decide) mem_cost
       (by
         rw [hmask32, u256_land_comm UniswapV2Pair.reserve32Mask ts,
@@ -396,12 +396,12 @@ theorem RD.uniswapReturnGetReserves705 {g : Sat256} {s0 : State} {ee : Execution
         rfl)
       (by decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide)
       mem_cost
       (UniswapV2Pair.getReservesReturnMem_mload64 r0' r1' ts')
       (by decide) (by evm_ov),
     swap1, dup2, swap1, sub, push1 ⟨96⟩, add, swap1,
-    raw ret 0 (UInt256.toByteArray r0' ++ UInt256.toByteArray r1' ++ UInt256.toByteArray ts')
+    raw rawRet 0 (UInt256.toByteArray r0' ++ UInt256.toByteArray r1' ++ UInt256.toByteArray ts')
       (by decide) mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,

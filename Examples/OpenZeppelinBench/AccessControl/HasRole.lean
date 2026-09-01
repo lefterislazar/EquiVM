@@ -526,17 +526,17 @@ theorem accessControlX_hasRole {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
   have hslot := hasRoleOuterKeccakSlot I hsz68 hcanonAccount
   have rd465 := evm_run rd451 with [
     jumpdest, push0, swap2, dup3,
-    raw mstore 0 (accessControlWordAt0Mem (hasRoleRoleWord I) solcFreePtrMem)
+    raw rawMstore 0 (accessControlWordAt0Mem (hasRoleRoleWord I) solcFreePtrMem)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup3, dup2,
-    raw mstore 0 (hasRoleBaseHashMem (hasRoleRoleWord I)) (UInt256.ofNat 3) (by decide)
+    raw rawMstore 0 (hasRoleBaseHashMem (hasRoleRoleWord I)) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨64⟩, dup1, dup5,
-    raw keccak256 0 (hasRoleBaseSlot (hasRoleRoleWord I)) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (hasRoleBaseSlot (hasRoleRoleWord I)) (UInt256.ofNat 3) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd485 := evm_run rd465 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap4, swap1, swap4, and, dup5,
-    raw mstore 0 (hasRoleAccountMem (hasRoleRoleWord I) (hasRoleAccountWord I))
+    raw rawMstore 0 (hasRoleAccountMem (hasRoleRoleWord I) (hasRoleAccountWord I))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -545,12 +545,12 @@ theorem accessControlX_hasRole {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
         rfl)
       (by decide) (by evm_ov),
     swap2, swap1,
-    raw mstore 0 (hasRoleSlotHashMem (hasRoleRoleWord I) (hasRoleAccountWord I))
+    raw rawMstore 0 (hasRoleSlotHashMem (hasRoleRoleWord I) (hasRoleAccountWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw keccak256 0 (hasRoleSlot I) (UInt256.ofNat 3) (by decide)
+    raw rawKeccak256 0 (hasRoleSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost hslot (by decide) (by evm_ov) ]
-  obtain ⟨_, _, rd486⟩ := rd485.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd486⟩ := rd485.rawSload (by decide) (by evm_ov)
   have hmaskComm : UInt256.land ⟨255⟩ (hasRoleStorageWord σ I) =
       UInt256.land (hasRoleStorageWord σ I) ⟨255⟩ := by
     exact u256_land_comm ⟨255⟩ (hasRoleStorageWord σ I)
@@ -558,12 +558,12 @@ theorem accessControlX_hasRole {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     push1 ⟨255⟩, and, swap1, jump (by jump_dest) ]
   have rd157 := evm_run rd145 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
       (hasRoleSlotHashMem_mload64 (hasRoleRoleWord I) (hasRoleAccountWord I))
       (by decide) (by evm_ov),
     swap1, iszero, iszero, dup2,
-    raw mstore 6 (hasRoleReturnMem (hasRoleRoleWord I) (hasRoleAccountWord I)
+    raw rawMstore 6 (hasRoleReturnMem (hasRoleRoleWord I) (hasRoleAccountWord I)
         (hasRoleMaskedWord σ I))
       (UInt256.ofNat 5) (by decide) mem_cost
       (by
@@ -575,13 +575,13 @@ theorem accessControlX_hasRole {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
   simpa [hasRoleReturnWord, hasRoleMaskedWord, hmaskComm] using
     (evm_run rd157 with [
       jumpdest, push1 ⟨64⟩,
-      raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+      raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
         mem_cost
         (hasRoleReturnMem_mload64 (hasRoleRoleWord I) (hasRoleAccountWord I)
           (hasRoleMaskedWord σ I))
         (by decide) (by evm_ov),
       dup1, swap2, sub, swap1,
-      raw ret 0 (UInt256.toByteArray (hasRoleReturnWord σ I)) (by decide)
+      raw rawRet 0 (UInt256.toByteArray (hasRoleReturnWord σ I)) (by decide)
         mem_cost
         (by
           rw [show (UInt256.sub ((⟨32⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 32

@@ -301,7 +301,7 @@ theorem ownable2StepX_renounceOwnership_success {cA gh bl σ σ₀ A I} {g : Sat
   have rd431 := evm_run rd191 with [jumpdest, push2 ⟨200⟩, push0, push2 ⟨431⟩,
     jump (by jump_dest)]
   have rd435 := evm_run rd431 with [jumpdest, push1 ⟨1⟩, dup1]
-  obtain ⟨_, _, rd436₀⟩ := rd435.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd436₀⟩ := rd435.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd436⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨436⟩
       [renounceOwnershipPendingOwnerWord σ I, ⟨1⟩, ⟨0⟩, ⟨200⟩, ⟨97⟩,
@@ -321,7 +321,7 @@ theorem ownable2StepX_renounceOwnership_success {cA gh bl σ σ₀ A I} {g : Sat
         UInt256.lnot solcAddrMask by decide] at rd446
   rw [hclear] at rd446
   have rd447 := evm_run rd446 with [swap1]
-  obtain ⟨_, _, rd448₀⟩ := rd447.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd448₀⟩ := rd447.rawSstore hperm (by decide) (by evm_ov)
   obtain ⟨_, _, rd448⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨448⟩
       [⟨0⟩, ⟨200⟩, ⟨97⟩, ownable2StepSelWord I]
@@ -330,7 +330,7 @@ theorem ownable2StepX_renounceOwnership_success {cA gh bl σ σ₀ A I} {g : Sat
     exact ⟨_, _, by simpa [renounceOwnershipAfterPendingMap] using rd448₀⟩
   let σp := renounceOwnershipAfterPendingMap σ I
   have rd454 := evm_run rd448 with [push2 ⟨272⟩, dup2, push0, dup1]
-  obtain ⟨_, _, rd455₀⟩ := rd454.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd455₀⟩ := rd454.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd455⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨455⟩
       [renounceOwnershipOwnerWordAfterPending σ I, ⟨0⟩, ⟨0⟩, ⟨272⟩, ⟨0⟩,
@@ -356,7 +356,7 @@ theorem ownable2StepX_renounceOwnership_success {cA gh bl σ σ₀ A I} {g : Sat
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask by decide] at rd480
   rw [hset] at rd480
-  obtain ⟨_, _, rd481₀⟩ := rd480.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd481₀⟩ := rd480.rawSstore hperm (by decide) (by evm_ov)
   obtain ⟨_, _, rd481⟩ : ∃ k C, RD ownable2StepBenchBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨481⟩
       [UInt256.land solcAddrMask (⟨0⟩ : UInt256), solcAddrMask,
@@ -367,14 +367,14 @@ theorem ownable2StepX_renounceOwnership_success {cA gh bl σ σ₀ A I} {g : Sat
     exact ⟨_, _, by simpa [renounceOwnershipAfterOwnerMap, σp] using rd481₀⟩
   have rd491pre := evm_run rd481 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     swap2, swap1, swap3, and, swap3, dup4, swap2]
   have rd524 := rd491pre.pushConst
     (⟨0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0⟩ : UInt256)
     (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
   have rd526 := evm_run rd524 with [swap2, swap1]
-  have rd527 := rd526.log3 0 (UInt256.ofNat 3) (by decide) hperm mem_cost
+  have rd527 := rd526.rawLog3 0 (UInt256.ofNat 3) (by decide) hperm mem_cost
     (by decide) (by evm_ov)
   have rd529 := evm_run rd527 with [pop, pop, jump (by jump_dest)]
   have rd272 := evm_run rd529 with [jumpdest, pop, jump (by jump_dest)]

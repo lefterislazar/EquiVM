@@ -374,18 +374,18 @@ theorem RD.pausableReturnBoolTrue105 {g : Sat256} {s0 : State} {ee : ExecutionEn
     RDret pausableBenchBytecode g s0 acc (UInt256.toByteArray ⟨1⟩) := by
   exact evm_run h with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     swap1, iszero, iszero, dup2,
-    raw mstore 6 (solcReturnMem ⟨1⟩) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (solcReturnMem ⟨1⟩) (UInt256.ofNat 5) (by decide)
       mem_cost
       (by rw [show UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ from by decide]; rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost (solcReturnMem_mload64 ⟨1⟩) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray ⟨1⟩) (by decide)
+    raw rawRet 0 (UInt256.toByteArray ⟨1⟩) (by decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -403,7 +403,7 @@ theorem RD.pausableWhenNotPausedPass {g : Sat256} {s0 : State} {ee : ExecutionEn
     (hov : R.length + 4 ≤ 1024) :
     ∃ k' C', RD pausableBenchBytecode ee g s0 ret R mem aw rdata (cA, σ) k' C' := by
   have rd334 := evm_run h with [jumpdest, push0]
-  obtain ⟨_, _, rd335₀⟩ := rd334.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd335₀⟩ := rd334.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd335⟩ : ∃ k' C',
       RD pausableBenchBytecode ee g s0 ⟨335⟩
         (pausedRawWord σ ee :: ret :: R) mem aw rdata (cA, σ) k' C' := by
@@ -427,7 +427,7 @@ theorem RD.pausableWhenNotPausedRevert {g : Sat256} {s0 : State} {ee : Execution
     (hov : R.length + 8 ≤ 1024) :
     RDrev pausableBenchBytecode g s0 := by
   have rd334 := evm_run h with [jumpdest, push0]
-  obtain ⟨_, _, rd335₀⟩ := rd334.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd335₀⟩ := rd334.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd335⟩ : ∃ k' C',
       RD pausableBenchBytecode ee g s0 ⟨335⟩
         (pausedRawWord σ ee :: ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata
@@ -443,19 +443,19 @@ theorem RD.pausableWhenNotPausedRevert {g : Sat256} {s0 : State} {ee : Execution
   let errSel : UInt256 := UInt256.shiftLeft (⟨0xd93c0665⟩ : UInt256) ⟨224⟩
   have rd356 := evm_run rd343 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push4 ⟨0xd93c0665⟩, push1 ⟨224⟩, shl, dup2,
-    raw mstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by decide)
       mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov)]
   have rd366 := evm_run rd356 with [
     push1 ⟨4⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost (solcReturnMem_mload64 errSel) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
-  exact rd366.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd366.rawRev 0 (by decide) mem_cost (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.pausableWhenPausedPass {g : Sat256} {s0 : State} {ee : ExecutionEnv}
@@ -467,7 +467,7 @@ theorem RD.pausableWhenPausedPass {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     (hov : R.length + 4 ≤ 1024) :
     ∃ k' C', RD pausableBenchBytecode ee g s0 ret R mem aw rdata (cA, σ) k' C' := by
   have rd369 := evm_run h with [jumpdest, push0]
-  obtain ⟨_, _, rd370₀⟩ := rd369.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd370₀⟩ := rd369.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd370⟩ : ∃ k' C',
       RD pausableBenchBytecode ee g s0 ⟨370⟩
         (pausedRawWord σ ee :: ret :: R) mem aw rdata (cA, σ) k' C' := by
@@ -491,7 +491,7 @@ theorem RD.pausableWhenPausedRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv
     (hov : R.length + 8 ≤ 1024) :
     RDrev pausableBenchBytecode g s0 := by
   have rd369 := evm_run h with [jumpdest, push0]
-  obtain ⟨_, _, rd370₀⟩ := rd369.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd370₀⟩ := rd369.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd370⟩ : ∃ k' C',
       RD pausableBenchBytecode ee g s0 ⟨370⟩
         (pausedRawWord σ ee :: ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata
@@ -507,18 +507,18 @@ theorem RD.pausableWhenPausedRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv
   let errSel : UInt256 := UInt256.shiftLeft (⟨0x8dfc202b⟩ : UInt256) ⟨224⟩
   have rd390 := evm_run rd377 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push4 ⟨0x8dfc202b⟩, push1 ⟨224⟩, shl, dup2,
-    raw mstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by decide)
+    raw rawMstore 6 (solcReturnMem errSel) (UInt256.ofNat 5) (by decide)
       mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov)]
   have rd400 := evm_run rd390 with [
     push1 ⟨4⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
       mem_cost (solcReturnMem_mload64 errSel) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
-  exact rd400.rev 0 (by decide) mem_cost (by evm_ov)
+  exact rd400.rawRev 0 (by decide) mem_cost (by evm_ov)
 
 end Reasoning.Reach

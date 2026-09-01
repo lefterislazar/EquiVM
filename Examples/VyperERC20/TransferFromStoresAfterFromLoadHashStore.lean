@@ -24,7 +24,7 @@ theorem erc20X_transferFromAfterFromLoadHashStore {cA gh bl σ σ₀ A I} {g : S
         (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)) k C := by
   obtain ⟨k, C, rd500⟩ := hreach
   have rd501 := rd500.push0 (by native_decide) (by evm_ov)
-  have rd502 := rd501.mstore 0
+  have rd502 := rd501.rawMstore 0
     (wordAt0Mem ⟨0⟩
       (wordAt32Mem (transferFromFromWord I) (transferFromAllowanceScratchMemI σ I)))
     (UInt256.ofNat 5)

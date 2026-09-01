@@ -45,7 +45,7 @@ theorem blindAuctionX_highestBid {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, callvalue, dup1, iszero, push2 ⟨500⟩,
     jumpiT (by rw [hwv]; decide) (by jump_dest),
     jumpdest, pop, push2 ⟨373⟩, push1 ⟨6⟩ ]
-  obtain ⟨_, _, rd508₀⟩ := rd507.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd508₀⟩ := rd507.rawSload (by decide) (by evm_ov)
   obtain ⟨_, _, rd508⟩ :
       ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨508⟩
         [highestBidWord σ I, ⟨373⟩, blindAuctionSelWord I] solcFreePtrMem
