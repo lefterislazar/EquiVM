@@ -418,11 +418,14 @@ theorem scratch_revealBid_arrayIndexInBounds_ok (evm : EVM.State) (i len : UInt2
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (bidsBase (.address evm.executionEnv.source)) = len)
     (hbound : i.toNat < len.toNat) :
-    arrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
+    backendArrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
       [.mindex (.address evm.executionEnv.source)] (.int (Int.ofNat i.toNat)) = .ok () := by
-  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionConfig,
-    blindAuctionStorageLayout, blindAuctionContract, storageDecls, bidStructTy, uint256St,
-    bytes32St, blindAuctionStorageLocLoad_uint256, hlen, hbound]
+  apply backendArrayIndexInBounds_dynamicArray_ok
+    (elem := bidStructTy) (len := len.toNat)
+  · simp [storageTypeAt?, storageTypeStep?, blindAuctionContract, storageDecls]
+  · simpa [hlen] using blindAuctionConfig_storage_bids_length
+      (.address evm.executionEnv.source) bidStructTy evm
+  · exact hbound
 
 theorem scratch_evalStorageRef_reveal_bid_ok (evm : EVM.State) (callargs : Store)
     (len refund i : UInt256)
@@ -600,18 +603,25 @@ theorem scratch_resolveStorageRef_reveal_bid_deposit_ok (evm : EVM.State)
     scratch_revealBidEvaledRef, scratch_revealBidFieldRef, storageTypeStep?, bidStructTy,
     uint256St]
 
-theorem scratch_revealBid_blinded_layout (evm : EVM.State) (i : UInt256) :
-    blindAuctionConfig.storage.layout (scratch_revealBidFieldRef evm i "blindedBid") =
-      fun _ => some (blindAuctionBytes32Loc (scratch_revealBidBlindedSlot evm i)) := by
-  funext evm'
-  simp [scratch_revealBidFieldRef, scratch_revealBidEvaledRef, scratch_revealBidBlindedSlot]
+theorem scratch_revealBid_blinded_read (evm : EVM.State) (i : UInt256) :
+    blindAuctionConfig.storage.read (scratch_revealBidFieldRef evm i "blindedBid")
+        (.elem (.bytes ⟨31, by decide⟩)) evm =
+      .ok (storageLocLoad evm
+        (blindAuctionBytes32Loc (scratch_revealBidBlindedSlot evm i))) := by
+  simpa only [scratch_revealBidFieldRef, scratch_revealBidEvaledRef,
+    scratch_revealBidBlindedSlot, List.cons_append, List.nil_append] using
+      blindAuctionConfig_storage_bids_blindedBid
+        (.address evm.executionEnv.source) (.int (Int.ofNat i.toNat)) (evm := evm)
 
-theorem scratch_revealBid_deposit_layout (evm : EVM.State) (i : UInt256) :
-    blindAuctionConfig.storage.layout (scratch_revealBidFieldRef evm i "deposit") =
-      fun _ => some (blindAuctionUint256Loc (scratch_revealBidDepositSlot evm i)) := by
-  funext evm'
-  simp [scratch_revealBidFieldRef, scratch_revealBidEvaledRef, scratch_revealBidDepositSlot,
-    scratch_revealBidBlindedSlot]
+theorem scratch_revealBid_deposit_read (evm : EVM.State) (i : UInt256) :
+    blindAuctionConfig.storage.read (scratch_revealBidFieldRef evm i "deposit")
+        (.elem (.int uint256Int)) evm =
+      .ok (storageLocLoad evm
+        (blindAuctionUint256Loc (scratch_revealBidDepositSlot evm i))) := by
+  simpa only [scratch_revealBidFieldRef, scratch_revealBidEvaledRef,
+    scratch_revealBidDepositSlot, scratch_revealBidBlindedSlot, List.cons_append,
+    List.nil_append] using blindAuctionConfig_storage_bids_deposit
+      (.address evm.executionEnv.source) (.int (Int.ofNat i.toNat)) (evm := evm)
 
 theorem scratch_evalExpr_reveal_bid_blinded (evm : EVM.State) (locals : Store)
     (i blinded : UInt256)
@@ -628,11 +638,7 @@ theorem scratch_evalExpr_reveal_bid_blinded (evm : EVM.State) (locals : Store)
   simp only [scratch_resolveStorageRef_reveal_bid_blinded_ok evm locals i hbid,
     EvalResult.bind, bind]
   unfold bytes32St
-  rw [readStorage?_elem (cfg := blindAuctionConfig)
-    (evm := evm) (er := scratch_revealBidFieldRef evm i "blindedBid")
-    (t := .bytes ⟨31, by decide⟩)
-    (loc := blindAuctionBytes32Loc (scratch_revealBidBlindedSlot evm i))
-    (scratch_revealBid_blinded_layout evm i)]
+  rw [scratch_revealBid_blinded_read evm i]
   rw [blindAuctionStorageLocLoad_bytes32, hblinded]
 
 theorem scratch_evalExpr_reveal_hash_guard_true (evm : EVM.State) (locals : Store)
@@ -1156,11 +1162,7 @@ theorem scratch_evalExpr_reveal_bid_deposit (evm : EVM.State) (locals : Store)
   simp only [scratch_resolveStorageRef_reveal_bid_deposit_ok evm locals i hbid,
     EvalResult.bind, bind]
   unfold uint256St
-  rw [readStorage?_elem (cfg := blindAuctionConfig)
-    (evm := evm) (er := scratch_revealBidFieldRef evm i "deposit")
-    (t := .int uint256Int)
-    (loc := blindAuctionUint256Loc (scratch_revealBidDepositSlot evm i))
-    (scratch_revealBid_deposit_layout evm i)]
+  rw [scratch_revealBid_deposit_read evm i]
   rw [blindAuctionStorageLocLoad_uint256, hdeposit]
 
 theorem scratch_evalExpr_reveal_placeBid_cond_true (evm : EVM.State) (locals : Store)
@@ -1271,11 +1273,17 @@ theorem scratch_assign_reveal_blinded_zero (evm : EVM.State) (locals : Store)
   rw [assignStorageRef?]
   simp only [scratch_resolveStorageRef_reveal_bid_blinded_ok evm locals i hbid,
     EvalResult.bind, bind]
-  have hloc := scratch_revealBid_blinded_layout evm i
-  simp only [hloc, EvalResult.ofOption, Option.bind]
-  rw [scratch_blindAuctionStorageLocStore_bytes32 (word := EVM.Word.ofNat 0)]
-  · rfl
-  · native_decide
+  have hstore : storageLocStore evm
+      (blindAuctionBytes32Loc (scratch_revealBidBlindedSlot evm i))
+      (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE (EVM.Word.ofNat 0))) =
+        some (scratch_revealZeroBlindedState evm i) := by
+    rw [scratch_blindAuctionStorageLocStore_bytes32 (word := EVM.Word.ofNat 0)]
+    · rfl
+    · native_decide
+  have hwrite := blindAuctionConfig_write_bids_blindedBid
+    (.address evm.executionEnv.source) (.int (Int.ofNat i.toNat)) hstore
+  simpa only [scratch_revealBidFieldRef, scratch_revealBidEvaledRef, bytes32St,
+    List.cons_append, List.nil_append, hwrite, EvalResult.bind, bind, pure]
 
 theorem scratch_assign_local_value (evm : EVM.State) (locals : Store)
     (name : Ident) (old value : Value)

@@ -38,7 +38,7 @@ theorem blindAuctionEndedBodyReturns (evm : EVM.State) (locals : Store)
           ({ base := "ended", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
         decide
       rw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := blindAuctionConfig_storage_ended),
+        (hty := hty) (hread := blindAuctionConfig_storage_ended),
         blindAuctionStorageLocLoad_bool_offset0])
 
 theorem blindAuctionX_ended {cA gh bl σ σ₀ A I} {g : Sat256}

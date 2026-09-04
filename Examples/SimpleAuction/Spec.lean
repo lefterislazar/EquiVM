@@ -1,5 +1,5 @@
 import Solm.Semantics
-import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # SimpleAuction — Solm specification for `SimpleAuction.sol`
@@ -168,12 +168,7 @@ def simpleAuctionContract : ContractDecl :=
       [ bidTransition, withdrawTransition, auctionEndTransition,
         beneficiaryGetter, auctionEndTimeGetter, highestBidderGetter, highestBidGetter ] }
 
-/-! ## Hand-written storage layout
-
-The generated Solidity-layout helper currently places the scalar after a mapping one slot too late
-for this contract.  The deployed bytecode uses Solidity's standard layout:
-`pendingReturns` reserves only base slot 4 and `ended` is packed at slot 5, byte offset 0.
--/
+/-! ## Storage locations used by the bytecode proofs -/
 
 def simpleAuctionUint256Loc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 32, hbound := by decide, type := .int uint256Int }
@@ -190,51 +185,140 @@ def simpleAuctionMappingSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt25
 def pendingReturnsSlot (owner : KeyValue) : Ethereum.UInt256 :=
   simpleAuctionMappingSlot (keyValueToWord owner) ⟨4⟩
 
-def simpleAuctionStorageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "beneficiary", [] => some (simpleAuctionAddrLoc ⟨0⟩)
-    | "auctionEndTime", [] => some (simpleAuctionUint256Loc ⟨1⟩)
-    | "highestBidder", [] => some (simpleAuctionAddrLoc ⟨2⟩)
-    | "highestBid", [] => some (simpleAuctionUint256Loc ⟨3⟩)
-    | "pendingReturns", [.mindex owner] => some (simpleAuctionUint256Loc (pendingReturnsSlot owner))
-    | "ended", [] => some (simpleAuctionBoolLoc ⟨5⟩)
-    | _, _ => none
+def simpleAuctionStorageBackend : StorageBackend :=
+  solidityStorage! [([] : List StructDecl)] [storageDecls]
 
 end SimpleAuction
 
 def simpleAuctionConfig : Config :=
-  { storage := SimpleAuction.simpleAuctionStorageLayout
+  { storage := SimpleAuction.simpleAuctionStorageBackend
     externalABI := defaultExternalCallABI
     selfDeployment :=
       genSolidityConstructorDeployment SimpleAuction.simpleAuctionContract.ctor.params }
 
 @[simp] theorem simpleAuctionConfig_storage_beneficiary :
-    simpleAuctionConfig.storage.layout { base := "beneficiary", steps := [] } =
+    simpleAuctionConfig.storage.locate? { base := "beneficiary", steps := [] } =
       fun _ => some (SimpleAuction.simpleAuctionAddrLoc ⟨0⟩) :=
   rfl
 
 @[simp] theorem simpleAuctionConfig_storage_auctionEndTime :
-    simpleAuctionConfig.storage.layout { base := "auctionEndTime", steps := [] } =
+    simpleAuctionConfig.storage.locate? { base := "auctionEndTime", steps := [] } =
       fun _ => some (SimpleAuction.simpleAuctionUint256Loc ⟨1⟩) :=
   rfl
 
 @[simp] theorem simpleAuctionConfig_storage_highestBidder :
-    simpleAuctionConfig.storage.layout { base := "highestBidder", steps := [] } =
+    simpleAuctionConfig.storage.locate? { base := "highestBidder", steps := [] } =
       fun _ => some (SimpleAuction.simpleAuctionAddrLoc ⟨2⟩) :=
   rfl
 
 @[simp] theorem simpleAuctionConfig_storage_highestBid :
-    simpleAuctionConfig.storage.layout { base := "highestBid", steps := [] } =
+    simpleAuctionConfig.storage.locate? { base := "highestBid", steps := [] } =
       fun _ => some (SimpleAuction.simpleAuctionUint256Loc ⟨3⟩) :=
   rfl
 
 @[simp] theorem simpleAuctionConfig_storage_pendingReturns (owner : KeyValue) :
-    simpleAuctionConfig.storage.layout { base := "pendingReturns", steps := [.mindex owner] } =
+    simpleAuctionConfig.storage.locate? { base := "pendingReturns", steps := [.mindex owner] } =
       fun _ => some (SimpleAuction.simpleAuctionUint256Loc (SimpleAuction.pendingReturnsSlot owner)) :=
   rfl
 
 @[simp] theorem simpleAuctionConfig_storage_ended :
-    simpleAuctionConfig.storage.layout { base := "ended", steps := [] } =
+    simpleAuctionConfig.storage.locate? { base := "ended", steps := [] } =
       fun _ => some (SimpleAuction.simpleAuctionBoolLoc ⟨5⟩) :=
   rfl
+
+@[simp] theorem simpleAuctionConfig_read_beneficiary (evm : EVM.State) :
+    simpleAuctionConfig.storage.read { base := "beneficiary", steps := [] }
+        SimpleAuction.addrSt evm =
+      .ok (storageLocLoad evm (SimpleAuction.simpleAuctionAddrLoc ⟨0⟩)) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem simpleAuctionConfig_read_auctionEndTime (evm : EVM.State) :
+    simpleAuctionConfig.storage.read { base := "auctionEndTime", steps := [] }
+        SimpleAuction.uint256St evm =
+      .ok (storageLocLoad evm (SimpleAuction.simpleAuctionUint256Loc ⟨1⟩)) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem simpleAuctionConfig_read_highestBidder (evm : EVM.State) :
+    simpleAuctionConfig.storage.read { base := "highestBidder", steps := [] }
+        SimpleAuction.addrSt evm =
+      .ok (storageLocLoad evm (SimpleAuction.simpleAuctionAddrLoc ⟨2⟩)) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem simpleAuctionConfig_read_highestBid (evm : EVM.State) :
+    simpleAuctionConfig.storage.read { base := "highestBid", steps := [] }
+        SimpleAuction.uint256St evm =
+      .ok (storageLocLoad evm (SimpleAuction.simpleAuctionUint256Loc ⟨3⟩)) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem simpleAuctionConfig_read_pendingReturns (owner : KeyValue) (evm : EVM.State) :
+    simpleAuctionConfig.storage.read
+        { base := "pendingReturns", steps := [.mindex owner] } SimpleAuction.uint256St evm =
+      .ok (storageLocLoad evm
+        (SimpleAuction.simpleAuctionUint256Loc (SimpleAuction.pendingReturnsSlot owner))) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem simpleAuctionConfig_read_ended (evm : EVM.State) :
+    simpleAuctionConfig.storage.read { base := "ended", steps := [] }
+        SimpleAuction.boolSt evm =
+      .ok (storageLocLoad evm (SimpleAuction.simpleAuctionBoolLoc ⟨5⟩)) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+theorem simpleAuctionConfig_write_beneficiary {evm evm' : EVM.State} {value : Value}
+    (hstore : storageLocStore evm (SimpleAuction.simpleAuctionAddrLoc ⟨0⟩) value = some evm') :
+    simpleAuctionConfig.storage.write { base := "beneficiary", steps := [] }
+        SimpleAuction.addrSt value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+theorem simpleAuctionConfig_write_auctionEndTime {evm evm' : EVM.State} {value : Value}
+    (hstore : storageLocStore evm
+      (SimpleAuction.simpleAuctionUint256Loc ⟨1⟩) value = some evm') :
+    simpleAuctionConfig.storage.write { base := "auctionEndTime", steps := [] }
+        SimpleAuction.uint256St value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+theorem simpleAuctionConfig_write_highestBidder {evm evm' : EVM.State} {value : Value}
+    (hstore : storageLocStore evm (SimpleAuction.simpleAuctionAddrLoc ⟨2⟩) value = some evm') :
+    simpleAuctionConfig.storage.write { base := "highestBidder", steps := [] }
+        SimpleAuction.addrSt value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+theorem simpleAuctionConfig_write_highestBid {evm evm' : EVM.State} {value : Value}
+    (hstore : storageLocStore evm
+      (SimpleAuction.simpleAuctionUint256Loc ⟨3⟩) value = some evm') :
+    simpleAuctionConfig.storage.write { base := "highestBid", steps := [] }
+        SimpleAuction.uint256St value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+theorem simpleAuctionConfig_write_pendingReturns {evm evm' : EVM.State}
+    (owner : KeyValue) {value : Value}
+    (hstore : storageLocStore evm
+      (SimpleAuction.simpleAuctionUint256Loc (SimpleAuction.pendingReturnsSlot owner)) value =
+        some evm') :
+    simpleAuctionConfig.storage.write
+        { base := "pendingReturns", steps := [.mindex owner] }
+        SimpleAuction.uint256St value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+theorem simpleAuctionConfig_write_ended {evm evm' : EVM.State} {value : Value}
+    (hstore : storageLocStore evm (SimpleAuction.simpleAuctionBoolLoc ⟨5⟩) value = some evm') :
+    simpleAuctionConfig.storage.write { base := "ended", steps := [] }
+        SimpleAuction.boolSt value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore

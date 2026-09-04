@@ -1161,6 +1161,7 @@ theorem blindAuctionCtorAssignBeneficiary (evm : EVM.State) (biddingTime revealT
                locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress },
              blindAuctionCtorAfterBeneficiaryState evm beneficiaryAddress) := by
   apply assignStorageRef_storage_scalar_value (ty := addrSt)
+      (er := { base := "beneficiary", steps := [] })
       (hbase := by simp [blindAuctionCtorLocals, beneficiaryRef, blindAuctionContract,
         constructorDecl])
       (her := by
@@ -1169,11 +1170,11 @@ theorem blindAuctionCtorAssignBeneficiary (evm : EVM.State) (biddingTime revealT
         show storageTypeAt? blindAuctionContract.storage ({ base := "beneficiary", steps := [] } :
           EvaledStorageRef) = some addrSt
         decide)
-      (hloc := blindAuctionConfig_storage_beneficiary)
-      (hscalar := by trivial)
-  simpa [blindAuctionCtorAfterBeneficiaryState, blindAuctionBeneficiary_ofNat] using
-    blindAuctionStorageLocStore_address_offset0 evm ⟨0⟩ (EVM.word beneficiaryAddress)
-      (blindAuctionBeneficiaryWord_canonical beneficiaryAddress)
+      (hwrite := by
+        apply blindAuctionConfig_write_beneficiary
+        simpa [blindAuctionCtorAfterBeneficiaryState, blindAuctionBeneficiary_ofNat] using
+          blindAuctionStorageLocStore_address_offset0 evm ⟨0⟩ (EVM.word beneficiaryAddress)
+            (blindAuctionBeneficiaryWord_canonical beneficiaryAddress))
 
 theorem blindAuctionCtorBiddingEndExprReverts
     (evm : EVM.State) (biddingTime revealTime : Int) (beneficiaryAddress : AccountAddress)
@@ -1272,6 +1273,7 @@ theorem blindAuctionCtorAssignBiddingEnd (evm : EVM.State) (biddingTime revealTi
              Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨1⟩
                (blindAuctionCtorBiddingEndSolmWord evm biddingTime)) := by
   apply assignStorageRef_storage_scalar (ty := uint256St)
+      (er := { base := "biddingEnd", steps := [] })
       (hbase := by
         unfold blindAuctionCtorLocals
         simp only [blindAuctionContract, constructorDecl, List.map_cons, List.map_nil,
@@ -1289,9 +1291,9 @@ theorem blindAuctionCtorAssignBiddingEnd (evm : EVM.State) (biddingTime revealTi
         simp [evalStorageRef, evalStorageRefSteps, biddingEndRef, EvalResult.bind, pure, bind])
       (hty := by
         simp [storageTypeAt?, blindAuctionContract, storageDecls, uint256St])
-      (hloc := blindAuctionConfig_storage_biddingEnd)
-  exact blindAuctionStorageLocStore_uint256 evm ⟨1⟩
-    (blindAuctionCtorBiddingEndSolmWord evm biddingTime)
+      (hwrite := blindAuctionConfig_write_biddingEnd
+        (blindAuctionStorageLocStore_uint256 evm ⟨1⟩
+          (blindAuctionCtorBiddingEndSolmWord evm biddingTime)))
 
 theorem blindAuctionCtorRevealEndExprReverts
     (evm : EVM.State) (biddingTime revealTime : Int) (beneficiaryAddress : AccountAddress)
@@ -1324,7 +1326,7 @@ theorem blindAuctionCtorRevealEndExprReverts
     rw [evalExpr_storage_scalar (t := .int uint256Int)
       (hbase := by simp [blindAuctionCtorLocals, biddingEndRef, blindAuctionContract,
         constructorDecl])
-      (her := her) (hty := hty) (hloc := blindAuctionConfig_storage_biddingEnd)]
+      (her := her) (hty := hty) (hread := blindAuctionConfig_storage_biddingEnd)]
     rw [blindAuctionStorageLocLoad_uint256]
   have hge :
       Int.ofNat ((Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat +
@@ -1384,7 +1386,7 @@ theorem blindAuctionCtorRevealEndExprOK
     rw [evalExpr_storage_scalar (t := .int uint256Int)
       (hbase := by simp [blindAuctionCtorLocals, biddingEndRef, blindAuctionContract,
         constructorDecl])
-      (her := her) (hty := hty) (hloc := blindAuctionConfig_storage_biddingEnd)]
+      (her := her) (hty := hty) (hread := blindAuctionConfig_storage_biddingEnd)]
     rw [blindAuctionStorageLocLoad_uint256]
   have hsumlt :
       (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat + revealTime.toNat <
@@ -1432,6 +1434,7 @@ theorem blindAuctionCtorAssignRevealEnd (evm : EVM.State) (biddingTime revealTim
                locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress },
              Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨2⟩ val) := by
   apply assignStorageRef_storage_scalar (ty := uint256St)
+      (er := { base := "revealEnd", steps := [] })
       (hbase := by
         unfold blindAuctionCtorLocals
         simp only [blindAuctionContract, constructorDecl, List.map_cons, List.map_nil,
@@ -1449,8 +1452,8 @@ theorem blindAuctionCtorAssignRevealEnd (evm : EVM.State) (biddingTime revealTim
         simp [evalStorageRef, evalStorageRefSteps, revealEndRef, EvalResult.bind, pure, bind])
       (hty := by
         simp [storageTypeAt?, blindAuctionContract, storageDecls, uint256St])
-      (hloc := blindAuctionConfig_storage_revealEnd)
-  exact blindAuctionStorageLocStore_uint256 evm ⟨2⟩ val
+      (hwrite := blindAuctionConfig_write_revealEnd
+        (blindAuctionStorageLocStore_uint256 evm ⟨2⟩ val))
 
 theorem blindAuctionSolmCtorExecReverts_nonpayable
     {createdAccounts : Batteries.RBSet AccountAddress compare}

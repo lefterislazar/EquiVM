@@ -37,7 +37,7 @@ theorem blindAuctionBeneficiaryBodyReturns (evm : EVM.State) (locals : Store)
           some (.elem .address) := by
         decide
       rw [evalExpr_storage_scalar (t := .address) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := blindAuctionConfig_storage_beneficiary),
+        (hty := hty) (hread := blindAuctionConfig_storage_beneficiary),
         blindAuctionStorageLocLoad_address_offset0])
 
 theorem blindAuctionX_beneficiary {cA gh bl σ σ₀ A I} {g : Sat256}

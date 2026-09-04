@@ -30,7 +30,7 @@ def solidityValueResultToEval : StorageReadResult Value -> EvalResult Value
   | .revert => .revert
   | .error => .error .storageError
 
-private def solidityDynamicLength? (layout : StorageLayout) (evm : EVM.State)
+def solidityDynamicLength? (layout : StorageLayout) (evm : EVM.State)
     (er : EvaledStorageRef) : EvalResult Nat := do
   let lenLoc <- EvalResult.ofOption .storageError (layout er evm)
   match storageLocLoad evm lenLoc with

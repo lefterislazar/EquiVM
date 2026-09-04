@@ -1,5 +1,5 @@
 import Solm.Semantics
-import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # Reuse — Solm spec for `C.sol`
@@ -31,6 +31,13 @@ def sLoc : StorageLoc :=
 /-- `s` storage reference. -/
 def sRef : StorageRef := { base := "s" }
 
+def storageDecls : List StorageDecl :=
+  [{ name := "s", ty := .elem (.int uint256Int) }]
+
+/-- Generated Solidity backend for the full-word `s` value at slot 0. -/
+def storageBackend : StorageBackend :=
+  solidityStorage! [([] : List StructDecl)] [storageDecls]
+
 /-- `f(uint256 v) → uint256`, returning `v * 2 + 1`.  External ABI entry *and* internal call target. -/
 def fTransition : TransitionDecl :=
   { name := "f"
@@ -55,7 +62,7 @@ def gTransition : TransitionDecl :=
 /-- The `C` contract: one scalar storage word, no constructor body, two transitions (`f`, `g`). -/
 def cContract : ContractDecl :=
   { name := "C"
-    storage := [{ name := "s", ty := .elem (.int uint256Int) }]
+    storage := storageDecls
     ctor := { params := [], body := [] }
     transitions := [fTransition, gTransition] }
 
@@ -63,10 +70,23 @@ end Reuse
 
 /-- Verification config: `s` at slot 0, default external-call ABI. -/
 def cConfig : Config :=
-  { storage :=
-      { layout := fun ref =>
-          match ref.base, ref.steps with
-          | "s", [] => fun _ => some Reuse.sLoc
-          | _, _ => fun _ => none }
+  { storage := Reuse.storageBackend
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment Reuse.cContract.ctor.params }
+
+@[simp] theorem cConfig_read_s (evm : EVM.State) :
+    cConfig.storage.read { base := "s", steps := [] }
+        (.elem (.int Reuse.uint256Int)) evm =
+      .ok (storageLocLoad evm Reuse.sLoc) := by
+  change (solidityStorageBackend _).read _ (.elem (.int Reuse.uint256Int)) evm = _
+  apply solidityStorageBackend_read_elem
+  rfl
+
+theorem cConfig_write_s {evm evm' : EVM.State} {i : Int}
+    (hstore : storageLocStore evm Reuse.sLoc (.int i) = some evm') :
+    cConfig.storage.write { base := "s", steps := [] }
+        (.elem (.int Reuse.uint256Int)) (.int i) evm = .ok evm' := by
+  change (solidityStorageBackend _).write _ (.elem (.int Reuse.uint256Int)) (.int i) evm = _
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore

@@ -257,7 +257,7 @@ theorem evalExpr_transferFrom_operator (evm : EVM.State) (I : ExecutionEnv) :
     (hty := by
       simp [storageTypeAt?, transferFromOperatorEvaledRef, contract, storageDecls, boolSt,
         storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromOperatorEvaledRef,
+    (hread := by simp [transferFromOperatorEvaledRef,
       transferFromOperatorSlot])]
   simpa [transferFromOperatorValue, transferFromOperatorWord, boolLoc, boolOffset0Loc] using
     storageLocLoad_bool_offset0 evm (transferFromOperatorSlot evm I)
@@ -442,7 +442,7 @@ theorem evalExpr_transferFrom_currentAllowance (evm : EVM.State) (I : ExecutionE
     (hty := by
       simp [storageTypeAt?, transferFromAllowanceEvaledRef, contract, storageDecls, uint256St,
         storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromAllowanceEvaledRef,
+    (hread := by simp [transferFromAllowanceEvaledRef,
       transferFromAllowanceSlot])]
   simp [transferFromCurrentAllowanceValue, transferFromCurrentAllowanceWord,
     erc6909StorageLocLoad_uint256]
@@ -456,16 +456,15 @@ theorem transferFromAssignAllowance (evm : EVM.State) (I : ExecutionEnv) :
           transferFromAfterAllowanceState evm I) := by
   simp only [allowanceRef]
   apply assignStorageRef_storage_scalar (ty := uint256St)
-      (loc := wordLoc (transferFromAllowanceSlot evm I))
       (hbase := by simp [allowanceRef, transferFromStoreCurrentAllowance, transferFromStore])
       (her := evalStorageRef_transferFrom_allowance_currentAllowance evm evm I)
       (hty := by
         simp [storageTypeAt?, transferFromAllowanceEvaledRef, contract, storageDecls, uint256St,
           storageTypeStep?])
-      (hloc := by
-        simp [config, storageLayout, transferFromAllowanceEvaledRef, transferFromAllowanceSlot])
-  rw [erc6909StorageLocStore_uint256]
-  simp [transferFromAfterAllowanceState, transferFromAllowanceSlot]
+      (hwrite := by
+        apply config_write_allowance
+        rw [erc6909StorageLocStore_uint256]
+        simp [transferFromAfterAllowanceState, transferFromAllowanceSlot])
 
 theorem evalExpr_transferFrom_allowance_ge_true (evm : EVM.State) (I : ExecutionEnv)
     (henough : (transferFromAmountWord I).toNat ≤
@@ -560,7 +559,6 @@ theorem transferFromAssignSenderBalance (evm : EVM.State) (I : ExecutionEnv) :
           transferFromAfterSenderBalanceState evm I) := by
   simp only [balanceRef]
   apply assignStorageRef_storage_scalar (ty := uint256St)
-      (loc := wordLoc (transferFromSenderBalanceSlot I))
       (hbase := by simp [balanceRef, transferFromStoreFromBalance, transferFromStoreCurrentAllowance,
         transferFromStore])
       (her := evalStorageRef_transferFrom_sender_balance_fromBalance evm
@@ -568,11 +566,11 @@ theorem transferFromAssignSenderBalance (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by
         simp [storageTypeAt?, transferFromSenderBalanceEvaledRef, contract, storageDecls,
           uint256St, storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferFromSenderBalanceEvaledRef,
-        transferFromSenderBalanceSlot])
-  rw [erc6909StorageLocStore_uint256]
-  simp [transferFromAfterSenderBalanceState, transferFromSenderBalanceSlot,
-    transferFromAfterAllowance_codeOwner]
+      (hwrite := by
+        apply config_write_balance
+        rw [erc6909StorageLocStore_uint256]
+        simp [transferFromAfterSenderBalanceState, transferFromSenderBalanceSlot,
+          transferFromAfterAllowance_codeOwner])
 
 theorem evalStorageRef_transferFrom_sender_balance_currentAllowance
     (evm evm' : EVM.State) (I : ExecutionEnv) :
@@ -598,7 +596,7 @@ theorem evalExpr_transferFrom_sender_balance (evm : EVM.State) (I : ExecutionEnv
     (hty := by
       simp [storageTypeAt?, transferFromSenderBalanceEvaledRef, contract, storageDecls, uint256St,
         storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromSenderBalanceEvaledRef,
+    (hread := by simp [transferFromSenderBalanceEvaledRef,
       transferFromSenderBalanceSlot])]
   simp [transferFromSenderBalanceValue, transferFromSenderBalanceWord,
     erc6909StorageLocLoad_uint256, transferFromAfterAllowance_codeOwner]
@@ -682,7 +680,7 @@ theorem evalExpr_transferFrom_receiver_balance (evm : EVM.State) (I : ExecutionE
     (hty := by
       simp [storageTypeAt?, transferFromReceiverBalanceEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromReceiverBalanceEvaledRef,
+    (hread := by simp [transferFromReceiverBalanceEvaledRef,
       transferFromReceiverBalanceSlot])]
   simp [transferFromReceiverBalanceValue, transferFromReceiverBalanceWord,
     erc6909StorageLocLoad_uint256, transferFromAfterSenderBalance_codeOwner]
@@ -744,7 +742,6 @@ theorem transferFromAssignReceiverBalance (evm : EVM.State) (I : ExecutionEnv)
           transferFromPostState evm I) := by
   simp only [balanceRef]
   apply assignStorageRef_storage_scalar (ty := uint256St)
-      (loc := wordLoc (transferFromReceiverBalanceSlot I))
       (hbase := by simp [balanceRef, transferFromStoreToBalance, transferFromStoreFromBalance,
         transferFromStoreCurrentAllowance, transferFromStore])
       (her := evalStorageRef_transferFrom_receiver_balance_toBalance evm
@@ -752,12 +749,12 @@ theorem transferFromAssignReceiverBalance (evm : EVM.State) (I : ExecutionEnv)
       (hty := by
         simp [storageTypeAt?, transferFromReceiverBalanceEvaledRef, contract, storageDecls,
           uint256St, storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferFromReceiverBalanceEvaledRef,
-        transferFromReceiverBalanceSlot])
-  rw [← transferFromReceiverCreditWord_toNat evm I hfit]
-  rw [erc6909StorageLocStore_uint256]
-  simp [transferFromPostState, transferFromReceiverBalanceSlot,
-    transferFromAfterSenderBalance_codeOwner]
+      (hwrite := by
+        apply config_write_balance
+        rw [← transferFromReceiverCreditWord_toNat evm I hfit]
+        rw [erc6909StorageLocStore_uint256]
+        simp [transferFromPostState, transferFromReceiverBalanceSlot,
+          transferFromAfterSenderBalance_codeOwner])
 
 theorem evalStorageRef_transferFrom_tail_sender_balance (evm evm' : EVM.State)
     (I : ExecutionEnv) :
@@ -779,7 +776,7 @@ theorem evalExpr_transferFrom_tail_sender_balance (evm : EVM.State) (I : Executi
     (hty := by
       simp [storageTypeAt?, transferFromSenderBalanceEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromSenderBalanceEvaledRef,
+    (hread := by simp [transferFromSenderBalanceEvaledRef,
       transferFromSenderBalanceSlot])]
   simp [transferFromSenderBalanceValue, transferFromSenderBalanceWord,
     erc6909StorageLocLoad_uint256]
@@ -821,16 +818,15 @@ theorem transferFromTailAssignSenderBalance (evm : EVM.State) (I : ExecutionEnv)
           transferFromTailAfterSenderBalanceState evm I) := by
   simp only [balanceRef]
   apply assignStorageRef_storage_scalar (ty := uint256St)
-      (loc := wordLoc (transferFromSenderBalanceSlot I))
       (hbase := by simp [balanceRef, transferFromTailStoreFromBalance, transferFromStore])
       (her := evalStorageRef_transferFrom_tail_sender_balance_fromBalance evm evm I)
       (hty := by
         simp [storageTypeAt?, transferFromSenderBalanceEvaledRef, contract, storageDecls,
           uint256St, storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferFromSenderBalanceEvaledRef,
-        transferFromSenderBalanceSlot])
-  rw [erc6909StorageLocStore_uint256]
-  simp [transferFromTailAfterSenderBalanceState, transferFromSenderBalanceSlot]
+      (hwrite := by
+        apply config_write_balance
+        rw [erc6909StorageLocStore_uint256]
+        simp [transferFromTailAfterSenderBalanceState, transferFromSenderBalanceSlot])
 
 theorem transferFromTailAssignSenderBalance_of_get (locals : Store)
     (evm : EVM.State) (I : ExecutionEnv)
@@ -845,17 +841,16 @@ theorem transferFromTailAssignSenderBalance_of_get (locals : Store)
           transferFromTailAfterSenderBalanceState evm I) := by
   simp only [balanceRef]
   apply assignStorageRef_storage_scalar (ty := uint256St)
-      (loc := wordLoc (transferFromSenderBalanceSlot I))
       (hbase := by simp [balanceRef, transferFromTailStoreFromBalance, hbase])
       (her := evalStorageRef_transferFrom_tail_sender_balance_fromBalance_of_get
         locals evm evm I hsender hid)
       (hty := by
         simp [storageTypeAt?, transferFromSenderBalanceEvaledRef, contract, storageDecls,
           uint256St, storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferFromSenderBalanceEvaledRef,
-        transferFromSenderBalanceSlot])
-  rw [erc6909StorageLocStore_uint256]
-  simp [transferFromTailAfterSenderBalanceState, transferFromSenderBalanceSlot]
+      (hwrite := by
+        apply config_write_balance
+        rw [erc6909StorageLocStore_uint256]
+        simp [transferFromTailAfterSenderBalanceState, transferFromSenderBalanceSlot])
 
 theorem evalExpr_transferFrom_tail_sender_balance_of_get (locals : Store)
     (evm : EVM.State) (I : ExecutionEnv)
@@ -881,7 +876,7 @@ theorem evalExpr_transferFrom_tail_sender_balance_of_get (locals : Store)
     (hty := by
       simp [storageTypeAt?, transferFromSenderBalanceEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromSenderBalanceEvaledRef,
+    (hread := by simp [transferFromSenderBalanceEvaledRef,
       transferFromSenderBalanceSlot])]
   simp [transferFromSenderBalanceValue, transferFromSenderBalanceWord,
     erc6909StorageLocLoad_uint256]
@@ -1055,7 +1050,7 @@ theorem evalExpr_transferFrom_tail_receiver_balance (evm : EVM.State) (I : Execu
     (hty := by
       simp [storageTypeAt?, transferFromReceiverBalanceEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromReceiverBalanceEvaledRef,
+    (hread := by simp [transferFromReceiverBalanceEvaledRef,
       transferFromReceiverBalanceSlot])]
   simp [transferFromTailReceiverBalanceValue, transferFromTailReceiverBalanceWord,
     erc6909StorageLocLoad_uint256, transferFromTailAfterSenderBalance_codeOwner]
@@ -1078,7 +1073,7 @@ theorem evalExpr_transferFrom_tail_receiver_balance_of_get (locals : Store)
     (hty := by
       simp [storageTypeAt?, transferFromReceiverBalanceEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromReceiverBalanceEvaledRef,
+    (hread := by simp [transferFromReceiverBalanceEvaledRef,
       transferFromReceiverBalanceSlot])]
   simp [transferFromTailReceiverBalanceValue, transferFromTailReceiverBalanceWord,
     erc6909StorageLocLoad_uint256, transferFromTailAfterSenderBalance_codeOwner]
@@ -1226,7 +1221,6 @@ theorem transferFromTailAssignReceiverBalance (evm : EVM.State) (I : ExecutionEn
           transferFromTailPostState evm I) := by
   simp only [balanceRef]
   apply assignStorageRef_storage_scalar (ty := uint256St)
-      (loc := wordLoc (transferFromReceiverBalanceSlot I))
       (hbase := by simp [balanceRef, transferFromTailStoreToBalance,
         transferFromTailStoreFromBalance, transferFromStore])
       (her := evalStorageRef_transferFrom_tail_receiver_balance_toBalance evm
@@ -1234,12 +1228,12 @@ theorem transferFromTailAssignReceiverBalance (evm : EVM.State) (I : ExecutionEn
       (hty := by
         simp [storageTypeAt?, transferFromReceiverBalanceEvaledRef, contract, storageDecls,
           uint256St, storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferFromReceiverBalanceEvaledRef,
-        transferFromReceiverBalanceSlot])
-  rw [← transferFromTailReceiverCreditWord_toNat evm I hfit]
-  rw [erc6909StorageLocStore_uint256]
-  simp [transferFromTailPostState, transferFromReceiverBalanceSlot,
-    transferFromTailAfterSenderBalance_codeOwner]
+      (hwrite := by
+        apply config_write_balance
+        rw [← transferFromTailReceiverCreditWord_toNat evm I hfit]
+        rw [erc6909StorageLocStore_uint256]
+        simp [transferFromTailPostState, transferFromReceiverBalanceSlot,
+          transferFromTailAfterSenderBalance_codeOwner])
 
 theorem transferFromTailAssignReceiverBalance_of_get (locals : Store)
     (evm : EVM.State) (I : ExecutionEnv)
@@ -1256,7 +1250,6 @@ theorem transferFromTailAssignReceiverBalance_of_get (locals : Store)
           transferFromTailPostState evm I) := by
   simp only [balanceRef]
   apply assignStorageRef_storage_scalar (ty := uint256St)
-      (loc := wordLoc (transferFromReceiverBalanceSlot I))
       (hbase := by
         simp [balanceRef, transferFromTailStoreToBalance, transferFromTailStoreFromBalance,
           hbase])
@@ -1265,12 +1258,12 @@ theorem transferFromTailAssignReceiverBalance_of_get (locals : Store)
       (hty := by
         simp [storageTypeAt?, transferFromReceiverBalanceEvaledRef, contract, storageDecls,
           uint256St, storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferFromReceiverBalanceEvaledRef,
-        transferFromReceiverBalanceSlot])
-  rw [← transferFromTailReceiverCreditWord_toNat evm I hfit]
-  rw [erc6909StorageLocStore_uint256]
-  simp [transferFromTailPostState, transferFromReceiverBalanceSlot,
-    transferFromTailAfterSenderBalance_codeOwner]
+      (hwrite := by
+        apply config_write_balance
+        rw [← transferFromTailReceiverCreditWord_toNat evm I hfit]
+        rw [erc6909StorageLocStore_uint256]
+        simp [transferFromTailPostState, transferFromReceiverBalanceSlot,
+          transferFromTailAfterSenderBalance_codeOwner])
 
 
 

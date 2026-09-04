@@ -184,7 +184,7 @@ theorem stringStoreLiteSetNewLongRuntime
             (value := setDecodedValueBytes I)
             hvalueSizeLong hload hpacked hflag rfl (by simpa [oldLen] using hvalid)
         have hwrite :
-            writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
+            stringStoreLiteWriteStorage? evmSolm0 { base := "current", steps := [] }
               .string (.bytes (setDecodedValueBytes I)) = .ok evmSolm1 := by
           simpa [evmSolm1, evmSolm0, initState] using hwrite₀
         exact setRuntimeOfWriteEVMStateEquiv hcode hwv hret hd hdec hwrite
@@ -208,7 +208,7 @@ theorem stringStoreLiteSetNewLongRuntime
         have hpacked : checkBytesPacked ⟨0⟩ evmSolm0 = true :=
           checkBytesPacked_of_storageLoad_land_one_zero hload hflag
         have hwrite :
-            writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
+            stringStoreLiteWriteStorage? evmSolm0 { base := "current", steps := [] }
               .string (.bytes (setDecodedValueBytes I)) = .ok evmSolm0 :=
           writeCurrentLongPackedAbsent (evm := evmSolm0)
             (header := currentLengthHeaderWord σ_evm I) (len := oldLen)
@@ -407,7 +407,7 @@ theorem stringStoreLiteSetNewLongRuntime
       have hrev := stringStoreLiteX_setShortNonemptyWriteShortMalformed
         (payloadStart := payloadStart) (len := len) hnz hlenMaxLen hsrc rd1350 hflag hbad
       have hwrite :
-          writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
+          stringStoreLiteWriteStorage? evmSolm0 { base := "current", steps := [] }
             .string (.bytes (setDecodedValueBytes I)) = .revert :=
         writeCurrentMalformedShort (evm := evmSolm0)
           (header := currentLengthHeaderWord σ_evm I)
@@ -423,7 +423,7 @@ theorem stringStoreLiteSetNewLongRuntime
     · have hrev := stringStoreLiteX_setShortNonemptyWriteLongMalformed
         (payloadStart := payloadStart) (len := len) hnz hlenMaxLen hsrc rd1350 hflag hbadLong
       have hwrite :
-          writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
+          stringStoreLiteWriteStorage? evmSolm0 { base := "current", steps := [] }
             .string (.bytes (setDecodedValueBytes I)) = .revert :=
         writeCurrentMalformedLong (evm := evmSolm0)
           (header := currentLengthHeaderWord σ_evm I)
@@ -497,7 +497,7 @@ theorem stringStoreLiteSetNewLongRuntime
           (value := setDecodedValueBytes I)
           hvalueSizeLong hload hflag rfl (by simpa [oldLen] using hbadLong)
       have hwrite :
-          writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
+          stringStoreLiteWriteStorage? evmSolm0 { base := "current", steps := [] }
             .string (.bytes (setDecodedValueBytes I)) = .ok evmSolm1 := by
         simpa [evmSolm1, evmSolm0, oldLen, initState] using hwrite₀
       exact setRuntimeOfWriteEVMStateEquiv hcode hwv hret hd hdec hwrite

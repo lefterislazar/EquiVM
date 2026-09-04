@@ -123,20 +123,22 @@ theorem erc20AllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       some (.elem (.int uint256Int)) := by
     simp [storageTypeAt?, erc20Contract, ERC20.erc20Contract, ERC20.erc20StorageDecls,
       uint256Storage, ERC20.uint256Storage, List.find?, List.foldlM, storageTypeStep?]
-  have hloc : vyperERC20Config.storage.layout
+  have hread : vyperERC20Config.storage.read
       { base := "allowance",
         steps := [.mindex (.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat)),
-                  .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat))] } =
-      fun _ => some (vyperUint256Loc (allowanceSlot I)) := by
-    simp [allowanceSlot, vyperERC20Config_storage_allowance, allowanceOwnerValue,
-      allowanceSpenderValue, erc20AllowanceSlot]
+                  .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat))] }
+      uint256Storage evm = .ok (storageLocLoad evm (vyperUint256Loc (allowanceSlot I))) := by
+    simpa [allowanceSlot, allowanceOwnerValue, allowanceSpenderValue, erc20AllowanceSlot] using
+      vyperERC20Config_read_allowance
+        (.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat))
+        (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat)) evm
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       rw [evalExpr_storage_scalar (t := .int uint256Int)
         (hbase := allowanceStore_allowance I)
         (her := her)
         (hty := hty)
-        (hloc := hloc)]
+        (hread := hread)]
       rw [vyperERC20StorageLocLoad_uint256])
 
 def allowanceDispatchMem : ByteArray :=

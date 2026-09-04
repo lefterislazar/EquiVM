@@ -46,16 +46,14 @@ theorem erc6909WordToElem_bool_scalar (word : UInt256) :
 
 theorem assignStorageRef_storage_bool_word {cfg : Config} {solm : Frame}
     {evm evm' : EVM.State} {slot : StorageRef} {er : EvaledStorageRef}
-    {ty : StorageType} {loc : StorageLoc} {word : UInt256}
+    {ty : StorageType} {word : UInt256}
     (hbase : solm.locals.get? slot.base = none)
     (her : evalStorageRef cfg solm evm slot = .ok er)
     (hty : storageTypeAt? solm.contract.storage er = some ty)
-    (hloc : cfg.storage.layout er = fun _ => some loc)
-    (hstore : storageLocStore evm loc (wordToElem .bool word) = some evm') :
+    (hwrite : cfg.storage.write er ty (wordToElem .bool word) evm = .ok evm') :
     assignStorageRef? cfg solm evm .storage slot (wordToElem .bool word) =
       .ok (solm, evm') := by
-  exact assignStorageRef_storage_scalar_value hbase her hty hloc
-    (erc6909WordToElem_bool_scalar word) hstore
+  exact assignStorageRef_storage_scalar_value hbase her hty hwrite
 
 abbrev setOperatorStore (I : ExecutionEnv) : Store :=
   ((∅ : Store).insert "spender" (setOperatorSpenderValue I)).insert "approved"
@@ -217,7 +215,6 @@ theorem setOperatorAssign (evm : EVM.State) (I : ExecutionEnv) :
           setOperatorPostState evm I) := by
   apply assignStorageRef_storage_bool_word
       (er := setOperatorEvaledRef evm I) (ty := boolSt)
-      (loc := boolLoc (setOperatorSlot evm I))
       (word := setOperatorApprovedWord I)
       (evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner (setOperatorSlot evm I)
         (setOperatorBoolWord
@@ -229,9 +226,8 @@ theorem setOperatorAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by
         simp [storageTypeAt?, setOperatorEvaledRef, contract, storageDecls, boolSt,
           storageTypeStep?])
-      (hloc := by
-        simp [config, storageLayout, setOperatorEvaledRef, setOperatorSlot])
-      (hstore := by
+      (hwrite := by
+        apply config_write_operatorApproval
         simpa [boolLoc, boolOffset0Loc, setOperatorBoolWord, setBoolOffset0Word] using
           storageLocStore_bool_word_offset0 evm (setOperatorSlot evm I)
             (setOperatorApprovedWord I))

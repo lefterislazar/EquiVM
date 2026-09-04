@@ -298,11 +298,9 @@ theorem ctorStoreInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀
 /-! ## Constructor equivalence -/
 
 theorem ctorStoreLocStore (evm : EVM.State) (i : Int) (h0 : 0 ≤ i) :
-    storageLocStore evm
-        { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
-          type := .int (.uint ⟨256, by decide⟩) } (.int i)
+    storageLocStore evm CtorStore.storedLoc (.int i)
       = some (EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ (EVM.word i.toNat)) := by
-  unfold storageLocStore storageLocWriteWord
+  unfold storageLocStore storageLocWriteWord CtorStore.storedLoc
   simp only [valueToWord, wordOfInt_nonneg i h0, bind, Option.bind, pure]
   have hslen := (EVM.Word.toBytesLEWithSizeProof (EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)).2
   have hvlen := (EVM.Word.toBytesLEWithSizeProof (EVM.word i.toNat)).2
@@ -325,11 +323,9 @@ theorem ctorStoreAssign (evm : EVM.State) (L : Store) (i : Int)
     simp [evalStorageRef, bind, EvalResult.bind, pure]
   have hty : storageTypeAt? CtorStore.contract.storage { base := "stored", steps := [] } =
       some (.elem (.int (.uint ⟨256, by decide⟩))) := by
-    simp [storageTypeAt?, CtorStore.contract]
-  have hloc : ctorStoreConfig.storage.layout { base := "stored", steps := [] } =
-      fun _ => some { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by decide),
-                      type := .int (.uint ⟨256, (by decide)⟩) } := rfl
-  exact assignStorageRef_storage_scalar hbase her hty hloc (ctorStoreLocStore _ _ h0)
+    simp [storageTypeAt?, CtorStore.contract, CtorStore.storageDecls]
+  exact assignStorageRef_storage_scalar hbase her hty
+    (ctorStoreConfig_write_stored (ctorStoreLocStore _ _ h0))
 
 theorem ctorStoreCtorBodyReturns (evm : EVM.State) (locals : Store) (i : Int)
     (h0 : 0 ≤ i)

@@ -1,5 +1,5 @@
 import Solm.Semantics
-import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 import Examples.Pow.Spec
 
 /-!
@@ -14,7 +14,7 @@ do not suffice here):
 * `callerExternalABI` — the calldata the `Caller` bytecode builds for the sub-call is the 4-byte
   selector of `pow2(uint256)` followed by the 32-byte big-endian argument; the return value is a
   single `uint256` word.  `encode?`/`decode?` mirror exactly that.
-* `callerStorageLayout` — `stored` lives whole-slot at slot 0 (`offset 0`, `size 32`).
+* `callerStorageBackend` — generated from the declaration that places `stored` at slot 0.
 -/
 
 open Solm ABI Ethereum
@@ -41,14 +41,16 @@ def callerExternalABI : ExternalCallABI where
     else none
   decode? := defaultDecodeReturn?
 
-/-- Storage layout: `stored` occupies the whole of slot 0. -/
-def callerStorageLayout : StorageLayout where
-  layout := fun ref _ =>
-    if ref.base = "stored" ∧ ref.steps = [] then
-      some { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
-             bitOffset := .none,
-             type := .int (.uint ⟨256, by decide⟩) }
-    else none
+def callerStorageDecls : List StorageDecl :=
+  [{ name := "stored", ty := .elem (.int (.uint ⟨256, by decide⟩)) }]
+
+def storedLoc : StorageLoc :=
+  { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
+    type := .int (.uint ⟨256, by decide⟩) }
+
+/-- Generated Solidity backend for the full-word `stored` value at slot 0. -/
+def callerStorageBackend : StorageBackend :=
+  solidityStorage! [([] : List StructDecl)] [callerStorageDecls]
 
 /-- The single transition `run(address t, uint256 n)`:
     * `require(callvalue == 0)` — the compiler-inserted non-payable guard;
@@ -68,7 +70,7 @@ def runTransition : TransitionDecl :=
     a single transition. -/
 def callerContract : ContractDecl :=
   { name := "Caller"
-    storage := [{ name := "stored", ty := .elem (.int (.uint ⟨256, by decide⟩)) }]
+    storage := callerStorageDecls
     ctor := { params := [], body := [] }
     transitions := [runTransition] }
 
@@ -76,6 +78,24 @@ end Caller
 
 /-- Verification config: `stored` at slot 0, and the `pow2` external-call ABI. -/
 def callerConfig : Config :=
-  { storage := Caller.callerStorageLayout
+  { storage := Caller.callerStorageBackend
     externalABI := Caller.callerExternalABI
     selfDeployment := genSolidityConstructorDeployment Caller.callerContract.ctor.params }
+
+@[simp] theorem callerConfig_read_stored (evm : EVM.State) :
+    callerConfig.storage.read { base := "stored", steps := [] }
+        (.elem (.int (.uint ⟨256, by decide⟩))) evm =
+      .ok (storageLocLoad evm Caller.storedLoc) := by
+  change (solidityStorageBackend _).read _ (.elem (.int (.uint ⟨256, by decide⟩))) evm = _
+  apply solidityStorageBackend_read_elem
+  rfl
+
+theorem callerConfig_write_stored {evm evm' : EVM.State} {i : Int}
+    (hstore : storageLocStore evm Caller.storedLoc (.int i) = some evm') :
+    callerConfig.storage.write { base := "stored", steps := [] }
+        (.elem (.int (.uint ⟨256, by decide⟩))) (.int i) evm = .ok evm' := by
+  change (solidityStorageBackend _).write _ (.elem (.int (.uint ⟨256, by decide⟩)))
+    (.int i) evm = _
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore

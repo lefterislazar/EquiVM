@@ -162,13 +162,14 @@ theorem accessControlGetRoleAdminBodyReturns (evm : EVM.State) (I : ExecutionEnv
             some (.elem (.bytes bytes32Width)) := by
         simp [getRoleAdminEvaledRef, storageTypeAt?, storageTypeStep?, contract, storageDecls,
           roleDataStruct, roleDataSt, bytes32St]
-      have hloc :
-          config.storage.layout (getRoleAdminEvaledRef I) = fun _ => some (getRoleAdminLoc I) := by
-        funext evm'
-        simp [config, storageLayout, getRoleAdminEvaledRef, getRoleAdminLoc, getRoleAdminSlot]
+      have hread :
+          config.storage.read (getRoleAdminEvaledRef I) (.elem (.bytes bytes32Width)) evm =
+            .ok (storageLocLoad evm (getRoleAdminLoc I)) := by
+        simpa [getRoleAdminEvaledRef, getRoleAdminLoc, getRoleAdminSlot] using
+          config_read_adminRole evm (getRoleAdminRoleKey I)
       rw [evalExpr_storage_scalar (t := .bytes bytes32Width)
         (hbase := by simp [getRoleAdminStore, roleAdminRef])
-        (her := her) (hty := hty) (hloc := hloc)]
+        (her := her) (hty := hty) (hread := hread)]
       rw [show storageLocLoad evm (getRoleAdminLoc I) =
           .fixedBytes bytes32Width
             (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner

@@ -222,11 +222,12 @@ theorem evalExpr_burnFunction_from_balance (evm : EVM.State) (holder : AccountAd
       (.storage (balanceOfRef (.var "from"))) =
         .ok (burnFunctionFromBalanceValue evm holder) := by
   rw [evalExpr_storage_scalar (t := .int uint256Int)
+    (loc := wordLoc (burnFunctionFromSlot holder))
     (hbase := by simp [balanceOfRef])
     (her := evalStorageRef_burnFunction_from_balance evm holder value)
     (hty := by simp [storageTypeAt?, burnFunctionFromEvaledRef, contract, storageDecls,
       uint256St, storageTypeStep?])
-    (hloc := by rfl)]
+    (hread := by apply config_storage_read_elem; rfl)]
   simp [burnFunctionFromSlot, burnFunctionFromBalanceWord, uniswapStorageLocLoad_uint256]
 
 theorem evalExpr_burnFunction_balance_require_true (evm : EVM.State)
@@ -277,9 +278,10 @@ theorem burnFunctionAssignBalance (evm : EVM.State) (holder : AccountAddress)
       (her := evalStorageRef_burnFunction_from_balance_afterBalance evm evm holder value)
       (hty := by simp [storageTypeAt?, burnFunctionFromEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
-      (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
-  simp [burnFunctionAfterBalanceState, burnFunctionFromSlot, burnFunctionBalanceDebitWord]
+      (hwrite := config_storage_write_elem (loc := wordLoc (burnFunctionFromSlot holder))
+        (by rfl) (by
+        rw [uniswapStorageLocStore_uint256]
+        simp [burnFunctionAfterBalanceState, burnFunctionFromSlot, burnFunctionBalanceDebitWord]))
 
 theorem burnFunctionAfterBalance_codeOwner (evm : EVM.State)
     (holder : AccountAddress) (value : UInt256) :
@@ -313,10 +315,11 @@ theorem evalExpr_burnFunction_totalSupply (evm : EVM.State)
       (burnFunctionAfterBalanceState evm holder value) (.storage totalSupplyRef) =
         .ok (burnFunctionTotalSupplyValue evm holder value) := by
   rw [evalExpr_storage_scalar (t := .int uint256Int)
+    (loc := wordLoc ⟨0⟩)
     (hbase := by simp [totalSupplyRef])
     (her := evalStorageRef_burnFunction_totalSupply evm holder value)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
-    (hloc := by rfl)]
+    (hread := by apply config_storage_read_elem; rfl)]
   simp [burnFunctionTotalSupplyValue, burnFunctionTotalSupplyWord,
     uniswapStorageLocLoad_uint256, burnFunctionAfterBalance_codeOwner]
 
@@ -376,10 +379,10 @@ theorem burnFunctionAssignTotalSupply (evm : EVM.State) (holder : AccountAddress
       (hbase := by simp [totalSupplyRef])
       (her := evalStorageRef_burnFunction_totalSupply_afterTotalSupply evm holder value)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
-      (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
-  simp [burnFunctionPostState, burnFunctionTotalSupplyDebitWord,
-    burnFunctionAfterBalance_codeOwner]
+      (hwrite := config_storage_write_elem (loc := wordLoc ⟨0⟩) (by rfl) (by
+        rw [uniswapStorageLocStore_uint256]
+        simp [burnFunctionPostState, burnFunctionTotalSupplyDebitWord,
+          burnFunctionAfterBalance_codeOwner]))
 
 theorem uniswapLookupBurnFunction :
     lookupCallable? contract "_burn" = some burnFunction.toCallable := by

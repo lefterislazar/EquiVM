@@ -28,7 +28,7 @@ theorem simpleAuctionHighestBidBodyReturns (evm : EVM.State) (locals : Store)
           some (.elem (.int uint256Int)) := by
         decide
       rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := simpleAuctionConfig_storage_highestBid)]
+        (hty := hty) (hread := simpleAuctionConfig_read_highestBid evm)]
       rw [simpleAuctionStorageLocLoad_uint256])
 
 theorem simpleAuctionX_highestBid_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}

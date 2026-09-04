@@ -710,7 +710,7 @@ theorem evalExpr_auctionEnd_auctionEndTime (evm : EVM.State) :
       some (.elem (.int uint256Int)) := by
     decide
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := by simp) (her := her)
-    (hty := hty) (hloc := simpleAuctionConfig_storage_auctionEndTime)]
+    (hty := hty) (hread := simpleAuctionConfig_read_auctionEndTime evm)]
   rw [simpleAuctionStorageLocLoad_uint256]
 
 theorem evalExpr_auctionEnd_beneficiary (evm : EVM.State) :
@@ -725,7 +725,7 @@ theorem evalExpr_auctionEnd_beneficiary (evm : EVM.State) :
       ({ base := "beneficiary", steps := [] } : EvaledStorageRef) = some (.elem .address) := by
     decide
   rw [evalExpr_storage_scalar (t := .address) (hbase := by simp) (her := her)
-    (hty := hty) (hloc := simpleAuctionConfig_storage_beneficiary)]
+    (hty := hty) (hread := simpleAuctionConfig_read_beneficiary evm)]
   rw [simpleAuctionStorageLocLoad_address_offset0]
   rfl
 
@@ -742,7 +742,7 @@ theorem evalExpr_auctionEnd_highestBid (evm : EVM.State) :
       some (.elem (.int uint256Int)) := by
     decide
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := by simp) (her := her)
-    (hty := hty) (hloc := simpleAuctionConfig_storage_highestBid)]
+    (hty := hty) (hread := simpleAuctionConfig_read_highestBid evm)]
   rw [simpleAuctionStorageLocLoad_uint256]
   rfl
 
@@ -758,7 +758,7 @@ theorem evalExpr_auctionEnd_ended_false (evm : EVM.State)
       ({ base := "ended", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
     decide
   rw [evalExpr_storage_scalar (t := .bool) (hbase := by simp) (her := her)
-    (hty := hty) (hloc := simpleAuctionConfig_storage_ended)]
+    (hty := hty) (hread := simpleAuctionConfig_read_ended evm)]
   simpa [auctionEndEndedWordState, auctionEndEndedRawWordState] using
     simpleAuctionStorageLocLoad_bool_offset0_false evm ⟨5⟩ hzero
 
@@ -774,7 +774,7 @@ theorem evalExpr_auctionEnd_ended_true (evm : EVM.State)
       ({ base := "ended", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
     decide
   rw [evalExpr_storage_scalar (t := .bool) (hbase := by simp) (her := her)
-    (hty := hty) (hloc := simpleAuctionConfig_storage_ended)]
+    (hty := hty) (hread := simpleAuctionConfig_read_ended evm)]
   simpa [auctionEndEndedWordState, auctionEndEndedRawWordState] using
     simpleAuctionStorageLocLoad_bool_offset0_true evm ⟨5⟩ hnz
 
@@ -831,15 +831,14 @@ theorem auctionEndAssignEnded (evm : EVM.State) :
     assignStorageRef? simpleAuctionConfig { contract := simpleAuctionContract, locals := ∅ } evm
       .storage endedRef (.bool true) =
         .ok ({ contract := simpleAuctionContract, locals := ∅ }, auctionEndAfterEndedState evm) := by
-  apply assignStorageRef_storage_scalar_value (ty := boolSt)
+  exact assignStorageRef_storage_scalar_value (ty := boolSt)
       (hbase := by simp)
       (her := by
         simp [evalStorageRef, evalStorageRefSteps, endedRef, EvalResult.bind, pure, bind])
       (hty := by decide)
-      (hloc := simpleAuctionConfig_storage_ended)
-      (hscalar := by trivial)
-  rw [simpleAuctionStorageLocStore_bool_true_offset0]
-  rfl
+      (hwrite := simpleAuctionConfig_write_ended (by
+        rw [simpleAuctionStorageLocStore_bool_true_offset0]
+        rfl))
 
 theorem simpleAuctionAuctionEndBodyReverts_time (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

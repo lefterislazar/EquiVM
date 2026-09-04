@@ -1,5 +1,5 @@
 import Solm.Semantics
-import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # OpenZeppelin AccessControl benchmark spec
@@ -69,14 +69,8 @@ def boolLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def bytes32Loc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 32, hbound := by decide, type := .bytes bytes32Width }
 
-def storageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "_roles", [.mindex role, .field "hasRole", .mindex account] =>
-        some (boolLoc (roleHasRoleSlot role account))
-    | "_roles", [.mindex role, .field "adminRole"] =>
-        some (bytes32Loc (roleAdminSlot role))
-    | _, _ => none
+def storageBackend : StorageBackend :=
+  solidityStorage! [([roleDataStruct] : List StructDecl)] [storageDecls]
 
 def defaultAdminRoleTransition : TransitionDecl :=
   { name := "DEFAULT_ADMIN_ROLE"
@@ -172,8 +166,32 @@ def contract : ContractDecl :=
         supportsInterfaceTransition ] }
 
 def config : Config :=
-  { storage := storageLayout
+  { storage := storageBackend
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
+
+@[simp] theorem config_read_hasRole (evm : EVM.State) (role account : KeyValue) :
+    config.storage.read
+        { base := "_roles", steps := [.mindex role, .field "hasRole", .mindex account] }
+        (.elem .bool) evm =
+      .ok (storageLocLoad evm (boolLoc (roleHasRoleSlot role account))) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem config_read_adminRole (evm : EVM.State) (role : KeyValue) :
+    config.storage.read { base := "_roles", steps := [.mindex role, .field "adminRole"] }
+        (.elem (.bytes bytes32Width)) evm =
+      .ok (storageLocLoad evm (bytes32Loc (roleAdminSlot role))) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+theorem config_write_hasRole {evm evm' : EVM.State} {role account : KeyValue} {value : Value}
+    (hstore : storageLocStore evm (boolLoc (roleHasRoleSlot role account)) value = some evm') :
+    config.storage.write
+        { base := "_roles", steps := [.mindex role, .field "hasRole", .mindex account] }
+        (.elem .bool) value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
 
 end OpenZeppelinBench.AccessControl

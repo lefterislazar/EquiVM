@@ -5528,7 +5528,7 @@ theorem stringStoreLiteSetShortNonemptyLongValidRuntime
     rw [setDecodedValueBytes_size hpayload]
     simpa [hlenAbi] using hshort
   have hwrite :
-      writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
+      stringStoreLiteWriteStorage? evmSolm0 { base := "current", steps := [] }
         .string (.bytes (setDecodedValueBytes I)) = .ok evmSolm1 := by
     have hwrite₀ := writeCurrentShortFromLongPrepared (evm := evmSolm0)
       (header := currentLengthHeaderWord σ_evm I) (len := oldLen)
@@ -5697,7 +5697,7 @@ theorem stringStoreLiteSetEmptyLongValidRuntime {cA gh bl σ_evm σ_solm σ₀ A
     rw [solidityShortBytesWord, empty_readWithPadding_word_zero]
     rfl
   have hwrite :
-      writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
+      stringStoreLiteWriteStorage? evmSolm0 { base := "current", steps := [] }
         .string (.bytes ByteArray.empty) = .ok evmSolm1 := by
     have hwrite₀ := writeCurrentShortFromLongPrepared (evm := evmSolm0)
       (header := currentLengthHeaderWord σ_evm I) (len := len) (value := ByteArray.empty)

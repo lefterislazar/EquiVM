@@ -55,13 +55,13 @@ theorem winnerNameNameSlot_spec (w : UInt256) :
 
 theorem winnerNameArrayIndexInBounds_ok (evm : EVM.State) (w : UInt256)
     (hbound : w.toNat < (winningProposalLengthCurrent evm).toNat) :
-    arrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
+    backendArrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
       (.int (Int.ofNat w.toNat)) = .ok () :=
   winningProposalArrayIndexInBounds_ok evm w hbound
 
 theorem winnerNameArrayIndexInBounds_revert (evm : EVM.State) (w : UInt256)
     (hbound : ¬ w.toNat < (winningProposalLengthCurrent evm).toNat) :
-    arrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
+    backendArrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
       (.int (Int.ofNat w.toNat)) = .revert := by
   have hboundStorage :
       ¬ w.toNat <
@@ -70,9 +70,12 @@ theorem winnerNameArrayIndexInBounds_revert (evm : EVM.State) (w : UInt256)
   have hleStorage :
       UInt256.toNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩) ≤ w.toNat :=
     Nat.le_of_not_gt hboundStorage
-  simp [arrayIndexInBounds?, storageTypeAt?, ballotConfig, ballotStorageLayout,
-    ballotContract, ballotStorageDecls, proposalStructTy, uint256St, bytes32St,
-    ballotStorageLocLoad_uint256, hleStorage]
+  apply backendArrayIndexInBounds_dynamicArray_revert
+    (elem := proposalStructTy)
+    (len := (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)
+  · simp [storageTypeAt?, ballotContract, ballotStorageDecls]
+  · exact ballotConfig_length_proposals proposalStructTy evm
+  · exact hleStorage
 
 theorem winnerNameEvalName (evm : EVM.State) (locals : Store) (w : UInt256)
     (hbaseProposals : locals.get? "proposals" = none)
@@ -90,7 +93,7 @@ theorem winnerNameEvalName (evm : EVM.State) (locals : Store) (w : UInt256)
         (.var "w") = .ok (.int (Int.ofNat w.toNat)) :=
     winningProposalEvalVar evm locals "w" w hw
   have hboundsOk :
-      arrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
+      backendArrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
         (.int (Int.ofNat w.toNat)) = .ok () :=
     winnerNameArrayIndexInBounds_ok evm w hbound
   have her :
@@ -106,12 +109,6 @@ theorem winnerNameEvalName (evm : EVM.State) (locals : Store) (w : UInt256)
         some (.elem (.bytes ⟨31, by decide⟩)) := by
     simp [winnerNameNameEvaledRef, storageTypeAt?, storageTypeStep?, ballotContract,
       ballotStorageDecls, proposalStructTy, bytes32St]
-  have hloc :
-      ballotConfig.storage.layout (winnerNameNameEvaledRef w) =
-        fun _ => some (winnerNameNameLoc w) := by
-    funext evm'
-    simp [winnerNameNameEvaledRef, winnerNameNameLoc, ballotConfig, ballotStorageLayout,
-      winnerNameNameSlot_spec]
   have hload :
       storageLocLoad evm (winnerNameNameLoc w) =
         .fixedBytes ⟨31, by decide⟩
@@ -119,7 +116,10 @@ theorem winnerNameEvalName (evm : EVM.State) (locals : Store) (w : UInt256)
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (winnerNameNameSlot w))) := by
     simpa [winnerNameNameLoc] using (ballotStorageLocLoad_bytes32 evm (winnerNameNameSlot w))
   rw [evalExpr_storage_scalar (t := .bytes ⟨31, by decide⟩) (hbase := hbase)
-    (her := her) (hty := hty) (hloc := hloc)]
+    (her := her) (hty := hty)
+    (hread := ballotConfig_read_proposal_name (.int (Int.ofNat w.toNat)) evm)]
+  rw [← winnerNameNameSlot_spec w]
+  change EvalResult.ok (storageLocLoad evm (winnerNameNameLoc w)) = _
   rw [hload]
 
 theorem winnerNameEvalName_revert (evm : EVM.State) (locals : Store) (w : UInt256)
@@ -137,7 +137,7 @@ theorem winnerNameEvalName_revert (evm : EVM.State) (locals : Store) (w : UInt25
         (.var "w") = .ok (.int (Int.ofNat w.toNat)) :=
     winningProposalEvalVar evm locals "w" w hw
   have hboundsRevert :
-      arrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
+      backendArrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
         (.int (Int.ofNat w.toNat)) = .revert :=
     winnerNameArrayIndexInBounds_revert evm w hbound
   have herNameRevert :

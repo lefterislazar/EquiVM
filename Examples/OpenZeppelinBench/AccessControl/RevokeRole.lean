@@ -161,8 +161,9 @@ theorem evalExpr_revokeRole_admin (evm : EVM.State) (I : ExecutionEnv)
     (hty := by
       simp [storageTypeAt?, revokeRoleAdminEvaledRef, contract, storageDecls, roleDataSt,
         bytes32St, storageTypeStep?])
-    (hloc := by
-      rfl)]
+    (hread := by
+      simpa only [revokeRoleAdminEvaledRef, revokeRoleAdminSlot] using
+        config_read_adminRole evm (revokeRoleRoleKey I))]
   rw [accessControlStorageLocLoad_bytes32]
   simp [revokeRoleAdminValue, revokeRoleAdminWord, bytes32Width]
 
@@ -189,8 +190,9 @@ theorem evalExpr_revokeRole_adminHasRole_true (evm : EVM.State) (I : ExecutionEn
     (hty := by
       simp [storageTypeAt?, revokeRoleAdminHasRoleEvaledRef, contract, storageDecls, roleDataSt,
         boolSt, storageTypeStep?])
-    (hloc := by
-      rfl)]
+    (hread := by
+      simpa only [revokeRoleAdminHasRoleEvaledRef, revokeRoleAdminHasRoleSlot] using
+        config_read_hasRole evm (revokeRoleAdminKey evm I) (revokeRoleSenderKey evm))]
   rw [accessControlStorageLocLoad_bool_offset0_true evm _ hnz]
 
 theorem evalExpr_revokeRole_adminHasRole_false (evm : EVM.State) (I : ExecutionEnv)
@@ -206,8 +208,9 @@ theorem evalExpr_revokeRole_adminHasRole_false (evm : EVM.State) (I : ExecutionE
     (hty := by
       simp [storageTypeAt?, revokeRoleAdminHasRoleEvaledRef, contract, storageDecls, roleDataSt,
         boolSt, storageTypeStep?])
-    (hloc := by
-      rfl)]
+    (hread := by
+      simpa only [revokeRoleAdminHasRoleEvaledRef, revokeRoleAdminHasRoleSlot] using
+        config_read_hasRole evm (revokeRoleAdminKey evm I) (revokeRoleSenderKey evm))]
   rw [accessControlStorageLocLoad_bool_offset0_false evm _ hzero]
 
 theorem evalStorageRef_revokeRole_target (evm : EVM.State) (I : ExecutionEnv)
@@ -241,8 +244,9 @@ theorem evalExpr_revokeRole_target_true (evm : EVM.State) (I : ExecutionEnv)
     (hty := by
       simp [storageTypeAt?, revokeRoleTargetEvaledRef, contract, storageDecls, roleDataSt,
         boolSt, storageTypeStep?])
-    (hloc := by
-      rfl)]
+    (hread := by
+      simpa only [revokeRoleTargetEvaledRef, revokeRoleTargetSlot] using
+        config_read_hasRole evm (revokeRoleRoleKey I) (revokeRoleAccountKey I))]
   rw [accessControlStorageLocLoad_bool_offset0_true evm _ hnz]
 
 theorem evalExpr_revokeRole_target_false (evm : EVM.State) (I : ExecutionEnv)
@@ -259,8 +263,9 @@ theorem evalExpr_revokeRole_target_false (evm : EVM.State) (I : ExecutionEnv)
     (hty := by
       simp [storageTypeAt?, revokeRoleTargetEvaledRef, contract, storageDecls, roleDataSt,
         boolSt, storageTypeStep?])
-    (hloc := by
-      rfl)]
+    (hread := by
+      simpa only [revokeRoleTargetEvaledRef, revokeRoleTargetSlot] using
+        config_read_hasRole evm (revokeRoleRoleKey I) (revokeRoleAccountKey I))]
   rw [accessControlStorageLocLoad_bool_offset0_false evm _ hzero]
 
 theorem revokeRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
@@ -271,7 +276,6 @@ theorem revokeRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
           revokeRolePostState evm I) := by
   apply assignStorageRef_storage_scalar_value
       (er := revokeRoleTargetEvaledRef I) (ty := boolSt)
-      (loc := boolLoc (revokeRoleTargetSlot I))
       (value := .bool false)
       (evm' := revokeRolePostState evm I)
       (hbase := revokeRoleStoreWithAdmin_roles evm I)
@@ -279,10 +283,8 @@ theorem revokeRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
       (hty := by
         simp [storageTypeAt?, revokeRoleTargetEvaledRef, contract, storageDecls, roleDataSt,
           boolSt, storageTypeStep?])
-      (hloc := by
-        simp [config, storageLayout, revokeRoleTargetEvaledRef, revokeRoleTargetSlot])
-      (hscalar := by trivial)
-      (hstore := by
+      (hwrite := by
+        apply config_write_hasRole
         simpa [boolLoc, boolOffset0Loc, revokeRoleClearLowByteWord] using
           storageLocStore_bool_false_offset0 evm (revokeRoleTargetSlot I))
 

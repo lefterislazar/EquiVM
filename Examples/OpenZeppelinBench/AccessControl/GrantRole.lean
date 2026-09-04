@@ -162,8 +162,9 @@ theorem evalExpr_grantRole_admin (evm : EVM.State) (I : ExecutionEnv)
     (hty := by
       simp [storageTypeAt?, grantRoleAdminEvaledRef, contract, storageDecls, roleDataSt,
         bytes32St, storageTypeStep?])
-    (hloc := by
-      rfl)]
+    (hread := by
+      simpa only [grantRoleAdminEvaledRef, grantRoleAdminSlot] using
+        config_read_adminRole evm (grantRoleRoleKey I))]
   rw [accessControlStorageLocLoad_bytes32]
   simp [grantRoleAdminValue, grantRoleAdminWord, bytes32Width]
 
@@ -190,8 +191,9 @@ theorem evalExpr_grantRole_adminHasRole_true (evm : EVM.State) (I : ExecutionEnv
     (hty := by
       simp [storageTypeAt?, grantRoleAdminHasRoleEvaledRef, contract, storageDecls, roleDataSt,
         boolSt, storageTypeStep?])
-    (hloc := by
-      rfl)]
+    (hread := by
+      simpa only [grantRoleAdminHasRoleEvaledRef, grantRoleAdminHasRoleSlot] using
+        config_read_hasRole evm (grantRoleAdminKey evm I) (grantRoleSenderKey evm))]
   rw [accessControlStorageLocLoad_bool_offset0_true evm _ hnz]
 
 theorem evalExpr_grantRole_adminHasRole_false (evm : EVM.State) (I : ExecutionEnv)
@@ -207,8 +209,9 @@ theorem evalExpr_grantRole_adminHasRole_false (evm : EVM.State) (I : ExecutionEn
     (hty := by
       simp [storageTypeAt?, grantRoleAdminHasRoleEvaledRef, contract, storageDecls, roleDataSt,
         boolSt, storageTypeStep?])
-    (hloc := by
-      rfl)]
+    (hread := by
+      simpa only [grantRoleAdminHasRoleEvaledRef, grantRoleAdminHasRoleSlot] using
+        config_read_hasRole evm (grantRoleAdminKey evm I) (grantRoleSenderKey evm))]
   rw [accessControlStorageLocLoad_bool_offset0_false evm _ hzero]
 
 theorem evalStorageRef_grantRole_target (evm : EVM.State) (I : ExecutionEnv)
@@ -242,8 +245,9 @@ theorem evalExpr_grantRole_target_true (evm : EVM.State) (I : ExecutionEnv)
     (hty := by
       simp [storageTypeAt?, grantRoleTargetEvaledRef, contract, storageDecls, roleDataSt,
         boolSt, storageTypeStep?])
-    (hloc := by
-      rfl)]
+    (hread := by
+      simpa only [grantRoleTargetEvaledRef, grantRoleTargetSlot] using
+        config_read_hasRole evm (grantRoleRoleKey I) (grantRoleAccountKey I))]
   rw [accessControlStorageLocLoad_bool_offset0_true evm _ hnz]
 
 theorem evalExpr_grantRole_target_false (evm : EVM.State) (I : ExecutionEnv)
@@ -260,8 +264,9 @@ theorem evalExpr_grantRole_target_false (evm : EVM.State) (I : ExecutionEnv)
     (hty := by
       simp [storageTypeAt?, grantRoleTargetEvaledRef, contract, storageDecls, roleDataSt,
         boolSt, storageTypeStep?])
-    (hloc := by
-      rfl)]
+    (hread := by
+      simpa only [grantRoleTargetEvaledRef, grantRoleTargetSlot] using
+        config_read_hasRole evm (grantRoleRoleKey I) (grantRoleAccountKey I))]
   rw [accessControlStorageLocLoad_bool_offset0_false evm _ hzero]
 
 theorem evalExpr_grantRole_target_not_true (evm : EVM.State) (I : ExecutionEnv)
@@ -294,7 +299,6 @@ theorem grantRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
           grantRolePostState evm I) := by
   apply assignStorageRef_storage_scalar_value
       (er := grantRoleTargetEvaledRef I) (ty := boolSt)
-      (loc := boolLoc (grantRoleTargetSlot I))
       (value := .bool true)
       (evm' := grantRolePostState evm I)
       (hbase := grantRoleStoreWithAdmin_roles evm I)
@@ -302,10 +306,8 @@ theorem grantRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
       (hty := by
         simp [storageTypeAt?, grantRoleTargetEvaledRef, contract, storageDecls, roleDataSt,
           boolSt, storageTypeStep?])
-      (hloc := by
-        simp [config, storageLayout, grantRoleTargetEvaledRef, grantRoleTargetSlot])
-      (hscalar := by trivial)
-      (hstore := by
+      (hwrite := by
+        apply config_write_hasRole
         simpa [boolLoc, boolOffset0Loc, grantRoleSetTrueWord] using
           storageLocStore_bool_true_offset0 evm (grantRoleTargetSlot I))
 

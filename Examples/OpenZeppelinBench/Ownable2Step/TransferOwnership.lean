@@ -85,7 +85,7 @@ theorem evalExpr_transferOwnership_owner (evm : EVM.State) (I : ExecutionEnv) :
       ({ base := "_owner", steps := [] } : EvaledStorageRef) = some (.elem .address) := by
     decide
   rw [evalExpr_storage_scalar (t := .address) (hbase := transferOwnershipStore_owner I)
-    (her := her) (hty := hty) (hloc := by rfl), ownable2StepStorageLocLoad_address_offset0]
+    (her := her) (hty := hty) (hread := config_read_owner evm), ownable2StepStorageLocLoad_address_offset0]
 
 theorem evalExpr_transferOwnership_sender (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferOwnershipStore I } evm sender =
@@ -151,9 +151,9 @@ theorem transferOwnershipAssignPending (evm : EVM.State) (I : ExecutionEnv)
     (solm := { contract := contract, locals := transferOwnershipStore I })
     (evm := evm) (evm' := transferOwnershipAfterPendingState evm I)
     (slot := pendingOwnerRef) (er := { base := "_pendingOwner", steps := [] })
-    (ty := .elem .address) (loc := addrLoc ⟨1⟩)
+    (ty := .elem .address)
     (value := transferOwnershipNewOwnerValue I)
-    (transferOwnershipStore_pendingOwner I) her hty (by rfl) (by trivial) hstore
+    (transferOwnershipStore_pendingOwner I) her hty (config_write_pendingOwner hstore)
 
 theorem ownable2StepTransferOwnershipBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

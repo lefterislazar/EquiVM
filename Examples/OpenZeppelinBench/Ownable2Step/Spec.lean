@@ -1,5 +1,5 @@
 import Solm.Semantics
-import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # OpenZeppelin Ownable2Step benchmark spec
@@ -28,12 +28,8 @@ def storageDecls : List StorageDecl :=
 def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
 
-def storageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "_owner", [] => some (addrLoc ⟨0⟩)
-    | "_pendingOwner", [] => some (addrLoc ⟨1⟩)
-    | _, _ => none
+def storageBackend : StorageBackend :=
+  solidityStorage! [([] : List StructDecl)] [storageDecls]
 
 def ownerTransition : TransitionDecl :=
   { name := "owner"
@@ -98,8 +94,34 @@ def contract : ContractDecl :=
         transferOwnershipTransition ] }
 
 def config : Config :=
-  { storage := storageLayout
+  { storage := storageBackend
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
+
+@[simp] theorem config_read_owner (evm : EVM.State) :
+    config.storage.read { base := "_owner", steps := [] } (.elem .address) evm =
+      .ok (storageLocLoad evm (addrLoc ⟨0⟩)) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem config_read_pendingOwner (evm : EVM.State) :
+    config.storage.read { base := "_pendingOwner", steps := [] } (.elem .address) evm =
+      .ok (storageLocLoad evm (addrLoc ⟨1⟩)) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+theorem config_write_owner {evm evm' : EVM.State} {value : Value}
+    (hstore : storageLocStore evm (addrLoc ⟨0⟩) value = some evm') :
+    config.storage.write { base := "_owner", steps := [] } (.elem .address) value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem (loc := addrLoc ⟨0⟩)
+  · rfl
+  · exact hstore
+
+theorem config_write_pendingOwner {evm evm' : EVM.State} {value : Value}
+    (hstore : storageLocStore evm (addrLoc ⟨1⟩) value = some evm') :
+    config.storage.write { base := "_pendingOwner", steps := [] } (.elem .address) value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem (loc := addrLoc ⟨1⟩)
+  · rfl
+  · exact hstore
 
 end OpenZeppelinBench.Ownable2Step

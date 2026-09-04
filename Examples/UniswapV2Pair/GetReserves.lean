@@ -144,7 +144,7 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
           (her := by simp [evalStorageRef, evalStorageRefSteps, reserve0Ref, EvalResult.bind,
             pure, bind])
           (hty := by rfl)
-          (hloc := by rfl)]
+          (hread := by apply config_storage_read_elem; rfl)]
         rw [hload0]
       have hret1 :
           evalExpr? config { contract := contract, locals := ∅ } evm (.storage reserve1Ref) =
@@ -158,7 +158,7 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
           (her := by simp [evalStorageRef, evalStorageRefSteps, reserve1Ref, EvalResult.bind,
             pure, bind])
           (hty := by rfl)
-          (hloc := by rfl)]
+          (hread := by apply config_storage_read_elem; rfl)]
         rw [hload1]
       have hretTs :
           evalExpr? config { contract := contract, locals := ∅ } evm (.storage blockTimestampLastRef) =
@@ -172,7 +172,7 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
           (her := by simp [evalStorageRef, evalStorageRefSteps, blockTimestampLastRef,
             EvalResult.bind, pure, bind])
           (hty := by rfl)
-          (hloc := by rfl)]
+          (hread := by apply config_storage_read_elem; rfl)]
         rw [hloadTs]
       simp only [Solm.evalExprs?.eq_def, hret0, hret1, hretTs, EvalResult.bind, bind, pure])
 

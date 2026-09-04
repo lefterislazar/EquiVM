@@ -1549,7 +1549,7 @@ theorem evalExpr_reveal_biddingEnd (evm : EVM.State) (locals : Store)
       some (.elem (.int uint256Int)) := by
     decide
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase) (her := her)
-    (hty := hty) (hloc := blindAuctionConfig_storage_biddingEnd)]
+    (hty := hty) (hread := blindAuctionConfig_storage_biddingEnd)]
   rw [blindAuctionStorageLocLoad_uint256]
 
 theorem evalExpr_reveal_revealEnd (evm : EVM.State) (locals : Store)
@@ -1566,7 +1566,7 @@ theorem evalExpr_reveal_revealEnd (evm : EVM.State) (locals : Store)
       some (.elem (.int uint256Int)) := by
     decide
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase) (her := her)
-    (hty := hty) (hloc := blindAuctionConfig_storage_revealEnd)]
+    (hty := hty) (hread := blindAuctionConfig_storage_revealEnd)]
   rw [blindAuctionStorageLocLoad_uint256]
 
 theorem evalExpr_reveal_afterBiddingEnd_true (evm : EVM.State) (locals : Store)
@@ -1904,19 +1904,9 @@ theorem evalExpr_reveal_bids_length_zero (evm : EVM.State) (locals : Store)
     resolveStorageRef?_ok hbids her hty
   rw [evalExpr?]
   simp only [hres, bind, EvalResult.bind]
-  change readStorageArrayLength? blindAuctionConfig evm er (.dynamicArray bidStructTy) =
-    .ok (.int 0)
-  simp only [readStorageArrayLength?, er, List.cons_append, List.nil_append]
-  change (match some (blindAuctionUint256Loc (bidsBase (.address evm.executionEnv.source))) with
-    | some lenLoc =>
-        match storageLocLoad evm lenLoc with
-        | Value.int n => pure (Value.int n)
-        | _ => EvalResult.error .storageError
-    | none => EvalResult.error .storageError) = EvalResult.ok (Value.int 0)
-  change (match storageLocLoad evm (blindAuctionUint256Loc (bidsBase (.address evm.executionEnv.source))) with
-    | Value.int n => pure (Value.int n)
-    | _ => EvalResult.error .storageError) = EvalResult.ok (Value.int 0)
-  rw [blindAuctionStorageLocLoad_uint256, hlen]
+  rw [show blindAuctionConfig.storage.length er (.dynamicArray bidStructTy) evm = .ok 0 by
+    simpa [er, hlen] using blindAuctionConfig_storage_bids_length
+      (.address evm.executionEnv.source) bidStructTy evm]
   rfl
 
 theorem evalExpr_reveal_bids_length_any (evm : EVM.State) (locals : Store) (len : UInt256)
@@ -1941,19 +1931,9 @@ theorem evalExpr_reveal_bids_length_any (evm : EVM.State) (locals : Store) (len 
     resolveStorageRef?_ok hbids her hty
   rw [evalExpr?]
   simp only [hres, bind, EvalResult.bind]
-  change readStorageArrayLength? blindAuctionConfig evm er (.dynamicArray bidStructTy) =
-    .ok (.int (Int.ofNat len.toNat))
-  simp only [readStorageArrayLength?, er, List.cons_append, List.nil_append]
-  change (match some (blindAuctionUint256Loc (bidsBase (.address evm.executionEnv.source))) with
-    | some lenLoc =>
-        match storageLocLoad evm lenLoc with
-        | Value.int n => pure (Value.int n)
-        | _ => EvalResult.error .storageError
-    | none => EvalResult.error .storageError) = EvalResult.ok (Value.int (Int.ofNat len.toNat))
-  change (match storageLocLoad evm (blindAuctionUint256Loc (bidsBase (.address evm.executionEnv.source))) with
-    | Value.int n => pure (Value.int n)
-    | _ => EvalResult.error .storageError) = EvalResult.ok (Value.int (Int.ofNat len.toNat))
-  rw [blindAuctionStorageLocLoad_uint256, hlen]
+  rw [show blindAuctionConfig.storage.length er (.dynamicArray bidStructTy) evm = .ok len.toNat by
+    simpa [er, hlen] using blindAuctionConfig_storage_bids_length
+      (.address evm.executionEnv.source) bidStructTy evm]
   rfl
 
 theorem blindAuctionRevealBodyReturns_empty_callSuccess

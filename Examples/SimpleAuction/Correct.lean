@@ -721,7 +721,7 @@ theorem simpleAuctionCtorAssignBeneficiary (evm : EVM.State) (biddingTime : Int)
         .ok ({ contract := simpleAuctionContract,
                locals := simpleAuctionCtorLocals biddingTime beneficiaryAddress },
              simpleAuctionCtorAfterBeneficiaryState evm beneficiaryAddress) := by
-  apply assignStorageRef_storage_scalar_value (ty := addrSt)
+  exact assignStorageRef_storage_scalar_value (ty := addrSt)
       (hbase := by simp [simpleAuctionCtorLocals, beneficiaryRef, simpleAuctionContract,
         constructorDecl])
       (her := by
@@ -730,11 +730,10 @@ theorem simpleAuctionCtorAssignBeneficiary (evm : EVM.State) (biddingTime : Int)
         show storageTypeAt? simpleAuctionContract.storage ({ base := "beneficiary", steps := [] } :
           EvaledStorageRef) = some addrSt
         decide)
-      (hloc := simpleAuctionConfig_storage_beneficiary)
-      (hscalar := by trivial)
-  simpa [simpleAuctionCtorAfterBeneficiaryState, simpleAuctionBeneficiary_ofNat] using
-    simpleAuctionStorageLocStore_address_offset0 evm ⟨0⟩ (EVM.word beneficiaryAddress)
-      (simpleAuctionBeneficiaryWord_canonical beneficiaryAddress)
+      (hwrite := simpleAuctionConfig_write_beneficiary (by
+        simpa [simpleAuctionCtorAfterBeneficiaryState, simpleAuctionBeneficiary_ofNat] using
+          simpleAuctionStorageLocStore_address_offset0 evm ⟨0⟩ (EVM.word beneficiaryAddress)
+            (simpleAuctionBeneficiaryWord_canonical beneficiaryAddress)))
 
 theorem simpleAuctionCtorAuctionEndExprReverts
     (evm : EVM.State) (biddingTime : Int) (beneficiaryAddress : AccountAddress)
@@ -854,7 +853,7 @@ theorem simpleAuctionCtorAssignAuctionEndTime (evm : EVM.State) (biddingTime : I
              Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨1⟩
                (EVM.word ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat +
                  biddingTime.toNat))) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  exact assignStorageRef_storage_scalar (ty := uint256St)
       (hbase := by
         unfold simpleAuctionCtorLocals
         simp only [simpleAuctionContract, constructorDecl, List.map_cons, List.map_nil,
@@ -870,9 +869,9 @@ theorem simpleAuctionCtorAssignAuctionEndTime (evm : EVM.State) (biddingTime : I
         simp [evalStorageRef, evalStorageRefSteps, auctionEndTimeRef, EvalResult.bind, pure, bind])
       (hty := by
         simp [storageTypeAt?, simpleAuctionContract, storageDecls, uint256St])
-      (hloc := simpleAuctionConfig_storage_auctionEndTime)
-  exact simpleAuctionStorageLocStore_uint256 evm ⟨1⟩
-    (EVM.word ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime.toNat))
+      (hwrite := simpleAuctionConfig_write_auctionEndTime
+        (simpleAuctionStorageLocStore_uint256 evm ⟨1⟩
+          (EVM.word ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime.toNat))))
 
 theorem simpleAuctionSolmCtorExecReverts_overflow
     {createdAccounts : Batteries.RBSet AccountAddress compare}

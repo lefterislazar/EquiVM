@@ -99,9 +99,10 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
       (her := evalStorageRef_approve_allowance evm I)
       (hty := by
         simp [storageTypeAt?, contract, storageDecls, uint256St, storageTypeStep?])
-      (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
-  simp [approvePostState, approveStorageSlot]
+      (hwrite := config_storage_write_elem (loc := wordLoc (approveStorageSlot evm I))
+        (by rfl) (by
+        rw [uniswapStorageLocStore_uint256]
+        simp [approvePostState, approveStorageSlot]))
 
 theorem uniswapDecode_approve_ok {I : ExecutionEnv}
     (hsz68 : 68 ≤ I.calldata.size) :

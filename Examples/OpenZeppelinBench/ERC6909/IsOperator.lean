@@ -137,15 +137,15 @@ theorem evalExpr_isOperator_storage (evm : EVM.State) (I : ExecutionEnv) :
                   .mindex (.address (AccountAddress.ofNat (isOperatorSpenderWord I).toNat))] } =
       some (.elem .bool) := by
     simp [storageTypeAt?, contract, storageDecls, boolSt, storageTypeStep?]
-  have hloc : config.storage.layout
+  have hread : config.storage.read
       { base := "_operatorApprovals",
         steps := [.mindex (.address (AccountAddress.ofNat (isOperatorOwnerWord I).toNat)),
-                  .mindex (.address (AccountAddress.ofNat (isOperatorSpenderWord I).toNat))] } =
-      fun _ => some (boolLoc (isOperatorSlot I)) := by
-    simp [config, storageLayout, isOperatorSlot, operatorApprovalSlot]
+                  .mindex (.address (AccountAddress.ofNat (isOperatorSpenderWord I).toNat))] }
+      (.elem .bool) evm = .ok (storageLocLoad evm (boolLoc (isOperatorSlot I))) := by
+    simp [isOperatorSlot]
   rw [evalExpr_storage_scalar (t := .bool)
     (hbase := isOperatorStore_operatorApprovals I)
-    (her := her) (hty := hty) (hloc := hloc)]
+    (her := her) (hty := hty) (hread := hread)]
   simpa [boolLoc, boolOffset0Loc] using storageLocLoad_bool_offset0 evm (isOperatorSlot I)
 
 theorem erc6909IsOperatorBodyReturns (evm : EVM.State) (I : ExecutionEnv)

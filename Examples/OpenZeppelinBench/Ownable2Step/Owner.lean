@@ -32,7 +32,7 @@ theorem ownable2StepOwnerBodyReturns (evm : EVM.State) (locals : Store)
           ({ base := "_owner", steps := [] } : EvaledStorageRef) = some (.elem .address) := by
         decide
       rw [evalExpr_storage_scalar (t := .address) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := by rfl), ownable2StepStorageLocLoad_address_offset0])
+        (hty := hty) (hread := config_read_owner evm), ownable2StepStorageLocLoad_address_offset0])
 
 theorem ownable2StepX_owner {cA gh bl σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD ownable2StepBenchBytecode I g

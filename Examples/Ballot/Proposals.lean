@@ -76,19 +76,22 @@ theorem proposalNameSlot_spec (I : ExecutionEnv) :
 
 theorem proposalsArrayIndexInBounds_ok (evm : EVM.State) (I : ExecutionEnv)
     (hbound : (proposalsIndexWord I).toNat < (proposalsLengthCurrent evm).toNat) :
-    arrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
+    backendArrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
       (.int (Int.ofNat (proposalsIndexWord I).toNat)) = .ok () := by
   have hboundStorage :
       (proposalsIndexWord I).toNat <
         UInt256.toNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩) := by
     simpa [proposalsLengthCurrent] using hbound
-  simp [arrayIndexInBounds?, storageTypeAt?, ballotConfig,
-    ballotStorageLayout, ballotContract, ballotStorageDecls, proposalStructTy, uint256St,
-    bytes32St, ballotStorageLocLoad_uint256, hboundStorage]
+  apply backendArrayIndexInBounds_dynamicArray_ok
+    (elem := proposalStructTy)
+    (len := (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)
+  · simp [storageTypeAt?, ballotContract, ballotStorageDecls]
+  · exact ballotConfig_length_proposals proposalStructTy evm
+  · exact hboundStorage
 
 theorem proposalsArrayIndexInBounds_revert (evm : EVM.State) (I : ExecutionEnv)
     (hbound : ¬ (proposalsIndexWord I).toNat < (proposalsLengthCurrent evm).toNat) :
-    arrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
+    backendArrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
       (.int (Int.ofNat (proposalsIndexWord I).toNat)) = .revert := by
   have hboundStorage :
       ¬ (proposalsIndexWord I).toNat <
@@ -98,9 +101,12 @@ theorem proposalsArrayIndexInBounds_revert (evm : EVM.State) (I : ExecutionEnv)
       UInt256.toNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩) ≤
         (proposalsIndexWord I).toNat :=
     Nat.le_of_not_gt hboundStorage
-  simp [arrayIndexInBounds?, storageTypeAt?, ballotConfig,
-    ballotStorageLayout, ballotContract, ballotStorageDecls, proposalStructTy, uint256St,
-    bytes32St, ballotStorageLocLoad_uint256, hleStorage]
+  apply backendArrayIndexInBounds_dynamicArray_revert
+    (elem := proposalStructTy)
+    (len := (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)
+  · simp [storageTypeAt?, ballotContract, ballotStorageDecls]
+  · exact ballotConfig_length_proposals proposalStructTy evm
+  · exact hleStorage
 
 theorem ballotProposalsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
@@ -133,7 +139,7 @@ theorem ballotProposalsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             UInt256.toNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩) := by
         simpa [proposalsLengthCurrent] using hbound
       have hboundsOk :
-          arrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
+          backendArrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
             (.int (Int.ofNat (proposalsIndexWord I).toNat)) = .ok () :=
         proposalsArrayIndexInBounds_ok evm I hbound
       have herName :
@@ -162,18 +168,6 @@ theorem ballotProposalsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             some (.elem (.int uint256Int)) := by
         simp [proposalCountEvaledRef, storageTypeAt?, storageTypeStep?, ballotContract,
           ballotStorageDecls, proposalStructTy, uint256St]
-      have hlocName :
-          ballotConfig.storage.layout (proposalNameEvaledRef I) =
-            fun _ => some (proposalNameLoc I) := by
-        funext evm'
-        simp [proposalNameEvaledRef, proposalNameLoc, ballotConfig, ballotStorageLayout,
-          proposalNameSlot_spec]
-      have hlocCount :
-          ballotConfig.storage.layout (proposalCountEvaledRef I) =
-            fun _ => some (wordLoc (proposalCountSlot I)) := by
-        funext evm'
-        simp [proposalCountEvaledRef, proposalCountSlot, ballotConfig, ballotStorageLayout,
-          proposalNameSlot_spec, u256_add_comm]
       have hnameLoad :
           storageLocLoad evm (proposalNameLoc I) =
             .fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE (proposalNameCurrent evm I)) := by
@@ -186,11 +180,18 @@ theorem ballotProposalsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           (ballotStorageLocLoad_uint256 evm (proposalCountSlot I))
       simp only [Solm.evalExprs?.eq_def,
         evalExpr_storage_scalar (t := .bytes ⟨31, by decide⟩) (hbase := hbaseName)
-          (her := herName) (hty := htyName) (hloc := hlocName),
+          (her := herName) (hty := htyName)
+          (hread := ballotConfig_read_proposal_name
+            (.int (Int.ofNat (proposalsIndexWord I).toNat)) evm),
         evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbaseCount)
-          (her := herCount) (hty := htyCount) (hloc := hlocCount),
-        EvalResult.bind, bind, pure, proposalNameCurrent, proposalCountCurrent,
-        hnameLoad, hcountLoad])
+          (her := herCount) (hty := htyCount)
+          (hread := ballotConfig_read_proposal_voteCount
+            (.int (Int.ofNat (proposalsIndexWord I).toNat)) evm),
+        EvalResult.bind, bind, pure]
+      rw [← proposalNameSlot_spec I]
+      change EvalResult.ok [storageLocLoad evm (proposalNameLoc I),
+          storageLocLoad evm (wordLoc (proposalCountSlot I))] = _
+      rw [hnameLoad, hcountLoad])
 
 theorem ballotProposalsBodyReverts_oob (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
@@ -211,7 +212,7 @@ theorem ballotProposalsBodyReverts_oob (evm : EVM.State) (I : ExecutionEnv)
           simp only [evalExpr?, proposalsStore, proposalsIndexValue, store_get_self,
             EvalResult.ofOption]
         have hboundsRevert :
-            arrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
+            backendArrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
               (.int (Int.ofNat (proposalsIndexWord I).toNat)) = .revert :=
           proposalsArrayIndexInBounds_revert evm I hbound
         have herNameRevert :

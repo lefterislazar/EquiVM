@@ -235,6 +235,32 @@ theorem storageLocStore_int_some (evm : EVM.State) (loc : StorageLoc) (n : Int) 
   simp only [valueToWord, bind, Option.bind, pure]
   exact ⟨_, rfl⟩
 
+/-! ## Solidity storage-backend equations -/
+
+@[simp] theorem solidityStorageBackend_length_dynamicArray (layout : StorageLayout)
+    (er : EvaledStorageRef) (elem : StorageType) (evm : EVM.State) (loc : StorageLoc)
+    (hloc : layout er evm = some loc)
+    (hload : storageLocLoad evm loc = .int n) (hn : 0 ≤ n) :
+    (solidityStorageBackend layout).length er (.dynamicArray elem) evm = .ok n.toNat := by
+  simp [solidityStorageBackend, solidityStorageLength?, solidityDynamicLength?, hloc, hload,
+    EvalResult.ofOption, EvalResult.bind, bind, hn]
+
+theorem solidityStorageBackend_push_dynamicArray_value (layout : StorageLayout)
+    (er : EvaledStorageRef) (elem : StorageType) (value : Value)
+    (evm evm' evm'' : EVM.State) (length : Nat) (loc : StorageLoc)
+    (hlen : (solidityStorageBackend layout).length er (.dynamicArray elem) evm = .ok length)
+    (hloc : layout er evm = some loc)
+    (hstore : storageLocStore evm loc (.int ((length : Int) + 1)) = some evm')
+    (hwrite : (solidityStorageBackend layout).write
+      { er with steps := er.steps ++ [.aindex (.int (Int.ofNat length))] }
+      elem value evm' = .ok evm'') :
+    (solidityStorageBackend layout).push er (.dynamicArray elem) (some value) evm = .ok evm'' := by
+  simp only [solidityStorageBackend, solidityStorageLength?, solidityPushStorage?] at hlen ⊢
+  rw [hlen, hloc]
+  simp only [EvalResult.ofOption, EvalResult.bind, bind]
+  rw [hstore]
+  simpa only [solidityStorageBackend] using hwrite
+
 /-! ## Solidity bytes/string storage layout -/
 
 theorem solidityDecodeBytesLengthHeader_zero :

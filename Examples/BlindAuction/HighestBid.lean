@@ -30,7 +30,7 @@ theorem blindAuctionHighestBidBodyReturns (evm : EVM.State) (locals : Store)
           some (.elem (.int uint256Int)) := by
         decide
       rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := blindAuctionConfig_storage_highestBid),
+        (hty := hty) (hread := blindAuctionConfig_storage_highestBid),
         blindAuctionStorageLocLoad_uint256])
 
 theorem blindAuctionX_highestBid {cA gh bl σ σ₀ A I} {g : Sat256}

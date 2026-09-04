@@ -103,11 +103,12 @@ theorem evalExpr_uniswap_unlocked (evm : EVM.State) (locals : Store)
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩).toNat)) := by
   rw [evalExpr_storage_scalar
+    (loc := wordLoc ⟨12⟩)
     (t := .int uint256Int)
     (hbase := by simpa [unlockedRef] using hbase)
     (her := evalStorageRef_uniswap_unlocked evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
-    (hloc := by rfl)]
+    (hread := by apply config_storage_read_elem; rfl)]
   exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm ⟨12⟩)
 
 theorem evalExpr_uniswap_unlocked_eq_one_true (evm : EVM.State) (locals : Store)
@@ -153,8 +154,9 @@ theorem uniswapAssignUnlocked (evm : EVM.State) (locals : Store) (val : UInt256)
       (hbase := by simpa [unlockedRef] using hbase)
       (her := evalStorageRef_uniswap_unlocked evm locals)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
-      (hloc := by rfl)
-  simpa [uniswapUnlockedState] using uniswapStorageLocStore_uint256 evm ⟨12⟩ val
+      (hwrite := config_storage_write_elem (loc := wordLoc ⟨12⟩) (by rfl)
+        (by simpa [uniswapUnlockedState] using
+          uniswapStorageLocStore_uint256 evm ⟨12⟩ val))
 
 theorem uniswapAssignUnlockedZero (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "unlocked" = none) :
@@ -269,12 +271,12 @@ theorem evalExpr_uniswap_storage_uint112_offset0 (evm : EVM.State) (locals : Sto
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint112Int)))
-    (hloc : config.storage.layout er = fun _ => some (uint112Loc0 slot)) :
+    (hloc : storageLayout er evm = some (uint112Loc0 slot)) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage ref) =
       .ok (.int (Int.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
           reserve112Mask).toNat)) := by
-  exact evalExpr_storage_scalar_value hbase her hty hloc
+  exact evalExpr_storage_scalar_value hbase her hty (config_storage_read_elem hloc)
     (uniswapStorageLocLoad_uint112_offset0 evm slot)
 
 theorem evalExpr_uniswap_storage_uint112_offset14 (evm : EVM.State) (locals : Store)
@@ -282,13 +284,13 @@ theorem evalExpr_uniswap_storage_uint112_offset14 (evm : EVM.State) (locals : St
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint112Int)))
-    (hloc : config.storage.layout er = fun _ => some (uint112Loc14 slot)) :
+    (hloc : storageLayout er evm = some (uint112Loc14 slot)) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage ref) =
       .ok (.int (Int.ofNat
         (UInt256.land (UInt256.div
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) reserve112Shift)
           reserve112Mask).toNat)) := by
-  exact evalExpr_storage_scalar_value hbase her hty hloc
+  exact evalExpr_storage_scalar_value hbase her hty (config_storage_read_elem hloc)
     (uniswapStorageLocLoad_uint112_offset14 evm slot)
 
 theorem evalExpr_uniswap_reserve0 (evm : EVM.State) (locals : Store)
@@ -760,13 +762,11 @@ theorem uniswapAssignReserve0OfStore (evm evm' : EVM.State) (locals : Store)
         .ok ({ contract := contract, locals := locals }, evm') := by
   apply assignStorageRef_storage_scalar_value
       (er := ({ base := "reserve0", steps := [] } : EvaledStorageRef))
-      (ty := uint112St) (loc := uint112Loc0 ⟨8⟩)
+      (ty := uint112St)
   · simpa [reserve0Ref] using hbase
   · exact evalStorageRef_uniswap_reserve0 evm locals
   · rfl
-  · rfl
-  · simp
-  · exact hstore
+  · exact config_storage_write_elem (loc := uint112Loc0 ⟨8⟩) (by rfl) hstore
 
 theorem uniswapAssignReserve1OfStore (evm evm' : EVM.State) (locals : Store)
     (balance1 : UInt256)
@@ -778,13 +778,11 @@ theorem uniswapAssignReserve1OfStore (evm evm' : EVM.State) (locals : Store)
         .ok ({ contract := contract, locals := locals }, evm') := by
   apply assignStorageRef_storage_scalar_value
       (er := ({ base := "reserve1", steps := [] } : EvaledStorageRef))
-      (ty := uint112St) (loc := uint112Loc14 ⟨8⟩)
+      (ty := uint112St)
   · simpa [reserve1Ref] using hbase
   · exact evalStorageRef_uniswap_reserve1 evm locals
   · rfl
-  · rfl
-  · simp
-  · exact hstore
+  · exact config_storage_write_elem (loc := uint112Loc14 ⟨8⟩) (by rfl) hstore
 
 theorem uniswapAssignBlockTimestampLastOfStore (evm evm' : EVM.State) (locals : Store)
     (value : Value)
@@ -795,14 +793,11 @@ theorem uniswapAssignBlockTimestampLastOfStore (evm evm' : EVM.State) (locals : 
       blockTimestampLastRef value = .ok ({ contract := contract, locals := locals }, evm') := by
   apply assignStorageRef_storage_scalar_value
       (er := ({ base := "blockTimestampLast", steps := [] } : EvaledStorageRef))
-      (ty := uint32St) (loc := uint32Loc28 ⟨8⟩)
+      (ty := uint32St)
   · simpa [blockTimestampLastRef] using hbase
   · exact evalStorageRef_uniswap_blockTimestampLast evm locals
   · rfl
-  · rfl
-  · cases value <;> simp at hscalar ⊢
-    simp [storageLocStore, valueToWord] at hstore
-  · exact hstore
+  · exact config_storage_write_elem (loc := uint32Loc28 ⟨8⟩) (by rfl) hstore
 
 def uniswapSlotWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)
@@ -819,10 +814,10 @@ theorem evalExpr_uniswap_storage_address (evm : EVM.State) (locals : Store)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
+    (hloc : storageLayout er evm = some (addrLoc slot)) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage ref) =
       .ok (.address (uniswapAddressAtSlot evm slot)) := by
-  exact evalExpr_storage_scalar_value hbase her hty hloc
+  exact evalExpr_storage_scalar_value hbase her hty (config_storage_read_elem hloc)
     (uniswapStorageLocLoad_address_offset0 evm slot)
 
 theorem evalExpr_uniswap_this (evm : EVM.State) (locals : Store) :
@@ -906,7 +901,7 @@ theorem uniswapExternalBalanceOfThisSuccess (evm evm' : EVM.State) (locals : Sto
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
+    (hloc : storageLayout er evm = some (addrLoc slot))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm slot))
       "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out) false)
     (hdec : config.externalABI.decode? "balanceOf" out = some [value]) :
@@ -926,7 +921,7 @@ theorem uniswapExternalBalanceOfThisFailure (evm evm' : EVM.State) (locals : Sto
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
+    (hloc : storageLayout er evm = some (addrLoc slot))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm slot))
       "balanceOf" 0 [.address evm.executionEnv.codeOwner] (false, evm', out) false) :
     ExecBlock config { contract := contract, locals := locals } evm
@@ -944,7 +939,7 @@ theorem uniswapExternalBalanceOfThisDecodeRevert (evm evm' : EVM.State) (locals 
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
+    (hloc : storageLayout er evm = some (addrLoc slot))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm slot))
       "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out) false)
     (hdec : config.externalABI.decode? "balanceOf" out = none) :
@@ -980,7 +975,7 @@ theorem uniswapCheckedExternalBalanceOfThisSuccess (evm evm' : EVM.State) (local
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
+    (hloc : storageLayout er evm = some (addrLoc slot))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm slot))
       "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out) false)
     (hdec : config.externalABI.decode? "balanceOf" out = some [value]) :
@@ -1005,7 +1000,7 @@ theorem uniswapCheckedExternalBalanceOfThisFailure (evm evm' : EVM.State) (local
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
+    (hloc : storageLayout er evm = some (addrLoc slot))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm slot))
       "balanceOf" 0 [.address evm.executionEnv.codeOwner] (false, evm', out) false) :
     ExecBlock config { contract := contract, locals := locals } evm
@@ -1029,7 +1024,7 @@ theorem uniswapCheckedExternalBalanceOfThisDecodeRevert
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
+    (hloc : storageLayout er evm = some (addrLoc slot))
     (hcall : typedCallViaEVM config evm (EVM.address (uniswapAddressAtSlot evm slot))
       "balanceOf" 0 [.address evm.executionEnv.codeOwner] (true, evm', out) false)
     (hdec : config.externalABI.decode? "balanceOf" out = none) :
@@ -1295,7 +1290,7 @@ theorem uniswapAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
+    (hloc : storageLayout er evm = some (addrLoc slot)) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
@@ -1303,7 +1298,8 @@ theorem uniswapAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
             solcAddrMask).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty)
+        (hread := config_storage_read_elem hloc)]
       exact congrArg EvalResult.ok (uniswapStorageLocLoad_address_offset0 evm slot))
 
 theorem uniswapUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
@@ -1312,14 +1308,15 @@ theorem uniswapUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
-    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : storageLayout er evm = some (wordLoc slot)) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty)
+        (hread := config_storage_read_elem hloc)]
       exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm slot))
 
 theorem uniswapBytes32GetterBodyReturns (evm : EVM.State) (locals : Store)
@@ -1328,7 +1325,7 @@ theorem uniswapBytes32GetterBodyReturns (evm : EVM.State) (locals : Store)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.bytes bytes32Width)))
-    (hloc : config.storage.layout er = fun _ => some (bytes32Loc slot)) :
+    (hloc : storageLayout er evm = some (bytes32Loc slot)) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.fixedBytes ⟨31, by decide⟩
@@ -1336,7 +1333,8 @@ theorem uniswapBytes32GetterBodyReturns (evm : EVM.State) (locals : Store)
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty)
+        (hread := config_storage_read_elem hloc)]
       exact congrArg EvalResult.ok (uniswapStorageLocLoad_bytes32 evm slot))
 
 theorem uniswapIntLiteralBodyReturns (evm : EVM.State) (locals : Store) (n : Int)

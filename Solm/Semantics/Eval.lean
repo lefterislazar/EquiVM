@@ -98,7 +98,7 @@ mutual
     all_goals decreasing_tactic
 end
 
-private def backendArrayIndexInBoundsWith? (backend : StorageBackend) (evm : EVM.State)
+def backendArrayIndexInBoundsWith? (backend : StorageBackend) (evm : EVM.State)
     (decls : List StorageDecl) (base : Ident) (pre : List EvaledStorageRefStep)
     (i : KeyValue) : EvalResult Unit :=
   match storageTypeAt? decls { base := base, steps := pre }, i with

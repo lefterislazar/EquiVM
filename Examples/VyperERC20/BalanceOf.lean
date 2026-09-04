@@ -92,8 +92,8 @@ theorem erc20BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             EvalResult.bind, EvalResult.ofOption, bind, pure, evalExpr?])
         (hty := by simp [storageTypeAt?, erc20Contract, ERC20.erc20Contract,
           ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage, storageTypeStep?])
-        (hloc := vyperERC20Config_storage_balanceOf
-          (.address (AccountAddress.ofNat (balanceOfOwnerWord I).toNat)))]
+        (hread := vyperERC20Config_read_balanceOf
+          (.address (AccountAddress.ofNat (balanceOfOwnerWord I).toNat)) evm)]
       rw [show erc20BalanceOfSlot
             (KeyValue.address (AccountAddress.ofNat (balanceOfOwnerWord I).toNat)) =
           balanceOfSlot I from rfl]

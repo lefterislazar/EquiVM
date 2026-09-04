@@ -1,4 +1,5 @@
 import Solm.Semantics
+import Solm.MetaSolidityLayout
 import Solm.SolidityLayout
 import Examples.TinyImmutable.Immutables
 
@@ -82,8 +83,11 @@ def contract (v : TinyImmutables) : ContractDecl :=
     ctor := constructorDecl
     transitions := transitions v }
 
+def storageBackend : StorageBackend :=
+  solidityStorage! [([] : List StructDecl)] [([] : List StorageDecl)]
+
 def config (v : TinyImmutables) : Config :=
-  { storage := { layout := fun _ _ => none }
+  { storage := storageBackend
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment (contract v).ctor.params }
 

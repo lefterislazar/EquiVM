@@ -1,5 +1,6 @@
 import Solm.Semantics
-import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
+import Reasoning.Storage
 
 /-!
 # Ballot — Solm specification for `Ballot.sol`
@@ -19,8 +20,7 @@ contract.  This exercises a broad slice of the Solm surface that earlier example
   `proposals(uint256)`) that solc adds to the external ABI, modelled as transitions returning
   ABI tuples for the struct getters.
 
-The storage layout is **hand-written** to match the deployed bytecode's slot assignment exactly
-(rather than relying on `genSolidityLayout`, whose packed-struct layout is still WIP):
+The generated Solidity backend matches the deployed bytecode's slot assignment:
 
 | variable          | slot                                   | notes |
 |-------------------|----------------------------------------|-------|
@@ -101,7 +101,7 @@ def ballotStorageDecls : List StorageDecl :=
     { name := "voters", ty := .mapping .address voterStructTy },
     { name := "proposals", ty := .dynamicArray proposalStructTy } ]
 
-/-! ## Storage layout (hand-written, matches deployed bytecode) -/
+/-! ## Storage location formulas used by the bytecode proofs -/
 
 /-- Solidity mapping slot: `keccak256(key ‖ baseSlot)`. -/
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
@@ -122,24 +122,9 @@ def proposalElemSlot (i : KeyValue) : Ethereum.UInt256 :=
 def wordLoc (s : Ethereum.UInt256) : StorageLoc :=
   { slot := s, offset := 0, size := 32, hbound := by decide, type := .int uint256Int }
 
-def ballotStorageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "chairperson", [] =>
-        some { slot := ⟨0⟩, offset := 0, size := 20, hbound := by decide, type := .address }
-    | "voters", [.mindex a, .field "weight"]   => some (wordLoc (voterBase a))
-    | "voters", [.mindex a, .field "voted"]    =>
-        some { slot := voterBase a + ⟨1⟩, offset := 0, size := 1, hbound := by decide, type := .bool }
-    | "voters", [.mindex a, .field "delegate"] =>
-        some { slot := voterBase a + ⟨1⟩, offset := 1, size := 20, hbound := by decide, type := .address }
-    | "voters", [.mindex a, .field "vote"]     => some (wordLoc (voterBase a + ⟨2⟩))
-    | "proposals", [.length] => some (wordLoc ⟨2⟩)
-    | "proposals", [.aindex i, .field "name"] =>
-        some { slot := proposalElemSlot i, offset := 0, size := 32, hbound := by decide,
-               type := .bytes ⟨31, by decide⟩ }
-    | "proposals", [.aindex i, .field "voteCount"] =>
-        some (wordLoc (proposalElemSlot i + ⟨1⟩))
-    | _, _ => none
+def ballotStorageBackend : StorageBackend :=
+  solidityStorage! [([voterStructDecl, proposalStructDecl] : List StructDecl)]
+    [ballotStorageDecls]
 
 /-! ## Constructor
 
@@ -318,6 +303,150 @@ def ballotContract : ContractDecl :=
 end Ballot
 
 def ballotConfig : Config :=
-  { storage := Ballot.ballotStorageLayout
+  { storage := Ballot.ballotStorageBackend
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment Ballot.ballotContract.ctor.params }
+
+/-- Elementary reads through Ballot's generated backend.  This keeps the generated locator folded
+    while allowing proofs to identify the bytecode-level slot. -/
+theorem ballotConfig_read_elem {er : EvaledStorageRef} {ty : ElemType}
+    {evm : EVM.State} {loc : StorageLoc}
+    (hloc : ballotConfig.storage.locate? er evm = some loc) :
+    ballotConfig.storage.read er (.elem ty) evm = .ok (storageLocLoad evm loc) := by
+  change (solidityStorageBackend _).read er (.elem ty) evm = _
+  apply solidityStorageBackend_read_elem
+  exact hloc
+
+/-- Elementary writes through Ballot's generated backend. -/
+theorem ballotConfig_write_elem {er : EvaledStorageRef} {ty : ElemType} {value : Value}
+    {evm evm' : EVM.State} {loc : StorageLoc}
+    (hloc : ballotConfig.storage.locate? er evm = some loc)
+    (hstore : storageLocStore evm loc value = some evm') :
+    ballotConfig.storage.write er (.elem ty) value evm = .ok evm' := by
+  change (solidityStorageBackend _).write er (.elem ty) value evm = _
+  apply solidityStorageBackend_write_elem
+  · exact hloc
+  · exact hstore
+
+@[simp] theorem ballotConfig_read_chairperson (evm : EVM.State) :
+    ballotConfig.storage.read { base := "chairperson", steps := [] } (.elem .address) evm =
+      .ok (storageLocLoad evm
+        { slot := ⟨0⟩, offset := 0, size := 20, hbound := by decide, type := .address }) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem ballotConfig_read_voter_weight (owner : KeyValue) (evm : EVM.State) :
+    ballotConfig.storage.read
+        { base := "voters", steps := [.mindex owner, .field "weight"] } (.elem (.int Ballot.uint256Int)) evm =
+      .ok (storageLocLoad evm (Ballot.wordLoc (Ballot.voterBase owner))) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem ballotConfig_read_voter_voted (owner : KeyValue) (evm : EVM.State) :
+    ballotConfig.storage.read
+        { base := "voters", steps := [.mindex owner, .field "voted"] } (.elem .bool) evm =
+      .ok (storageLocLoad evm
+        { slot := Ballot.voterBase owner + ⟨1⟩, offset := 0, size := 1, hbound := by decide,
+          type := .bool }) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem ballotConfig_read_voter_delegate (owner : KeyValue) (evm : EVM.State) :
+    ballotConfig.storage.read
+        { base := "voters", steps := [.mindex owner, .field "delegate"] } (.elem .address) evm =
+      .ok (storageLocLoad evm
+        { slot := Ballot.voterBase owner + ⟨1⟩, offset := 1, size := 20, hbound := by decide,
+          type := .address }) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem ballotConfig_read_voter_vote (owner : KeyValue) (evm : EVM.State) :
+    ballotConfig.storage.read
+        { base := "voters", steps := [.mindex owner, .field "vote"] } (.elem (.int Ballot.uint256Int)) evm =
+      .ok (storageLocLoad evm (Ballot.wordLoc (Ballot.voterBase owner + ⟨2⟩))) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem ballotConfig_read_proposal_name (index : KeyValue) (evm : EVM.State) :
+    ballotConfig.storage.read
+        { base := "proposals", steps := [.aindex index, .field "name"] } Ballot.bytes32St evm =
+      .ok (storageLocLoad evm
+        { slot := Ballot.proposalElemSlot index, offset := 0, size := 32, hbound := by decide,
+          type := .bytes ⟨31, by decide⟩ }) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem ballotConfig_read_proposal_voteCount (index : KeyValue) (evm : EVM.State) :
+    ballotConfig.storage.read
+        { base := "proposals", steps := [.aindex index, .field "voteCount"] } (.elem (.int Ballot.uint256Int)) evm =
+      .ok (storageLocLoad evm (Ballot.wordLoc (Ballot.proposalElemSlot index + ⟨1⟩))) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+theorem ballotConfig_write_voter_weight {evm evm' : EVM.State} (owner : KeyValue)
+    {value : Value}
+    (hstore : storageLocStore evm (Ballot.wordLoc (Ballot.voterBase owner)) value = some evm') :
+    ballotConfig.storage.write
+        { base := "voters", steps := [.mindex owner, .field "weight"] }
+        (.elem (.int Ballot.uint256Int)) value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+theorem ballotConfig_write_voter_voted {evm evm' : EVM.State} (owner : KeyValue)
+    {value : Value}
+    (hstore : storageLocStore evm
+      { slot := Ballot.voterBase owner + ⟨1⟩, offset := 0, size := 1, hbound := by decide,
+        type := .bool } value = some evm') :
+    ballotConfig.storage.write
+        { base := "voters", steps := [.mindex owner, .field "voted"] }
+        (.elem .bool) value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+theorem ballotConfig_write_voter_delegate {evm evm' : EVM.State} (owner : KeyValue)
+    {value : Value}
+    (hstore : storageLocStore evm
+      { slot := Ballot.voterBase owner + ⟨1⟩, offset := 1, size := 20, hbound := by decide,
+        type := .address } value = some evm') :
+    ballotConfig.storage.write
+        { base := "voters", steps := [.mindex owner, .field "delegate"] }
+        (.elem .address) value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+theorem ballotConfig_write_voter_vote {evm evm' : EVM.State} (owner : KeyValue)
+    {value : Value}
+    (hstore : storageLocStore evm (Ballot.wordLoc (Ballot.voterBase owner + ⟨2⟩)) value = some evm') :
+    ballotConfig.storage.write
+        { base := "voters", steps := [.mindex owner, .field "vote"] }
+        (.elem (.int Ballot.uint256Int)) value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+theorem ballotConfig_write_proposal_voteCount {evm evm' : EVM.State} (index : KeyValue)
+    {value : Value}
+    (hstore : storageLocStore evm (Ballot.wordLoc (Ballot.proposalElemSlot index + ⟨1⟩)) value =
+      some evm') :
+    ballotConfig.storage.write
+        { base := "proposals", steps := [.aindex index, .field "voteCount"] }
+        (.elem (.int Ballot.uint256Int)) value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+@[simp] theorem ballotConfig_length_proposals (elem : StorageType) (evm : EVM.State) :
+    ballotConfig.storage.length { base := "proposals", steps := [] }
+        (.dynamicArray elem) evm =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat := by
+  change (solidityStorageBackend _).length _ (.dynamicArray elem) evm = _
+  apply Reasoning.Theory.solidityStorageBackend_length_dynamicArray
+    (n := Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)
+    (loc := Ballot.wordLoc ⟨2⟩)
+  · rfl
+  · simpa [Ballot.wordLoc, Reasoning.Theory.uint256Loc] using
+      (Reasoning.Theory.storageLocLoad_uint256 evm (⟨2⟩ : Ethereum.UInt256))
+  · exact Int.natCast_nonneg _

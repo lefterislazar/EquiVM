@@ -1,5 +1,5 @@
 import Solm.Semantics
-import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # OpenZeppelin Pausable benchmark spec
@@ -24,11 +24,8 @@ def storageDecls : List StorageDecl :=
 def boolLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 1, hbound := by decide, type := .bool }
 
-def storageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "_paused", [] => some (boolLoc ⟨0⟩)
-    | _, _ => none
+def storageBackend : StorageBackend :=
+  solidityStorage! [([] : List StructDecl)] [storageDecls]
 
 def pausedTransition : TransitionDecl :=
   { name := "paused"
@@ -90,8 +87,21 @@ def contract : ContractDecl :=
         unpauseTransition ] }
 
 def config : Config :=
-  { storage := storageLayout
+  { storage := storageBackend
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
+
+@[simp] theorem config_read_paused (evm : EVM.State) :
+    config.storage.read { base := "_paused", steps := [] } (.elem .bool) evm =
+      .ok (storageLocLoad evm (boolLoc ⟨0⟩)) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+theorem config_write_paused {evm evm' : EVM.State} {value : Value}
+    (hstore : storageLocStore evm (boolLoc ⟨0⟩) value = some evm') :
+    config.storage.write { base := "_paused", steps := [] } (.elem .bool) value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem (loc := boolLoc ⟨0⟩)
+  · rfl
+  · exact hstore
 
 end OpenZeppelinBench.Pausable

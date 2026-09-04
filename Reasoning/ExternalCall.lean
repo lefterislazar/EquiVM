@@ -455,7 +455,7 @@ theorem typedCallViaEVM_initState_EVMStateEquiv {cfg : Config}
 
 /-- A synthetic ABI that always encodes the chosen raw calldata.  This lets raw `callViaEVM`
     transport reuse the typed-call account-map bridge without adding a second trusted axiom. -/
-def rawCallTransportConfig (storage : StorageLayout) (calldata : ByteArray) : Config :=
+def rawCallTransportConfig (storage : StorageBackend) (calldata : ByteArray) : Config :=
   { storage := storage
     externalABI :=
       { encode? := fun _ _ => some calldata
@@ -464,7 +464,7 @@ def rawCallTransportConfig (storage : StorageLayout) (calldata : ByteArray) : Co
 
 /-- Raw low-level call transport across observationally equivalent account maps, for either ordinary
     calls or static calls. -/
-theorem callViaEVM_accountMapEquiv_perm {storage : StorageLayout}
+theorem callViaEVM_accountMapEquiv_perm {storage : StorageBackend}
     {evm_evm evm_solm evm'_evm : EVM.State}
     {tgt : EVM.Address} {value : ℤ} {calldata : ByteArray} {z : Bool} {out : ByteArray}
     {callPerm : Bool}
@@ -497,7 +497,7 @@ theorem callViaEVM_accountMapEquiv_perm {storage : StorageLayout}
   exact ⟨σ'_solm, A'_solm, hraw, hσ'⟩
 
 /-- Raw low-level call transport across observationally equivalent account maps. -/
-theorem callViaEVM_accountMapEquiv {storage : StorageLayout}
+theorem callViaEVM_accountMapEquiv {storage : StorageBackend}
     {evm_evm evm_solm evm'_evm : EVM.State}
     {tgt : EVM.Address} {value : ℤ} {calldata : ByteArray} {z : Bool} {out : ByteArray}
     (hcall : callViaEVM evm_evm tgt value calldata (z, evm'_evm, out))
@@ -521,7 +521,7 @@ theorem callViaEVM_accountMapEquiv {storage : StorageLayout}
     hCreated hGenesis hBlocks hSubstate hEnv
 
 /-- `initState`-specialized raw low-level call transport, generic over the `callPerm` flag. -/
-theorem callViaEVM_initState_accountMapEquiv_perm {storage : StorageLayout}
+theorem callViaEVM_initState_accountMapEquiv_perm {storage : StorageBackend}
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     {evm'_evm : EVM.State} {tgt : EVM.Address} {value : ℤ} {calldata : ByteArray}
     {z : Bool} {out : ByteArray} {callPerm : Bool}
@@ -548,7 +548,7 @@ theorem callViaEVM_initState_accountMapEquiv_perm {storage : StorageLayout}
     (by simp [initState])
 
 /-- `initState`-specialized raw low-level call transport at the default call permission. -/
-theorem callViaEVM_initState_accountMapEquiv {storage : StorageLayout}
+theorem callViaEVM_initState_accountMapEquiv {storage : StorageBackend}
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     {evm'_evm : EVM.State} {tgt : EVM.Address} {value : ℤ} {calldata : ByteArray}
     {z : Bool} {out : ByteArray}

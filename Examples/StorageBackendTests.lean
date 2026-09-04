@@ -29,8 +29,13 @@ def declarations : List StorageDecl :=
 
 def layout : StorageLayout := solidityLayout! [([] : List StructDecl)] [declarations]
 
+def interpretedLayout : StorageLayout :=
+  match genSolidityLayout [] declarations with
+  | some generated => generated
+  | none => fun _ _ => none
+
 def summary (ref : EvaledStorageRef) : Option (Nat × Nat × Nat) := do
-  let loc <- layout.layout ref default
+  let loc <- layout ref default
   pure (loc.slot.toNat, loc.offset.val, loc.size.val)
 
 -- A full-slot first declaration starts at slot zero (the old generator incorrectly returned one).
@@ -42,14 +47,17 @@ def summary (ref : EvaledStorageRef) : Option (Nat × Nat × Nat) := do
 #guard summary { base := "tail" } = some (3, 0, 1)
 -- A dynamic value following a packed scalar starts at the next slot.  In the default (short)
 -- representation, Solidity byte zero is the most-significant byte of that slot.
-#guard summary { base := "blob", steps := [.length] } = some (4, 0, 1)
+#guard summary { base := "blob" } = some (4, 0, 1)
 #guard summary { base := "blob", steps := [.aindex (.int 0)] } = some (4, 31, 1)
 -- Struct fields pack internally, while the full-width field starts the next word.
 #guard summary { base := "direct", steps := [.field "flag"] } = some (5, 0, 1)
 #guard summary { base := "direct", steps := [.field "owner"] } = some (5, 1, 20)
 #guard summary { base := "direct", steps := [.field "count"] } = some (6, 0, 32)
 -- The struct occupies two complete words, so the following dynamic-array root starts at slot seven.
-#guard summary { base := "items", steps := [.length] } = some (7, 0, 32)
+#guard summary { base := "items" } = some (7, 0, 32)
+-- The tree-based generator follows the same bare-reference anchor convention.
+#guard (interpretedLayout { base := "blob" } default).map (·.slot.toNat) = some 4
+#guard (interpretedLayout { base := "items" } default).map (·.slot.toNat) = some 7
 -- Struct sizes are byte counts, so fixed-array elements advance by the struct's two-word stride.
 #guard summary { base := "pairs", steps := [.aindex (.int 0), .field "flag"] } = some (8, 0, 1)
 #guard summary { base := "pairs", steps := [.aindex (.int 0), .field "count"] } = some (9, 0, 32)
@@ -72,29 +80,18 @@ private def noExternalCalls : ExternalCallABI where
 /-- A representative configuration using generated operation-owned storage, rather than the
     compatibility fallback. -/
 def generatedConfig : Config :=
-  { storage := layout
-    storageBackend? := some generatedBackend
-    storageBackend_read_scalar := by
-      intro backend er ty evm loc hbackend hloc
-      cases hbackend
-      exact StorageLayout.toBackend_read_elem layout er ty evm loc hloc
-    storageBackend_write_scalar := by
-      intro backend er ty value evm evm' loc hbackend hloc hscalar hstore
-      cases hbackend
-      exact StorageLayout.toBackend_write_scalar layout er ty value evm evm' loc
-        hloc hscalar hstore
+  { storage := generatedBackend
     externalABI := noExternalCalls
     selfDeployment := fun _ _ => none }
 
-example : generatedConfig.storageBackend? = some generatedBackend := rfl
+example : generatedConfig.storage = generatedBackend := rfl
 
 example (er : EvaledStorageRef) (ty : StorageType) (evm : EVM.State) :
-    (configuredStorageBackend generatedConfig).read er ty evm =
-      generatedBackend.read er ty evm := by
+    generatedConfig.storage.read er ty evm = generatedBackend.read er ty evm := by
   rfl
 
 example (ref : EvaledStorageRef) (evm : EVM.State) :
-    generatedBackend.locate? ref evm = layout.layout ref evm := by
+    generatedBackend.locate? ref evm = layout ref evm := by
   rfl
 
 /-! ## Executable backend-law regressions
@@ -142,6 +139,11 @@ def structRoundTrip : EvalResult Value := do
 #guard structRoundTrip = .ok (packedValue true 5 9)
 
 def pairsTy : StorageType := .array packedStruct 2
+
+-- Statically known lengths come from the type and do not consult a layout location.
+#guard generatedBackend.length { base := "pairs" } pairsTy backendTestState = .ok 2
+#guard generatedBackend.length { base := "unused" }
+  (.elem (.bytes ⟨31, by decide⟩)) backendTestState = .ok 32
 
 def structArrayRoundTrip : EvalResult Value := do
   let value := Value.array [packedValue true 5 9, packedValue false 7 11]

@@ -123,7 +123,7 @@ theorem uniswapAllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             valueToKey?, Std.HashMap.get?_eq_getElem?, hgowner, hgspender,
             allowanceOwnerValue, allowanceSpenderValue, allowanceOwnerKey, allowanceSpenderKey])
         (hty := by rfl)
-        (hloc := by rfl)]
+        (hread := by apply config_storage_read_elem; rfl)]
       exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm (allowanceStorageSlot I)))
 
 /-! ## EVM trace -/

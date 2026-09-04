@@ -1662,7 +1662,7 @@ theorem evalExpr_permit_domainSeparator_afterNonce_at {cA gh bl σ σ₀ A I} {g
       (her := her)
       (hty := by
         simp [storageTypeAt?, contract, storageDecls, bytes32St])
-      (hloc := by rfl)
+      (hread := by apply config_storage_read_elem; rfl)
       (hload := by
         rw [uniswapStorageLocLoad_bytes32, hloadNonce]
         simp [permitWordBytes32Value, bytes32Width])
@@ -1925,9 +1925,10 @@ theorem permitApproveAssign (evm : EVM.State) (I : ExecutionEnv) :
       (her := evalStorageRef_permit_approve_allowance evm I)
       (hty := by
         simp [storageTypeAt?, contract, storageDecls, uint256St, storageTypeStep?])
-      (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
-  simp [permitApprovePostState, permitApproveStorageSlot]
+      (hwrite := config_storage_write_elem (loc := wordLoc (permitApproveStorageSlot I))
+        (by rfl) (by
+        rw [uniswapStorageLocStore_uint256]
+        simp [permitApprovePostState, permitApproveStorageSlot]))
 
 theorem uniswapLookupApproveFunction :
     lookupCallable? contract "_approve" = some approveFunction.toCallable := by
@@ -2280,14 +2281,14 @@ theorem storageTypeAt_permit_domainSeparator :
       ({ base := "DOMAIN_SEPARATOR", steps := [] } : EvaledStorageRef) = some bytes32St := by
   simp [storageTypeAt?, contract, storageDecls, bytes32St]
 
-theorem storageLayout_permit_nonce (I : ExecutionEnv) :
-    config.storage.layout (permitNonceEvaledRef I) =
-      fun _ => some (wordLoc (permitNonceStorageSlot I)) := by
+theorem storageLayout_permit_nonce (evm : EVM.State) (I : ExecutionEnv) :
+    storageLayout (permitNonceEvaledRef I) evm =
+      some (wordLoc (permitNonceStorageSlot I)) := by
   rfl
 
-theorem storageLayout_permit_domainSeparator :
-    config.storage.layout ({ base := "DOMAIN_SEPARATOR", steps := [] } : EvaledStorageRef) =
-      fun _ => some (bytes32Loc ⟨3⟩) := by
+theorem storageLayout_permit_domainSeparator (evm : EVM.State) :
+    storageLayout ({ base := "DOMAIN_SEPARATOR", steps := [] } : EvaledStorageRef) evm =
+      some (bytes32Loc ⟨3⟩) := by
   rfl
 
 theorem resolveStorageRef_permit_domainSeparator (evm : EVM.State) (I : ExecutionEnv) :
@@ -2327,7 +2328,7 @@ theorem evalExpr_permit_domainSeparator_storage (evm : EVM.State) (I : Execution
       (hbase := permitStore_domainSeparatorRef I)
       (her := evalStorageRef_permit_domainSeparator evm I)
       (hty := storageTypeAt_permit_domainSeparator)
-      (hloc := storageLayout_permit_domainSeparator)
+      (hread := config_storage_read_elem (storageLayout_permit_domainSeparator evm))
       (hload := by
         rw [uniswapStorageLocLoad_bytes32]
         simp [permitDomainSeparatorLoadedValue, permitWordBytes32Value, bytes32Width])
@@ -2341,7 +2342,7 @@ theorem evalExpr_permit_nonce_storage (evm : EVM.State) (I : ExecutionEnv) :
       (hbase := permitStore_nonces I)
       (her := evalStorageRef_permit_nonce evm I)
       (hty := storageTypeAt_permit_nonce I)
-      (hloc := storageLayout_permit_nonce I)
+      (hread := config_storage_read_elem (storageLayout_permit_nonce evm I))
       (hload := by
         rw [uniswapStorageLocLoad_uint256])
 
@@ -2354,7 +2355,7 @@ theorem evalExpr_permit_afterDomain_nonce_storage (evm : EVM.State) (I : Executi
       (hbase := permitAfterDomainLoadStore_nonces evm I)
       (her := evalStorageRef_permit_afterDomain_nonce evm I)
       (hty := storageTypeAt_permit_nonce I)
-      (hloc := storageLayout_permit_nonce I)
+      (hread := config_storage_read_elem (storageLayout_permit_nonce evm I))
       (hload := by
         rw [uniswapStorageLocLoad_uint256])
 
@@ -2377,11 +2378,17 @@ theorem permitAssignNonce (evm : EVM.State) (I : ExecutionEnv) :
       .storage (noncesRef (.var "owner")) (permitNonceNextLoadedValue evm I) =
         .ok ({ contract := contract, locals := permitAfterNonceLoadStore evm I },
           permitAfterNonceState evm I) := by
+  have hwrite :
+      config.storage.write (permitNonceEvaledRef I) uint256St
+          (permitNonceNextLoadedValue evm I) evm =
+        .ok (permitAfterNonceState evm I) :=
+    config_storage_write_elem
+      (loc := wordLoc (permitNonceStorageSlot I))
+      (storageLayout_permit_nonce evm I) (by
+        rw [uniswapStorageLocStore_uint256]
+        simp [permitAfterNonceState])
   rw [assignStorageRef?]
-  simp only [resolveStorageRef_permit_afterNonce_nonce, EvalResult.bind, bind,
-    EvalResult.ofOption, storageLayout_permit_nonce I, pure]
-  rw [uniswapStorageLocStore_uint256]
-  simp [permitAfterNonceState]
+  simp only [resolveStorageRef_permit_afterNonce_nonce, EvalResult.bind, bind, hwrite, pure]
 
 theorem permitNonceLoadedWord_initState {cA gh bl σ σ₀ A I} {g : Sat256} :
     permitNonceLoadedWord (initState cA gh bl σ σ₀ g A I) I = permitNonceWord σ I := by

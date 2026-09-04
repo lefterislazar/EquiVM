@@ -555,35 +555,71 @@ theorem bidPushArray_ok (evm : EVM.State) (hsz36 : 36 ≤ evm.executionEnv.calld
       .ok (bidPostState evm evm.executionEnv (bidLengthWord evm.accountMap evm.executionEnv)) := by
   unfold pushArray? resolveStorageRef? evalStorageRef evalStorageRefSteps
     evalStorageRefStep bidsRef sender valueToKey? storageTypeAt? storageTypeStep?
-    blindAuctionContract storageDecls bidStructTy bidStructDecl blindAuctionConfig
-    blindAuctionStorageLayout bidPostState bidAfterBlindedState bidAfterLengthState
-    bidDepositSlot bidElementSlot bidLengthSlot bidSenderKey bidStructValue bidCallValue
+    blindAuctionContract storageDecls bidStructTy bidStructDecl
   simp [bidStore, evalExpr?, envValue, List.nil_append, EvalResult.bind, bind, pure,
     EvalResult.ofOption]
-  rw [blindAuctionStorageLocLoad_uint256]
-  simp only [EvalResult.bind, bind]
-  rw [bidStorageLocStore_uint256_succ]
-  simp only [Option.bind, EvalResult.bind, bind, pure]
-  rw [writeStorage?.eq_def]
-  simp only [EvalResult.bind, bind]
-  rw [writeFields?.eq_def]
-  simp only [beq_self_eq_true, reduceIte]
-  rw [writeStorage?.eq_def]
-  simp only [bytes32St]
-  simp only [List.cons_append, List.nil_append]
-  rw [blindAuctionStorageLocStore_bytes32
-    (word := bidBlindedWord evm.executionEnv)
-    (hval := bidBlindedValue_toWord evm.executionEnv hsz36)]
-  simp only [EvalResult.ofOption, Option.bind, EvalResult.bind, bind, pure]
-  rw [writeFields?.eq_def]
-  simp only [beq_self_eq_true, reduceIte]
-  rw [writeStorage?.eq_def]
-  simp only [uint256St]
-  simp only [List.cons_append, List.nil_append]
-  rw [blindAuctionStorageLocStore_uint256_natCast]
-  simp only [EvalResult.ofOption, Option.bind, EvalResult.bind, bind, pure]
-  rw [writeFields?.eq_def]
-  rfl
+  apply Reasoning.Theory.solidityStorageBackend_push_dynamicArray_value
+    (length := (bidLengthWord evm.accountMap evm.executionEnv).toNat)
+    (loc := blindAuctionUint256Loc (bidLengthSlot evm.executionEnv))
+    (evm' := bidAfterLengthState evm evm.executionEnv
+      (bidLengthWord evm.accountMap evm.executionEnv))
+  · exact blindAuctionConfig_storage_bids_length
+      (bidSenderKey evm.executionEnv) bidStructTy evm
+  · rfl
+  · simpa [bidAfterLengthState] using bidStorageLocStore_uint256_succ evm
+      (bidLengthSlot evm.executionEnv) (bidLengthWord evm.accountMap evm.executionEnv)
+  · unfold solidityStorageBackend
+    simp only [bidStructValue, solidityWriteStorage?, EvalResult.bind, bind]
+    rw [solidityWriteFields?.eq_def]
+    simp only [beq_self_eq_true, reduceIte]
+    have hblindedStore :
+        storageLocStore
+            (bidAfterLengthState evm evm.executionEnv
+              (bidLengthWord evm.accountMap evm.executionEnv))
+            (blindAuctionBytes32Loc
+              (bidElementSlot evm.executionEnv (bidLengthWord evm.accountMap evm.executionEnv)))
+            (bidBlindedValue evm.executionEnv) =
+          some (bidAfterBlindedState evm evm.executionEnv
+            (bidLengthWord evm.accountMap evm.executionEnv)) := by
+      simpa [bidAfterBlindedState] using blindAuctionStorageLocStore_bytes32
+        (bidAfterLengthState evm evm.executionEnv
+          (bidLengthWord evm.accountMap evm.executionEnv))
+        (bidElementSlot evm.executionEnv (bidLengthWord evm.accountMap evm.executionEnv))
+        (bidBlindedWord evm.executionEnv) (bidBlindedValue evm.executionEnv)
+        (bidBlindedValue_toWord evm.executionEnv hsz36)
+    have hblindedWrite := blindAuctionConfig_write_bids_blindedBid
+      (bidSenderKey evm.executionEnv)
+      (.int (Int.ofNat (bidLengthWord evm.accountMap evm.executionEnv).toNat)) hblindedStore
+    change solidityWriteStorage? _ _ _ _ _ = _ at hblindedWrite
+    simp only [bidSenderKey] at hblindedWrite
+    simp only [bytes32St, List.cons_append, List.nil_append]
+    rw [hblindedWrite]
+    simp only [EvalResult.bind, bind]
+    rw [solidityWriteFields?.eq_def]
+    simp only [beq_self_eq_true, reduceIte]
+    have hdepositStore :
+        storageLocStore
+            (bidAfterBlindedState evm evm.executionEnv
+              (bidLengthWord evm.accountMap evm.executionEnv))
+            (blindAuctionUint256Loc
+              (bidDepositSlot evm.executionEnv (bidLengthWord evm.accountMap evm.executionEnv)))
+            (bidCallValue evm.executionEnv) =
+          some (bidPostState evm evm.executionEnv
+            (bidLengthWord evm.accountMap evm.executionEnv)) := by
+      simpa [bidPostState] using blindAuctionStorageLocStore_uint256_natCast
+        (bidAfterBlindedState evm evm.executionEnv
+          (bidLengthWord evm.accountMap evm.executionEnv))
+        (bidDepositSlot evm.executionEnv (bidLengthWord evm.accountMap evm.executionEnv))
+        evm.executionEnv.weiValue
+    have hdepositWrite := blindAuctionConfig_write_bids_deposit
+      (bidSenderKey evm.executionEnv)
+      (.int (Int.ofNat (bidLengthWord evm.accountMap evm.executionEnv).toNat)) hdepositStore
+    change solidityWriteStorage? _ _ _ _ _ = _ at hdepositWrite
+    simp only [bidSenderKey] at hdepositWrite
+    simp only [uint256St, List.cons_append, List.nil_append]
+    rw [hdepositWrite]
+    simp only [EvalResult.bind, bind]
+    rw [solidityWriteFields?.eq_def]
 
 theorem evalExpr_bid_biddingEnd (evm : EVM.State) :
     evalExpr? blindAuctionConfig
@@ -601,7 +637,7 @@ theorem evalExpr_bid_biddingEnd (evm : EVM.State) :
     decide
   rw [evalExpr_storage_scalar (t := .int uint256Int)
     (hbase := by simp [bidStore, biddingEndRef])
-    (her := her) (hty := hty) (hloc := blindAuctionConfig_storage_biddingEnd)]
+    (her := her) (hty := hty) (hread := blindAuctionConfig_storage_biddingEnd)]
   rw [blindAuctionStorageLocLoad_uint256]
 
 theorem evalExpr_bid_time_true (evm : EVM.State)

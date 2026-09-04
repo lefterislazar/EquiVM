@@ -80,7 +80,7 @@ theorem uniswapNoncesBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             noncesOwnerValue, noncesOwnerKey, valueToKey?, EvalResult.bind,
             EvalResult.ofOption, bind, pure, evalExpr?])
         (hty := by rfl)
-        (hloc := by rfl)]
+        (hread := by apply config_storage_read_elem; rfl)]
       exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm (noncesStorageSlot I)))
 
 /-! ## EVM trace -/

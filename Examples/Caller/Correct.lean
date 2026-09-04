@@ -985,12 +985,9 @@ theorem wordOfInt_ofNat_eq (k : ℕ) : EVM.wordOfInt (Int.ofNat k) = UInt256.ofN
 /-- **Whole-slot store.**  Storing `.int k` into the `stored` location (slot 0, offset 0, size 32)
     writes exactly the word `ofNat k` — i.e. the value the EVM `SSTORE`s. -/
 theorem callerLocStore (evm' : EVM.State) (k : ℕ) :
-    storageLocStore evm'
-        { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
-          bitOffset := .none,
-          type := .int (.uint ⟨256, by decide⟩) } (.int (Int.ofNat k))
+    storageLocStore evm' Caller.storedLoc (.int (Int.ofNat k))
       = some (EVM.storageStore evm' evm'.executionEnv.codeOwner ⟨0⟩ (UInt256.ofNat k)) := by
-  unfold storageLocStore
+  unfold storageLocStore Caller.storedLoc
   simp only [valueToWord, wordOfInt_ofNat_eq, bind, Option.bind, pure, storageLocWriteWord]
   have hslen := (EVM.Word.toBytesLEWithSizeProof (EVM.storageLoad evm' evm'.executionEnv.codeOwner ⟨0⟩)).2
   have hvlen := (EVM.Word.toBytesLEWithSizeProof (UInt256.ofNat k)).2
@@ -1013,11 +1010,9 @@ theorem callerAssign (evm' : EVM.State) (L : Solm.Store) (k : ℕ) (hbase : L.ge
     simp [evalStorageRef, bind, EvalResult.bind, pure]
   have hty : storageTypeAt? callerContract.storage { base := "stored", steps := [] } =
       some (.elem (.int (.uint ⟨256, by decide⟩))) := by
-    simp [storageTypeAt?, callerContract]
-  have hloc : callerConfig.storage.layout { base := "stored", steps := [] } =
-      fun _ => some { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by decide),
-                      bitOffset := .none, type := .int (.uint ⟨256, (by decide)⟩) } := rfl
-  exact assignStorageRef_storage_scalar hbase her hty hloc (callerLocStore evm' k)
+    simp [storageTypeAt?, callerContract, callerStorageDecls]
+  exact assignStorageRef_storage_scalar hbase her hty
+    (callerConfig_write_stored (callerLocStore evm' k))
 
 theorem land_mask160 (n : ℕ) (h : n < 2^160) : Nat.land n (2^160 - 1) = n := by
   apply Nat.eq_of_testBit_eq; intro i

@@ -30,7 +30,7 @@ theorem blindAuctionBiddingEndBodyReturns (evm : EVM.State) (locals : Store)
           some (.elem (.int uint256Int)) := by
         decide
       rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := blindAuctionConfig_storage_biddingEnd)]
+        (hty := hty) (hread := blindAuctionConfig_storage_biddingEnd)]
       rw [blindAuctionStorageLocLoad_uint256])
 
 theorem blindAuctionX_biddingEnd {cA gh bl σ σ₀ A I} {g : Sat256}

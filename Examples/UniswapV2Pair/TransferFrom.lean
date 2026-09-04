@@ -523,12 +523,13 @@ theorem evalExpr_transferFrom_currentAllowance (evm : EVM.State) (I : ExecutionE
       (.storage (allowanceRef (.var "from") sender)) =
         .ok (transferFromCurrentAllowanceValue evm I) := by
   rw [evalExpr_storage_scalar (t := .int uint256Int)
+    (loc := wordLoc (transferFromAllowanceSlot evm I))
     (hbase := transferFromStore_allowance I)
     (her := evalStorageRef_transferFrom_allowance evm I)
     (hty := by
       simp [storageTypeAt?, transferFromAllowanceEvaledRef, contract, storageDecls, uint256St,
         storageTypeStep?])
-    (hloc := by rfl)]
+    (hread := by apply config_storage_read_elem; rfl)]
   simp [transferFromAllowanceSlot, transferFromCurrentAllowanceWord,
     uniswapStorageLocLoad_uint256]
 
@@ -633,9 +634,10 @@ theorem transferFromAssignAllowance (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by
         simp [storageTypeAt?, transferFromAllowanceEvaledRef, contract, storageDecls, uint256St,
           storageTypeStep?])
-      (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
-  rfl
+      (hwrite := config_storage_write_elem (loc := wordLoc (transferFromAllowanceSlot evm I))
+        (by rfl) (by
+        rw [uniswapStorageLocStore_uint256]
+        rfl))
 
 theorem transferFromFromBalanceWord_initState_eq_uniswapCodeOwnerStorageWord
     {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1302,12 +1304,13 @@ theorem evalExpr_transferFrom_from_balance (evm : EVM.State) (I : ExecutionEnv) 
       (transferFromAfterAllowanceState evm I) (.storage (balanceOfRef (.var "from"))) =
         .ok (transferFromFromBalanceValue (transferFromAfterAllowanceState evm I) I) := by
   rw [evalExpr_storage_scalar (t := .int uint256Int)
+    (loc := wordLoc (transferFromFromSlot I))
     (hbase := by simp [balanceOfRef])
     (her := evalStorageRef_transferFrom_from_balance_currentAllowance evm
       (transferFromAfterAllowanceState evm I) I)
     (hty := by simp [storageTypeAt?, transferFromFromBalanceEvaledRef, contract, storageDecls,
       uint256St, storageTypeStep?])
-    (hloc := by rfl)]
+    (hread := by apply config_storage_read_elem; rfl)]
   simp [transferFromFromSlot, transferFromFromBalanceWord,
     uniswapStorageLocLoad_uint256, transferFromAfterAllowance_codeOwner]
 
@@ -1316,11 +1319,12 @@ theorem evalExpr_transferFrom_from_balance_max (evm : EVM.State) (I : ExecutionE
       evm (.storage (balanceOfRef (.var "from"))) =
         .ok (transferFromFromBalanceValue evm I) := by
   rw [evalExpr_storage_scalar (t := .int uint256Int)
+    (loc := wordLoc (transferFromFromSlot I))
     (hbase := by simp [balanceOfRef])
     (her := evalStorageRef_transferFrom_from_balance_currentAllowance evm evm I)
     (hty := by simp [storageTypeAt?, transferFromFromBalanceEvaledRef, contract, storageDecls,
       uint256St, storageTypeStep?])
-    (hloc := by rfl)]
+    (hread := by apply config_storage_read_elem; rfl)]
   simp [transferFromFromSlot, transferFromFromBalanceWord, uniswapStorageLocLoad_uint256]
 
 theorem evalExpr_transferFrom_require_from_true (evm : EVM.State) (I : ExecutionEnv)
@@ -1430,9 +1434,11 @@ theorem transferFromAssignFrom (evm : EVM.State) (I : ExecutionEnv) :
         (transferFromAfterAllowanceState evm I) I)
       (hty := by simp [storageTypeAt?, transferFromFromBalanceEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
-      (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
-  simp [transferFromAfterBalanceState, transferFromFromSlot, transferFromAfterAllowance_codeOwner]
+      (hwrite := config_storage_write_elem (loc := wordLoc (transferFromFromSlot I))
+        (by rfl) (by
+        rw [uniswapStorageLocStore_uint256]
+        simp [transferFromAfterBalanceState, transferFromFromSlot,
+          transferFromAfterAllowance_codeOwner]))
 
 theorem transferFromAssignFromMax (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config
@@ -1447,9 +1453,10 @@ theorem transferFromAssignFromMax (evm : EVM.State) (I : ExecutionEnv) :
       (her := evalStorageRef_transferFrom_from_balance_fromBalanceMax evm evm I)
       (hty := by simp [storageTypeAt?, transferFromFromBalanceEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
-      (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
-  simp [transferFromAfterBalanceStateMax, transferFromFromSlot]
+      (hwrite := config_storage_write_elem (loc := wordLoc (transferFromFromSlot I))
+        (by rfl) (by
+        rw [uniswapStorageLocStore_uint256]
+        simp [transferFromAfterBalanceStateMax, transferFromFromSlot]))
 
 def transferFromToEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "balanceOf", steps := [.mindex (transferFromToKey I)] }
@@ -1519,12 +1526,13 @@ theorem evalExpr_transferFrom_to_balance (evm : EVM.State) (I : ExecutionEnv) :
       (transferFromAfterBalanceState evm I) (.storage (balanceOfRef (.var "to"))) =
         .ok (transferFromToBalanceValue evm I) := by
   rw [evalExpr_storage_scalar (t := .int uint256Int)
+    (loc := wordLoc (transferFromToSlot I))
     (hbase := by simp [balanceOfRef])
     (her := evalStorageRef_transferFrom_to_balance_fromBalance evm
       (transferFromAfterBalanceState evm I) I)
     (hty := by simp [storageTypeAt?, transferFromToEvaledRef, contract, storageDecls, uint256St,
       storageTypeStep?])
-    (hloc := by rfl)]
+    (hread := by apply config_storage_read_elem; rfl)]
   simp [transferFromToSlot, transferFromToBalanceWord,
     uniswapStorageLocLoad_uint256, transferFromAfterBalance_codeOwner]
 
@@ -1533,12 +1541,13 @@ theorem evalExpr_transferFrom_to_balance_max (evm : EVM.State) (I : ExecutionEnv
       (transferFromAfterBalanceStateMax evm I) (.storage (balanceOfRef (.var "to"))) =
         .ok (transferFromToBalanceValueMax evm I) := by
   rw [evalExpr_storage_scalar (t := .int uint256Int)
+    (loc := wordLoc (transferFromToSlot I))
     (hbase := by simp [balanceOfRef])
     (her := evalStorageRef_transferFrom_to_balance_fromBalanceMax evm
       (transferFromAfterBalanceStateMax evm I) I)
     (hty := by simp [storageTypeAt?, transferFromToEvaledRef, contract, storageDecls, uint256St,
       storageTypeStep?])
-    (hloc := by rfl)]
+    (hread := by apply config_storage_read_elem; rfl)]
   simp [transferFromToSlot, transferFromToBalanceWordMax, uniswapStorageLocLoad_uint256,
     transferFromAfterBalanceMax_codeOwner]
 
@@ -1624,10 +1633,11 @@ theorem transferFromAssignTo (evm : EVM.State) (I : ExecutionEnv)
         (transferFromAfterBalanceState evm I) I)
       (hty := by simp [storageTypeAt?, transferFromToEvaledRef, contract, storageDecls, uint256St,
         storageTypeStep?])
-      (hloc := by rfl)
-  rw [← transferFromNewToWord_toNat evm I hfit]
-  rw [uniswapStorageLocStore_uint256]
-  simp [transferFromPostState, transferFromToSlot, transferFromAfterBalance_codeOwner]
+      (hwrite := config_storage_write_elem (loc := wordLoc (transferFromToSlot I))
+        (by rfl) (by
+        rw [← transferFromNewToWord_toNat evm I hfit]
+        rw [uniswapStorageLocStore_uint256]
+        simp [transferFromPostState, transferFromToSlot, transferFromAfterBalance_codeOwner]))
 
 theorem transferFromAssignToMax (evm : EVM.State) (I : ExecutionEnv)
     (hfit : transferFromNewToNatMax evm I < UInt256.size) :
@@ -1643,10 +1653,12 @@ theorem transferFromAssignToMax (evm : EVM.State) (I : ExecutionEnv)
         (transferFromAfterBalanceStateMax evm I) I)
       (hty := by simp [storageTypeAt?, transferFromToEvaledRef, contract, storageDecls, uint256St,
         storageTypeStep?])
-      (hloc := by rfl)
-  rw [← transferFromNewToWordMax_toNat evm I hfit]
-  rw [uniswapStorageLocStore_uint256]
-  simp [transferFromPostStateMax, transferFromToSlot, transferFromAfterBalanceMax_codeOwner]
+      (hwrite := config_storage_write_elem (loc := wordLoc (transferFromToSlot I))
+        (by rfl) (by
+        rw [← transferFromNewToWordMax_toNat evm I hfit]
+        rw [uniswapStorageLocStore_uint256]
+        simp [transferFromPostStateMax, transferFromToSlot,
+          transferFromAfterBalanceMax_codeOwner]))
 
 abbrev transferFromAllowancePrefixBody : List Stmt :=
   nonpayable ++

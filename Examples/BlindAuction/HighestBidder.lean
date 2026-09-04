@@ -37,7 +37,7 @@ theorem blindAuctionHighestBidderBodyReturns (evm : EVM.State) (locals : Store)
           some (.elem .address) := by
         decide
       rw [evalExpr_storage_scalar (t := .address) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := blindAuctionConfig_storage_highestBidder),
+        (hty := hty) (hread := blindAuctionConfig_storage_highestBidder),
         blindAuctionStorageLocLoad_address_offset0])
 
 theorem blindAuctionX_highestBidder {cA gh bl σ σ₀ A I} {g : Sat256}

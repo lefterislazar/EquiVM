@@ -367,7 +367,7 @@ theorem withdrawPendingReturns_load (evm : EVM.State) (locals : Store)
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
     (her := withdrawPendingReturns_evalStorageRef evm locals)
     (hty := withdrawPendingReturns_storageType)
-    (hloc := blindAuctionConfig_storage_pendingReturns (withdrawSenderKey evm.executionEnv))]
+    (hread := blindAuctionConfig_storage_pendingReturns (withdrawSenderKey evm.executionEnv))]
   simpa [withdrawAmountSlot] using
     withdrawStorageLocLoad_uint256 evm (withdrawAmountSlot evm.executionEnv)
 
@@ -380,8 +380,8 @@ theorem withdrawPendingReturns_clear (evm : EVM.State) (locals : Store)
   rw [assignStorageRef_storage_scalar (hbase := hbase)
     (her := withdrawPendingReturns_evalStorageRef evm locals)
     (hty := withdrawPendingReturns_storageType)
-    (hloc := blindAuctionConfig_storage_pendingReturns (withdrawSenderKey evm.executionEnv))
-    (hstore := by
+    (hwrite := by
+      apply blindAuctionConfig_write_pendingReturns
       change storageLocStore evm
           (blindAuctionUint256Loc (withdrawAmountSlot evm.executionEnv))
           (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) =

@@ -1734,12 +1734,14 @@ theorem scratch_revealBid_arrayIndexInBounds_revert (evm : EVM.State) (i curLen 
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (bidsBase (.address evm.executionEnv.source)) = curLen)
     (hbound : curLen.toNat ≤ i.toNat) :
-    arrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
+    backendArrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
       [.mindex (.address evm.executionEnv.source)] (.int (Int.ofNat i.toNat)) = .revert := by
-  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionConfig,
-    blindAuctionStorageLayout, blindAuctionContract, storageDecls, bidStructTy, uint256St,
-    bytes32St, blindAuctionStorageLocLoad_uint256, hlen]
-  omega
+  apply backendArrayIndexInBounds_dynamicArray_revert
+    (elem := bidStructTy) (len := curLen.toNat)
+  · simp [storageTypeAt?, storageTypeStep?, blindAuctionContract, storageDecls]
+  · simpa [hlen] using blindAuctionConfig_storage_bids_length
+      (.address evm.executionEnv.source) bidStructTy evm
+  · exact hbound
 
 theorem scratch_resolveStorageRef_reveal_bid_revert_of_get (evm : EVM.State) (locals : Store)
     (i curLen : UInt256)

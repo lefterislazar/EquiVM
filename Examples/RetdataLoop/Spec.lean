@@ -1,4 +1,5 @@
 import Solm.Semantics
+import Solm.MetaSolidityLayout
 import Solm.SolidityLayout
 
 /-!
@@ -84,9 +85,12 @@ def contract : ContractDecl :=
     ctor := { params := [], body := [] }
     transitions := [collectTransition] }
 
+def storageBackend : StorageBackend :=
+  solidityStorage! [([] : List StructDecl)] [([] : List StorageDecl)]
+
 end RetdataLoop
 
 def retdataLoopConfig : Config :=
-  { storage := { layout := fun _ _ => none }
+  { storage := RetdataLoop.storageBackend
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment RetdataLoop.contract.ctor.params }

@@ -32,7 +32,7 @@ theorem simpleAuctionBeneficiaryBodyReturns (evm : EVM.State) (locals : Store)
           ({ base := "beneficiary", steps := [] } : EvaledStorageRef) = some (.elem .address) := by
         decide
       rw [evalExpr_storage_scalar (t := .address) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := simpleAuctionConfig_storage_beneficiary)]
+        (hty := hty) (hread := simpleAuctionConfig_read_beneficiary evm)]
       simpa [simpleAuctionAddrLoc] using
         congrArg EvalResult.ok (simpleAuctionStorageLocLoad_address_offset0 evm ⟨0⟩))
 

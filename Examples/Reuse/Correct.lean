@@ -948,12 +948,11 @@ theorem cAssignS (evm : EVM.State) (I : ExecutionEnv) :
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ (cFResultWord I)) := by
   apply assignStorageRef_storage_scalar
     (er := ({ base := "s", steps := [] } : EvaledStorageRef))
-    (ty := .elem (.int Reuse.uint256Int)) (loc := Reuse.sLoc)
+    (ty := .elem (.int Reuse.uint256Int))
   · exact cGStoreAfterF_s_none I
   · simp [evalStorageRef, evalStorageRefSteps, Reuse.sRef, EvalResult.bind, bind, pure]
-  · simp [storageTypeAt?, Reuse.cContract]
-  · rfl
-  · exact cStorageLocStore_uint256 evm (cFResultWord I)
+  · simp [storageTypeAt?, Reuse.cContract, Reuse.storageDecls]
+  · exact cConfig_write_s (cStorageLocStore_uint256 evm (cFResultWord I))
 
 theorem cGBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

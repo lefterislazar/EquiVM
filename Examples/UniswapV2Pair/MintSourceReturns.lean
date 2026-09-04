@@ -1448,15 +1448,16 @@ theorem mintAssignKLastProduct
         .ok ({ contract := contract, locals := locals }, mintKLastUpdatedState evm) := by
   apply assignStorageRef_storage_scalar
       (er := ({ base := "kLast", steps := [] } : EvaledStorageRef))
-      (ty := uint256St) (loc := uint256Loc ⟨11⟩)
-  · simpa [kLastRef] using hkLastBase
-  · simp [evalStorageRef, evalStorageRefSteps, kLastRef, EvalResult.bind, pure, bind]
-  · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · rfl
-  · simpa [mintKLastUpdatedState, mintKLastProductValue, mintFeeReserveProductValue,
-      uniswapUint256Value, uint256Value] using
-      uniswapStorageLocStore_uint256 evm ⟨11⟩
-        (mintFeeReserveProductWord (uniswapReserve0Word evm) (uniswapReserve1Word evm))
+      (ty := uint256St)
+      (hbase := by simpa [kLastRef] using hkLastBase)
+      (her := by
+        simp [evalStorageRef, evalStorageRefSteps, kLastRef, EvalResult.bind, pure, bind])
+      (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
+      (hwrite := config_storage_write_elem (loc := wordLoc ⟨11⟩) (by rfl) (by
+        simpa [mintKLastUpdatedState, mintKLastProductValue, mintFeeReserveProductValue,
+          uniswapUint256Value, uint256Value] using
+          uniswapStorageLocStore_uint256 evm ⟨11⟩
+            (mintFeeReserveProductWord (uniswapReserve0Word evm) (uniswapReserve1Word evm))))
 
 theorem uniswapMintAfterUpdateFeeOffReturn
     {locals : Store} (evm : EVM.State) (liquidity : UInt256)

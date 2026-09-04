@@ -29,7 +29,7 @@ theorem simpleAuctionAuctionEndTimeBodyReturns (evm : EVM.State) (locals : Store
           = some (.elem (.int uint256Int)) := by
         decide
       rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := simpleAuctionConfig_storage_auctionEndTime),
+        (hty := hty) (hread := simpleAuctionConfig_read_auctionEndTime evm),
         simpleAuctionStorageLocLoad_uint256])
 
 theorem simpleAuctionX_auctionEndTime {cA gh bl σ σ₀ A I} {g : Sat256}

@@ -91,7 +91,7 @@ theorem pausableEvalPausedFalse (evm : EVM.State) (locals : Store)
       ({ base := "_paused", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
     decide
   rw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
-    (hloc := by rfl), pausableStorageLocLoad_bool_offset0_false evm ⟨0⟩ hstorageZero]
+    (hread := config_read_paused evm), pausableStorageLocLoad_bool_offset0_false evm ⟨0⟩ hstorageZero]
 
 theorem pausableEvalPausedTrue (evm : EVM.State) (locals : Store)
     (hnz : pausedWord evm.accountMap evm.executionEnv ≠ ⟨0⟩)
@@ -109,7 +109,7 @@ theorem pausableEvalPausedTrue (evm : EVM.State) (locals : Store)
       ({ base := "_paused", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
     decide
   rw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
-    (hloc := by rfl), pausableStorageLocLoad_bool_offset0_true evm ⟨0⟩ hstorageNz]
+    (hread := config_read_paused evm), pausableStorageLocLoad_bool_offset0_true evm ⟨0⟩ hstorageNz]
 
 theorem pausableEvalWhenNotPausedTrue (evm : EVM.State) (locals : Store)
     (hzero : pausedWord evm.accountMap evm.executionEnv = ⟨0⟩)

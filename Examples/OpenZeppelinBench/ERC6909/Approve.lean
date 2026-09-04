@@ -235,17 +235,16 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
       .storage (allowanceRef sender (.var "spender") (.var "id")) (approveAmountValue I) =
         .ok ({ contract := contract, locals := approveStore I }, approvePostState evm I) := by
   simp only [allowanceRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St) (loc := wordLoc (approveSlot evm I))
+  apply assignStorageRef_storage_scalar (ty := uint256St)
       (hbase := approveStore_allowances I)
       (her := evalStorageRef_approve_allowance evm I)
       (hty := by
         simp [storageTypeAt?, approveEvaledRef, contract, storageDecls, uint256St,
           storageTypeStep?])
-      (hloc := by
-        funext x
-        simp [config, storageLayout, approveEvaledRef, approveSlot])
-  rw [erc6909StorageLocStore_uint256]
-  simp [approvePostState, approveSlot, approveEvaledRef]
+      (hwrite := by
+        apply config_write_allowance
+        rw [erc6909StorageLocStore_uint256]
+        simp [approvePostState, approveSlot, approveEvaledRef])
 
 theorem evalExpr_approve_sender_ne_zero_true (evm : EVM.State) (hsource : evm.executionEnv.source ≠
     AccountAddress.ofNat 0) :

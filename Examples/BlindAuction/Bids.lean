@@ -105,21 +105,24 @@ theorem bidsElementSlot_spec (I : ExecutionEnv)
 
 theorem bidsArrayIndexInBounds_ok (evm : EVM.State) (I : ExecutionEnv)
     (hbound : (bidsIndexWord I).toNat < (bidsLengthCurrent evm I).toNat) :
-    arrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
+    backendArrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
       [.mindex (bidsAddressKey I)] (bidsIndexKey I) = .ok () := by
   have hboundStorage :
       (bidsIndexWord I).toNat <
         UInt256.toNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (bidsBase (KeyValue.address (AccountAddress.ofNat (bidsAddressWord I).toNat)))) := by
     simpa [bidsLengthCurrent, bidsLengthSlot, bidsAddressKey] using hbound
-  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionConfig,
-    blindAuctionStorageLayout, blindAuctionContract, storageDecls, bidStructTy, uint256St,
-    bytes32St, blindAuctionStorageLocLoad_uint256, bidsAddressKey, bidsIndexKey,
-    bidsLengthSlot, hboundStorage]
+  apply backendArrayIndexInBounds_dynamicArray_ok
+    (elem := bidStructTy)
+    (len := (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+      (bidsBase (bidsAddressKey I))).toNat)
+  · simp [storageTypeAt?, storageTypeStep?, blindAuctionContract, storageDecls]
+  · exact blindAuctionConfig_storage_bids_length (bidsAddressKey I) bidStructTy evm
+  · simpa [bidsAddressKey] using hboundStorage
 
 theorem bidsArrayIndexInBounds_revert (evm : EVM.State) (I : ExecutionEnv)
     (hbound : ¬ (bidsIndexWord I).toNat < (bidsLengthCurrent evm I).toNat) :
-    arrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
+    backendArrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
       [.mindex (bidsAddressKey I)] (bidsIndexKey I) = .revert := by
   have hboundStorage :
       ¬ (bidsIndexWord I).toNat <
@@ -131,10 +134,13 @@ theorem bidsArrayIndexInBounds_revert (evm : EVM.State) (I : ExecutionEnv)
           (bidsBase (KeyValue.address (AccountAddress.ofNat (bidsAddressWord I).toNat)))) ≤
         (bidsIndexWord I).toNat :=
     Nat.le_of_not_gt hboundStorage
-  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionConfig,
-    blindAuctionStorageLayout, blindAuctionContract, storageDecls, bidStructTy, uint256St,
-    bytes32St, blindAuctionStorageLocLoad_uint256, bidsAddressKey, bidsIndexKey,
-    bidsLengthSlot, hleStorage]
+  apply backendArrayIndexInBounds_dynamicArray_revert
+    (elem := bidStructTy)
+    (len := (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+      (bidsBase (bidsAddressKey I))).toNat)
+  · simp [storageTypeAt?, storageTypeStep?, blindAuctionContract, storageDecls]
+  · exact blindAuctionConfig_storage_bids_length (bidsAddressKey I) bidStructTy evm
+  · simpa [bidsAddressKey] using hleStorage
 
 theorem evalStorageRef_bidsField_ok (evm : EVM.State) (I : ExecutionEnv) (field : Ident)
     (hbound : (bidsIndexWord I).toNat < (bidsLengthCurrent evm I).toNat) :
@@ -142,7 +148,7 @@ theorem evalStorageRef_bidsField_ok (evm : EVM.State) (I : ExecutionEnv) (field 
       (bidF (.var "a") (.var "i") field) = .ok (bidsEvaledRef I field) := by
   have hboundsOk := bidsArrayIndexInBounds_ok evm I hbound
   have hboundsOk' :
-      arrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
+      backendArrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
         [EvaledStorageRefStep.mindex
           (KeyValue.address (AccountAddress.ofNat (bidsAddressWord I).toNat))]
         (KeyValue.int (Int.ofNat (bidsIndexWord I).toNat)) = .ok () := by
@@ -159,11 +165,9 @@ theorem evalStorageRef_bidsField_ok (evm : EVM.State) (I : ExecutionEnv) (field 
     rw [evalExpr?]
     simp only [bidsStore, EvalResult.ofOption]
     rw [store_get_self]
-  have hlegacy : blindAuctionConfig.storageBackend? = none := rfl
   simp only [bidF, evalStorageRef, evalStorageRefSteps.eq_def, evalStorageRefStep.eq_def,
     ha, hi, bidsAddressValue, bidsIndexValue, bidsAddressKey, bidsIndexKey, valueToKey?,
     EvalResult.ofOption, EvalResult.bind, bind, pure, List.nil_append]
-  simp only [backendArrayIndexInBounds?, hlegacy]
   rw [hboundsOk']
   simp [bidsEvaledRef, bidsAddressKey, bidsIndexKey]
 
@@ -173,7 +177,7 @@ theorem evalStorageRef_bidsField_oob (evm : EVM.State) (I : ExecutionEnv) (field
       (bidF (.var "a") (.var "i") field) = .revert := by
   have hboundsRevert := bidsArrayIndexInBounds_revert evm I hbound
   have hboundsRevert' :
-      arrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
+      backendArrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
         [EvaledStorageRefStep.mindex
           (KeyValue.address (AccountAddress.ofNat (bidsAddressWord I).toNat))]
         (KeyValue.int (Int.ofNat (bidsIndexWord I).toNat)) = .revert := by
@@ -190,11 +194,9 @@ theorem evalStorageRef_bidsField_oob (evm : EVM.State) (I : ExecutionEnv) (field
     rw [evalExpr?]
     simp only [bidsStore, EvalResult.ofOption]
     rw [store_get_self]
-  have hlegacy : blindAuctionConfig.storageBackend? = none := rfl
   simp only [bidF, evalStorageRef, evalStorageRefSteps.eq_def, evalStorageRefStep.eq_def,
     ha, hi, bidsAddressValue, bidsIndexValue, bidsAddressKey, bidsIndexKey, valueToKey?,
     EvalResult.ofOption, EvalResult.bind, bind, pure, List.nil_append]
-  simp only [backendArrayIndexInBounds?, hlegacy]
   rw [hboundsRevert']
 
 theorem blindAuctionBidsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
@@ -225,16 +227,20 @@ theorem blindAuctionBidsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             some (.elem (.int uint256Int)) := by
         simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, blindAuctionContract,
           storageDecls, bidStructTy, uint256St]
-      have hlocBlinded :
-          blindAuctionConfig.storage.layout (bidsEvaledRef I "blindedBid") =
-            fun _ => some (blindAuctionBytes32Loc (bidsElementSlot I)) := by
-        funext evm'
-        simp [bidsEvaledRef, bidsElementSlot]
-      have hlocDeposit :
-          blindAuctionConfig.storage.layout (bidsEvaledRef I "deposit") =
-            fun _ => some (blindAuctionUint256Loc (bidsDepositSlot I)) := by
-        funext evm'
-        simp [bidsEvaledRef, bidsDepositSlot, bidsElementSlot]
+      have hreadBlinded :
+          blindAuctionConfig.storage.read (bidsEvaledRef I "blindedBid")
+              (.elem (.bytes ⟨31, by decide⟩)) evm =
+            .ok (storageLocLoad evm (blindAuctionBytes32Loc (bidsElementSlot I))) := by
+        simpa only [bidsEvaledRef, bidsElementSlot] using
+          blindAuctionConfig_storage_bids_blindedBid
+            (bidsAddressKey I) (bidsIndexKey I) (evm := evm)
+      have hreadDeposit :
+          blindAuctionConfig.storage.read (bidsEvaledRef I "deposit")
+              (.elem (.int uint256Int)) evm =
+            .ok (storageLocLoad evm (blindAuctionUint256Loc (bidsDepositSlot I))) := by
+        simpa only [bidsEvaledRef, bidsDepositSlot, bidsElementSlot] using
+          blindAuctionConfig_storage_bids_deposit
+            (bidsAddressKey I) (bidsIndexKey I) (evm := evm)
       have hloadBlinded :
           storageLocLoad evm (blindAuctionBytes32Loc (bidsElementSlot I)) =
             .fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE (bidsBlindedCurrent evm I)) := by
@@ -248,10 +254,10 @@ theorem blindAuctionBidsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       simp only [Solm.evalExprs?.eq_def,
         evalExpr_storage_scalar (t := .bytes ⟨31, by decide⟩) (hbase := hbaseBlinded)
           (her := evalStorageRef_bidsField_ok evm I "blindedBid" hbound)
-          (hty := htyBlinded) (hloc := hlocBlinded),
+          (hty := htyBlinded) (hread := hreadBlinded),
         evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbaseDeposit)
           (her := evalStorageRef_bidsField_ok evm I "deposit" hbound)
-          (hty := htyDeposit) (hloc := hlocDeposit),
+          (hty := htyDeposit) (hread := hreadDeposit),
         EvalResult.bind, bind, pure, hloadBlinded, hloadDeposit,
         bidsBlindedCurrent, bidsDepositCurrent])
 

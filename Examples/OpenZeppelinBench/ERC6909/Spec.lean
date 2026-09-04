@@ -1,5 +1,5 @@
 import Solm.Semantics
-import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # OpenZeppelin ERC6909 benchmark spec
@@ -67,16 +67,8 @@ def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def boolLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 1, hbound := by decide, type := .bool }
 
-def storageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "_balances", [.mindex owner, .mindex id] =>
-        some (wordLoc (balanceSlot owner id))
-    | "_operatorApprovals", [.mindex owner, .mindex spender] =>
-        some (boolLoc (operatorApprovalSlot owner spender))
-    | "_allowances", [.mindex owner, .mindex spender, .mindex id] =>
-        some (wordLoc (allowanceSlot owner spender id))
-    | _, _ => none
+def storageBackend : StorageBackend :=
+  solidityStorage! [([] : List StructDecl)] [storageDecls]
 
 def supportsInterfaceTransition : TransitionDecl :=
   { name := "supportsInterface"
@@ -206,8 +198,59 @@ def contract : ContractDecl :=
         transferFromTransition ] }
 
 def config : Config :=
-  { storage := storageLayout
+  { storage := storageBackend
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
+
+@[simp] theorem config_read_balance (evm : EVM.State) (owner id : KeyValue) :
+    config.storage.read { base := "_balances", steps := [.mindex owner, .mindex id] }
+        (.elem (.int uint256Int)) evm =
+      .ok (storageLocLoad evm (wordLoc (balanceSlot owner id))) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem config_read_operatorApproval (evm : EVM.State) (owner spender : KeyValue) :
+    config.storage.read
+        { base := "_operatorApprovals", steps := [.mindex owner, .mindex spender] }
+        (.elem .bool) evm =
+      .ok (storageLocLoad evm (boolLoc (operatorApprovalSlot owner spender))) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem config_read_allowance (evm : EVM.State) (owner spender id : KeyValue) :
+    config.storage.read
+        { base := "_allowances", steps := [.mindex owner, .mindex spender, .mindex id] }
+        (.elem (.int uint256Int)) evm =
+      .ok (storageLocLoad evm (wordLoc (allowanceSlot owner spender id))) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+theorem config_write_balance {evm evm' : EVM.State} {owner id : KeyValue} {value : Value}
+    (hstore : storageLocStore evm (wordLoc (balanceSlot owner id)) value = some evm') :
+    config.storage.write { base := "_balances", steps := [.mindex owner, .mindex id] }
+        (.elem (.int uint256Int)) value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+theorem config_write_operatorApproval {evm evm' : EVM.State}
+    {owner spender : KeyValue} {value : Value}
+    (hstore : storageLocStore evm (boolLoc (operatorApprovalSlot owner spender)) value = some evm') :
+    config.storage.write
+        { base := "_operatorApprovals", steps := [.mindex owner, .mindex spender] }
+        (.elem .bool) value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+theorem config_write_allowance {evm evm' : EVM.State}
+    {owner spender id : KeyValue} {value : Value}
+    (hstore : storageLocStore evm (wordLoc (allowanceSlot owner spender id)) value = some evm') :
+    config.storage.write
+        { base := "_allowances", steps := [.mindex owner, .mindex spender, .mindex id] }
+        (.elem (.int uint256Int)) value evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
 
 end OpenZeppelinBench.ERC6909

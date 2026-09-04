@@ -767,6 +767,27 @@ theorem store_get_ne5 (L : Solm.Store) {k1 k2 k3 k4 k5 a : Ident}
     (k := k5) (a := a) v5 h5]
   exact store_get_ne4 L v1 v2 v3 v4 h1 h2 h3 h4
 
+/-! ## Storage-reference bounds checks -/
+
+theorem backendArrayIndexInBounds_dynamicArray_ok (cfg : Config) (evm : EVM.State)
+    (decls : List StorageDecl) (base : Ident) (pre : List EvaledStorageRefStep)
+    (elem : StorageType) (i len : Nat)
+    (hty : storageTypeAt? decls { base := base, steps := pre } = some (.dynamicArray elem))
+    (hlen : cfg.storage.length { base := base, steps := pre } (.dynamicArray elem) evm = .ok len)
+    (hbound : i < len) :
+    backendArrayIndexInBounds? cfg evm decls base pre (.int (Int.ofNat i)) = .ok () := by
+  simp [backendArrayIndexInBounds?, backendArrayIndexInBoundsWith?, hty, hlen, hbound]
+
+theorem backendArrayIndexInBounds_dynamicArray_revert (cfg : Config) (evm : EVM.State)
+    (decls : List StorageDecl) (base : Ident) (pre : List EvaledStorageRefStep)
+    (elem : StorageType) (i len : Nat)
+    (hty : storageTypeAt? decls { base := base, steps := pre } = some (.dynamicArray elem))
+    (hlen : cfg.storage.length { base := base, steps := pre } (.dynamicArray elem) evm = .ok len)
+    (hbound : len ≤ i) :
+    backendArrayIndexInBounds? cfg evm decls base pre (.int (Int.ofNat i)) = .revert := by
+  simp [backendArrayIndexInBounds?, backendArrayIndexInBoundsWith?, hty, hlen,
+    Nat.not_lt.mpr hbound]
+
 /-! ## Storage-operation collapse
 
 `evalExpr? (.storage …)` and `assignStorageRef? .storage` resolve a typed reference and then invoke
@@ -832,6 +853,17 @@ theorem assignStorageRef_storage_of_write {cfg : Config} {solm : Frame} {evm evm
   simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind]
   rw [hwrite]
   rfl
+
+/-- A storage assignment whose complete reference resolution is already available reduces to one
+    backend write. This form is convenient for storage aliases, whose base is present in locals. -/
+theorem assignStorageRef_storage_of_resolve {cfg : Config} {solm : Frame}
+    {evm evm' : EVM.State} {slot : StorageRef} {er : EvaledStorageRef} {ty : StorageType}
+    {value : Value}
+    (hresolve : resolveStorageRef? cfg solm evm slot = .ok (er, ty))
+    (hwrite : cfg.storage.write er ty value evm = .ok evm') :
+    assignStorageRef? cfg solm evm .storage slot value = .ok (solm, evm') := by
+  rw [assignStorageRef?]
+  simp only [hresolve, EvalResult.bind, bind, hwrite, pure]
 
 /-- Scalar-valued specialization of `assignStorageRef_storage_of_write`. -/
 theorem assignStorageRef_storage_scalar_value {cfg : Config} {solm : Frame} {evm evm' : EVM.State}

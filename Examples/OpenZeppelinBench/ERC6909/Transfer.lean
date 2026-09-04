@@ -473,7 +473,7 @@ theorem evalExpr_transfer_from_balance (evm : EVM.State) (I : ExecutionEnv) :
     (hty := by
       simp [storageTypeAt?, transferFromEvaledRef, contract, storageDecls, uint256St,
         storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromEvaledRef, transferFromSlot])]
+    (hread := by simp [transferFromEvaledRef, transferFromSlot])]
   simp [transferFromEvaledRef, transferFromSlot, transferFromBalanceWord,
     erc6909StorageLocLoad_uint256]
 
@@ -536,16 +536,16 @@ theorem transferAssignFrom (evm : EVM.State) (I : ExecutionEnv) :
           transferAfterDebitState evm I) := by
   simp only [balanceRef]
   apply assignStorageRef_storage_scalar (ty := uint256St)
-      (loc := wordLoc (transferFromSlot evm I))
       (hbase := by simpa [balanceRef] using transferStoreFromBalance_balances evm I)
       (her := by
         simpa [balanceRef] using evalStorageRef_transfer_from_balance_fromBalance evm evm I)
       (hty := by
         simp [storageTypeAt?, transferFromEvaledRef, contract, storageDecls, uint256St,
           storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferFromEvaledRef, transferFromSlot])
-  rw [erc6909StorageLocStore_uint256]
-  simp [transferAfterDebitState, transferFromSlot]
+      (hwrite := by
+        apply config_write_balance
+        rw [erc6909StorageLocStore_uint256]
+        simp [transferAfterDebitState, transferFromSlot])
 
 def transferToEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "_balances",
@@ -594,7 +594,7 @@ theorem evalExpr_transfer_to_balance (evm : EVM.State) (I : ExecutionEnv) :
     (hty := by
       simp [storageTypeAt?, transferToEvaledRef, contract, storageDecls, uint256St,
         storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferToEvaledRef, transferToSlot])]
+    (hread := by simp [transferToEvaledRef, transferToSlot])]
   simp [transferToEvaledRef, transferToSlot, transferToBalanceWord,
     erc6909StorageLocLoad_uint256, transferAfterDebit_codeOwner]
 
@@ -652,7 +652,6 @@ theorem transferAssignTo (evm : EVM.State) (I : ExecutionEnv)
           transferPostState evm I) := by
   simp only [balanceRef]
   apply assignStorageRef_storage_scalar (ty := uint256St)
-      (loc := wordLoc (transferToSlot I))
       (hbase := by
         simp [balanceRef, transferStoreToBalance, transferStoreFromBalance, transferStore])
       (her := evalStorageRef_transfer_to_balance_toBalance evm
@@ -660,10 +659,11 @@ theorem transferAssignTo (evm : EVM.State) (I : ExecutionEnv)
       (hty := by
         simp [storageTypeAt?, transferToEvaledRef, contract, storageDecls, uint256St,
           storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferToEvaledRef, transferToSlot])
-  rw [← transferNewToWord_toNat evm I hfit]
-  rw [erc6909StorageLocStore_uint256]
-  simp [transferPostState, transferToSlot, transferAfterDebit_codeOwner]
+      (hwrite := by
+        apply config_write_balance
+        rw [← transferNewToWord_toNat evm I hfit]
+        rw [erc6909StorageLocStore_uint256]
+        simp [transferPostState, transferToSlot, transferAfterDebit_codeOwner])
 
 theorem erc6909TransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

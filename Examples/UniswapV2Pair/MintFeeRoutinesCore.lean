@@ -84,10 +84,11 @@ theorem evalExpr_mintFee_kLast (evm : EVM.State) (reserve0 reserve1 : UInt256) :
     evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm (.storage kLastRef) =
       .ok (uniswapUint256Value (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩)) := by
   rw [evalExpr_storage_scalar (t := .int uint256Int)
+    (loc := wordLoc ⟨11⟩)
     (hbase := by simp [kLastRef])
     (her := evalStorageRef_mintFee_kLast evm reserve0 reserve1)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
-    (hloc := by rfl)]
+    (hread := by apply config_storage_read_elem; rfl)]
   exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm ⟨11⟩)
 
 theorem uniswapLookupMintFeeFunction :
@@ -353,10 +354,11 @@ theorem evalExpr_mintFee_afterFeeOn_kLast
       (.storage kLastRef) =
       .ok (uniswapUint256Value (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩)) := by
   rw [evalExpr_storage_scalar (t := .int uint256Int)
+    (loc := wordLoc ⟨11⟩)
     (hbase := by simp [kLastRef])
     (her := evalStorageRef_mintFee_afterFeeOn_kLast evm reserve0 reserve1 feeTo feeOn)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
-    (hloc := by rfl)]
+    (hread := by apply config_storage_read_elem; rfl)]
   exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm ⟨11⟩)
 
 theorem evalExpr_mintFee_afterKLast_feeOn
@@ -638,12 +640,13 @@ theorem evalExpr_mintFee_afterRootKLast_totalSupply
       (.storage totalSupplyRef) =
       .ok (uniswapUint256Value (mintFunctionTotalSupplyWord evm)) := by
   rw [evalExpr_storage_scalar (t := .int uint256Int)
+    (loc := wordLoc ⟨0⟩)
     (hbase := by
       simp [totalSupplyRef])
     (her := evalStorageRef_mintFee_afterRootKLast_totalSupply evm reserve0 reserve1 feeTo
       feeOn kLast rootK rootKLast)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
-    (hloc := by rfl)]
+    (hread := by apply config_storage_read_elem; rfl)]
   exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm ⟨0⟩)
 
 theorem evalExpr_mintFee_rootK_gt_rootKLast_true

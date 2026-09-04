@@ -144,19 +144,23 @@ theorem evalExpr_allowance_storage (evm : EVM.State) (I : ExecutionEnv) :
                   .mindex (.int (Int.ofNat (allowanceIdWord I).toNat))] } =
       some (.elem (.int uint256Int)) := by
     simp [storageTypeAt?, contract, storageDecls, uint256St, storageTypeStep?]
-  have hloc : config.storage.layout
+  have hread : config.storage.read
       { base := "_allowances",
         steps := [.mindex (.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat)),
                   .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat)),
-                  .mindex (.int (Int.ofNat (allowanceIdWord I).toNat))] } =
-      fun _ => some (wordLoc (allowanceSlotOf I)) := by
-    rfl
+                  .mindex (.int (Int.ofNat (allowanceIdWord I).toNat))] }
+      (.elem (.int uint256Int)) evm =
+        .ok (storageLocLoad evm (wordLoc (allowanceSlotOf I))) := by
+    simpa only [allowanceSlotOf] using config_read_allowance evm
+      (.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat))
+      (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat))
+      (.int (Int.ofNat (allowanceIdWord I).toNat))
   rw [evalExpr_storage_scalar
     (hbase := by
       rw [allowanceStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
         store_get_ne _ _ (by decide)]
       simp)
-    (her := her) (hty := hty) (hloc := hloc)]
+    (her := her) (hty := hty) (hread := hread)]
   congr 1
   exact erc6909StorageLocLoad_uint256 evm (allowanceSlotOf I)
 

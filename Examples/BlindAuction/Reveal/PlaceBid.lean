@@ -335,13 +335,12 @@ theorem scratch_assign_placeBid_pendingReturns
     (slot := pendingReturnsRef (.storage highestBidderRef))
     (er := { base := "pendingReturns", steps := [.mindex (.address oldAddr)] })
     (ty := uint256St)
-    (loc := blindAuctionUint256Loc (pendingReturnsSlot (.address oldAddr)))
     (n := Int.ofNat (pending.toNat + high.toNat))
     (scratch_placeBidStore_base_none bidder value (by decide) (by decide))
     (scratch_evalStorageRef_placeBid_pendingReturns evm bidder oldAddr value old hold holdAddr)
     (by simp [storageTypeAt?, blindAuctionContract, storageDecls, storageTypeStep?, pendingReturnsRef])
-    (blindAuctionConfig_storage_pendingReturns (.address oldAddr))
     (by
+      apply blindAuctionConfig_write_pendingReturns
       simpa [hsumToNat] using
         blindAuctionStorageLocStore_uint256_natCast evm
           (pendingReturnsSlot (.address oldAddr))
@@ -363,13 +362,12 @@ theorem scratch_assign_placeBid_highestBid
     (slot := highestBidRef)
     (er := { base := "highestBid", steps := [] })
     (ty := uint256St)
-    (loc := blindAuctionUint256Loc ⟨6⟩)
     (n := Int.ofNat value.toNat)
     (scratch_placeBidStore_base_none bidder value (by decide) (by decide))
     (by simp [evalStorageRef, evalStorageRefSteps, highestBidRef, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, blindAuctionContract, storageDecls, highestBidRef])
-    blindAuctionConfig_storage_highestBid
-    (blindAuctionStorageLocStore_uint256_natCast evm ⟨6⟩ value)
+    (blindAuctionConfig_write_highestBid
+      (blindAuctionStorageLocStore_uint256_natCast evm ⟨6⟩ value))
 
 theorem scratch_assign_placeBid_highestBidder
     (evm : EVM.State) (bidder : AccountAddress) (value : UInt256) :
@@ -403,14 +401,11 @@ theorem scratch_assign_placeBid_highestBidder
     (slot := highestBidderRef)
     (er := { base := "highestBidder", steps := [] })
     (ty := addrSt)
-    (loc := blindAuctionAddrLoc ⟨5⟩)
     (value := .address bidder)
     (scratch_placeBidStore_base_none bidder value (by decide) (by decide))
     (by simp [evalStorageRef, evalStorageRefSteps, highestBidderRef, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, blindAuctionContract, storageDecls, highestBidderRef, addrSt])
-    blindAuctionConfig_storage_highestBidder
-    (by trivial)
-    hstore
+    (blindAuctionConfig_write_highestBidder hstore)
 
 theorem scratch_blindAuctionPlaceBidBodyReturns_false
     (evm : EVM.State) (bidder : AccountAddress) (value high : UInt256)

@@ -307,9 +307,12 @@ theorem evalExpr_vote_sender_weight (evm : EVM.State) (I : ExecutionEnv) :
         .ok (.int (Int.ofNat (voteSenderWeightCurrent evm I).toNat)) := by
   have hresolve := resolveStorageRef_vote_senderWeight evm I
   have hread :
-      readStorage? ballotConfig evm (voteSenderEvaledRef I "weight") (.elem (.int uint256Int)) =
+      ballotConfig.storage.read (voteSenderEvaledRef I "weight") (.elem (.int uint256Int)) evm =
         .ok (.int (Int.ofNat (voteSenderWeightCurrent evm I).toNat)) := by
-    rw [readStorage?_elem (hloc := by rfl)]
+    change ballotConfig.storage.read
+      { base := "voters", steps := [.mindex (.address I.source), .field "weight"] }
+        (.elem (.int uint256Int)) evm = _
+    rw [ballotConfig_read_voter_weight (.address I.source) evm]
     rw [ballotStorageLocLoad_uint256]
     simp [voteSenderWeightCurrent, voteSenderSlot]
   rw [evalExpr?]
@@ -340,9 +343,12 @@ theorem evalExpr_vote_sender_voted_false (evm : EVM.State) (I : ExecutionEnv)
       (.storage (aliasF "sender" "voted")) = .ok (.bool false) := by
   have hresolve := resolveStorageRef_vote_senderVoted evm I
   have hread :
-      readStorage? ballotConfig evm (voteSenderEvaledRef I "voted") (.elem .bool) =
+      ballotConfig.storage.read (voteSenderEvaledRef I "voted") (.elem .bool) evm =
         .ok (.bool false) := by
-    rw [readStorage?_elem (hloc := by rfl)]
+    change ballotConfig.storage.read
+      { base := "voters", steps := [.mindex (.address I.source), .field "voted"] }
+        (.elem .bool) evm = _
+    rw [ballotConfig_read_voter_voted (.address I.source) evm]
     change EvalResult.ok (storageLocLoad evm
         { slot := voteSenderPackedSlot I, offset := 0, size := 1, hbound := _, type := .bool }) =
       EvalResult.ok (Value.bool false)
@@ -357,9 +363,12 @@ theorem evalExpr_vote_sender_voted_true (evm : EVM.State) (I : ExecutionEnv)
       (.storage (aliasF "sender" "voted")) = .ok (.bool true) := by
   have hresolve := resolveStorageRef_vote_senderVoted evm I
   have hread :
-      readStorage? ballotConfig evm (voteSenderEvaledRef I "voted") (.elem .bool) =
+      ballotConfig.storage.read (voteSenderEvaledRef I "voted") (.elem .bool) evm =
         .ok (.bool true) := by
-    rw [readStorage?_elem (hloc := by rfl)]
+    change ballotConfig.storage.read
+      { base := "voters", steps := [.mindex (.address I.source), .field "voted"] }
+        (.elem .bool) evm = _
+    rw [ballotConfig_read_voter_voted (.address I.source) evm]
     change EvalResult.ok (storageLocLoad evm
         { slot := voteSenderPackedSlot I, offset := 0, size := 1, hbound := _, type := .bool }) =
       EvalResult.ok (Value.bool true)
@@ -384,19 +393,22 @@ theorem evalExpr_vote_sender_not_voted_false (evm : EVM.State) (I : ExecutionEnv
 
 theorem voteArrayIndexInBounds_ok (evm : EVM.State) (I : ExecutionEnv)
     (hbound : (voteProposalWord I).toNat < (voteProposalsLengthCurrent evm).toNat) :
-    arrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
+    backendArrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
       (.int (Int.ofNat (voteProposalWord I).toNat)) = .ok () := by
   have hboundStorage :
       (voteProposalWord I).toNat <
         UInt256.toNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩) := by
     simpa [voteProposalsLengthCurrent] using hbound
-  simp [arrayIndexInBounds?, storageTypeAt?, ballotConfig, ballotStorageLayout, ballotContract,
-    ballotStorageDecls, proposalStructTy, uint256St, bytes32St, ballotStorageLocLoad_uint256,
-    hboundStorage]
+  apply backendArrayIndexInBounds_dynamicArray_ok
+    (elem := proposalStructTy)
+    (len := (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)
+  · simp [storageTypeAt?, ballotContract, ballotStorageDecls]
+  · exact ballotConfig_length_proposals proposalStructTy evm
+  · exact hboundStorage
 
 theorem voteArrayIndexInBounds_revert (evm : EVM.State) (I : ExecutionEnv)
     (hbound : ¬ (voteProposalWord I).toNat < (voteProposalsLengthCurrent evm).toNat) :
-    arrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
+    backendArrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
       (.int (Int.ofNat (voteProposalWord I).toNat)) = .revert := by
   have hboundStorage :
       ¬ (voteProposalWord I).toNat <
@@ -406,9 +418,12 @@ theorem voteArrayIndexInBounds_revert (evm : EVM.State) (I : ExecutionEnv)
       UInt256.toNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩) ≤
         (voteProposalWord I).toNat :=
     Nat.le_of_not_gt hboundStorage
-  simp [arrayIndexInBounds?, storageTypeAt?, ballotConfig, ballotStorageLayout, ballotContract,
-    ballotStorageDecls, proposalStructTy, uint256St, bytes32St, ballotStorageLocLoad_uint256,
-    hleStorage]
+  apply backendArrayIndexInBounds_dynamicArray_revert
+    (elem := proposalStructTy)
+    (len := (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)
+  · simp [storageTypeAt?, ballotContract, ballotStorageDecls]
+  · exact ballotConfig_length_proposals proposalStructTy evm
+  · exact hleStorage
 
 theorem evalStorageRef_vote_proposalCount (evm : EVM.State) (I : ExecutionEnv)
     (hbound : (voteProposalWord I).toNat < (voteProposalsLengthCurrent evm).toNat) :
@@ -428,7 +443,7 @@ theorem evalStorageRef_vote_proposalCount (evm : EVM.State) (I : ExecutionEnv)
     rw [hproposalGet]
     rfl
   have hboundsOk :
-      arrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
+      backendArrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
         (.int (Int.ofNat (voteProposalWord I).toNat)) = .ok () :=
     voteArrayIndexInBounds_ok evm I hbound
   simp only [proposalF, evalStorageRef, evalStorageRefSteps.eq_def, evalStorageRefStep.eq_def,
@@ -455,7 +470,7 @@ theorem evalStorageRef_vote_proposalCount_revert (evm : EVM.State) (I : Executio
     rw [hproposalGet]
     rfl
   have hboundsRevert :
-      arrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
+      backendArrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
         (.int (Int.ofNat (voteProposalWord I).toNat)) = .revert :=
     voteArrayIndexInBounds_revert evm I hbound
   simp only [proposalF, evalStorageRef, evalStorageRefSteps.eq_def, evalStorageRefStep.eq_def,
@@ -475,19 +490,16 @@ theorem evalExpr_vote_proposal_count (evm : EVM.State) (I : ExecutionEnv)
         some (.elem (.int uint256Int)) := by
     simp [voteProposalCountEvaledRef, storageTypeAt?, storageTypeStep?, ballotContract,
       ballotStorageDecls, proposalStructTy, uint256St]
-  have hloc :
-      ballotConfig.storage.layout (voteProposalCountEvaledRef I) =
-        fun _ => some (wordLoc (voteProposalCountSlot I)) := by
-    funext evm'
-    simp [voteProposalCountEvaledRef, ballotConfig, ballotStorageLayout,
-      voteProposalCountSlot_spec, u256_add_comm]
   have hload :
       storageLocLoad evm (wordLoc (voteProposalCountSlot I)) =
         .int (Int.ofNat (voteProposalCountCurrent evm I).toNat) := by
     simpa [voteProposalCountCurrent] using
       (ballotStorageLocLoad_uint256 evm (voteProposalCountSlot I))
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
-    (her := evalStorageRef_vote_proposalCount evm I hbound) (hty := hty) (hloc := hloc)]
+    (her := evalStorageRef_vote_proposalCount evm I hbound) (hty := hty)
+    (hread := ballotConfig_read_proposal_voteCount
+      (.int (Int.ofNat (voteProposalWord I).toNat)) evm)]
+  rw [← voteProposalCountSlot_spec I]
   simpa using congrArg EvalResult.ok hload
 
 theorem evalExpr_vote_proposal (evm : EVM.State) (I : ExecutionEnv) :
@@ -575,28 +587,31 @@ theorem voteAssignVoted (evm : EVM.State) (I : ExecutionEnv) :
       .storage (aliasF "sender" "voted") (.bool true) =
         .ok ({ contract := ballotContract, locals := voteAliasStore I },
           voteAfterVotedState evm I) := by
-  rw [assignStorageRef?]
-  simp only [resolveStorageRef_vote_senderVoted evm I, bind, EvalResult.bind,
-    EvalResult.ofOption, pure]
-  simp only [ballotConfig, ballotStorageLayout, voteSenderEvaledRef, voteSenderPackedSlot,
-    voteSenderSlot]
-  rw [voteStorageLocStore_bool_true_offset0]
-  simp [voteAfterVotedState, voteSenderVotedStoreCurrent, voteSenderPackedCurrent,
-    voteSenderPackedSlot, voteSenderSlot]
+  apply assignStorageRef_storage_of_resolve
+    (er := voteSenderEvaledRef I "voted") (ty := .elem .bool)
+    (hresolve := resolveStorageRef_vote_senderVoted evm I)
+    (hwrite := ballotConfig_write_voter_voted (.address I.source) (by
+      change storageLocStore evm
+        { slot := voteSenderPackedSlot I, offset := 0, size := 1, hbound := _, type := .bool }
+          (.bool true) = some (voteAfterVotedState evm I)
+      rw [voteStorageLocStore_bool_true_offset0]
+      simp [voteAfterVotedState, voteSenderVotedStoreCurrent, voteSenderPackedCurrent,
+        voteSenderPackedSlot, voteSenderSlot]))
 
 theorem voteAssignVote (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? ballotConfig { contract := ballotContract, locals := voteAliasStore I }
       (voteAfterVotedState evm I) .storage (aliasF "sender" "vote") (voteProposalValue I) =
         .ok ({ contract := ballotContract, locals := voteAliasStore I },
           voteAfterVoteState evm I) := by
-  rw [assignStorageRef?]
-  simp only [resolveStorageRef_vote_senderVote (voteAfterVotedState evm I) I,
-    bind, EvalResult.bind, EvalResult.ofOption, pure]
-  simp only [ballotConfig, ballotStorageLayout, voteSenderEvaledRef, voteSenderVoteSlot,
-    voteSenderSlot]
-  rw [voteStorageLocStore_uint256]
-  simp [voteAfterVoteState, voteAfterVotedState, voteProposalValue, voteSenderVoteSlot,
-    voteSenderSlot, Solm.EVM.storageStore]
+  apply assignStorageRef_storage_of_resolve
+    (er := voteSenderEvaledRef I "vote") (ty := .elem (.int uint256Int))
+    (hresolve := resolveStorageRef_vote_senderVote (voteAfterVotedState evm I) I)
+    (hwrite := ballotConfig_write_voter_vote (.address I.source) (by
+      change storageLocStore (voteAfterVotedState evm I) (wordLoc (voteSenderVoteSlot I))
+          (voteProposalValue I) = some (voteAfterVoteState evm I)
+      rw [voteStorageLocStore_uint256]
+      simp [voteAfterVoteState, voteAfterVotedState, voteProposalValue, voteSenderVoteSlot,
+        voteSenderSlot, Solm.EVM.storageStore]))
 
 theorem voteAssignProposalCount (evm : EVM.State) (I : ExecutionEnv)
     (hbound : (voteProposalWord I).toNat < (voteProposalsLengthCurrent evm).toNat)
@@ -610,16 +625,15 @@ theorem voteAssignProposalCount (evm : EVM.State) (I : ExecutionEnv)
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner (voteProposalCountSlot I)
             (UInt256.add (voteProposalCountCurrent evm I) (voteSenderWeightCurrent evm I))) := by
   apply assignStorageRef_storage_scalar (er := voteProposalCountEvaledRef I)
-      (loc := wordLoc (voteProposalCountSlot I)) (ty := .elem (.int uint256Int))
+      (ty := .elem (.int uint256Int))
       (hbase := by simp [voteAliasStore, voteStore, proposalF])
       (her := evalStorageRef_vote_proposalCount evm I hbound)
       (hty := by simp [storageTypeAt?, voteProposalCountEvaledRef, ballotContract,
         ballotStorageDecls, proposalStructTy, uint256St, storageTypeStep?])
-      (hloc := by
-        funext evm'
-        simp [voteProposalCountEvaledRef, ballotConfig, ballotStorageLayout,
-          voteProposalCountSlot_spec, u256_add_comm])
-  rw [voteStorageLocStore_uint256]
+      (hwrite := ballotConfig_write_proposal_voteCount
+        (.int (Int.ofNat (voteProposalWord I).toNat)) (by
+          rw [← voteProposalCountSlot_spec I]
+          rw [voteStorageLocStore_uint256]))
 
 theorem evalExpr_vote_proposal_count_add_oob_revert (evm : EVM.State) (I : ExecutionEnv)
     (hbound : ¬ (voteProposalWord I).toNat < (voteProposalsLengthCurrent evm).toNat) :

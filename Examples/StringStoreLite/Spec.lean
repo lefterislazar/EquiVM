@@ -1,5 +1,5 @@
 import Solm.Semantics
-import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # StringStoreLite — focused string storage example
@@ -108,23 +108,70 @@ def bytesLikeByteLoc? (baseSlot : Ethereum.UInt256) (index : KeyValue)
               omega⟩)
   | _ => none
 
-def stringStoreLiteLayout : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "current", steps := [.length] }, evm => some (bytesLikeLengthLoc ⟨0⟩ evm)
-  | { base := "current", steps := [.aindex i] }, evm => bytesLikeByteLoc? ⟨0⟩ i evm
-  | _, _ => none
+def stringStoreLiteLayout : StorageLayout :=
+  solidityLayout! [([] : List StructDecl)] [storageDecls]
 
-def stringStoreLiteStorageLayout : StorageLayout :=
-  solidityStorageLayout stringStoreLiteLayout
+def stringStoreLiteStorageBackend : StorageBackend :=
+  solidityStorageBackend stringStoreLiteLayout
+
+@[simp] theorem stringStoreLiteLayout_current (evm : EVM.State) :
+    stringStoreLiteLayout { base := "current" } evm =
+      some (Solm.bytesLikeLengthLoc ⟨0⟩ evm) :=
+  rfl
 
 end StringStoreLite
 
 def stringStoreLiteConfig : Config :=
-  { storage := StringStoreLite.stringStoreLiteStorageLayout
+  { storage := StringStoreLite.stringStoreLiteStorageBackend
     externalABI := defaultExternalCallABI
     selfDeployment :=
       genSolidityConstructorDeployment StringStoreLite.stringStoreLiteContract.ctor.params }
 
+@[simp] theorem stringStoreLiteConfig_storage :
+    stringStoreLiteConfig.storage = StringStoreLite.stringStoreLiteStorageBackend :=
+  rfl
+
+/-- Proof-facing spelling of the backend operation used to read the string length. -/
+abbrev stringStoreLiteStorageLength? (evm : EVM.State) (er : EvaledStorageRef) :
+    EvalResult Nat :=
+  stringStoreLiteConfig.storage.length er .string evm
+
+/-- Proof-facing spelling of a typed read from the generated backend. -/
+abbrev stringStoreLiteReadStorage? (evm : EVM.State) (er : EvaledStorageRef)
+    (ty : StorageType) : EvalResult Value :=
+  stringStoreLiteConfig.storage.read er ty evm
+
+/-- Proof-facing spelling of a typed write through the generated backend. -/
+abbrev stringStoreLiteWriteStorage? (evm : EVM.State) (er : EvaledStorageRef)
+    (ty : StorageType) (value : Value) : EvalResult EVM.State :=
+  stringStoreLiteConfig.storage.write er ty value evm
+
+theorem stringStoreLiteStorageLength_current (evm : EVM.State) :
+    stringStoreLiteStorageLength? evm { base := "current" } =
+      solidityNatResultToEval
+        (solidityDecodeBytesLengthHeader
+          (EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)) := by
+  unfold stringStoreLiteStorageLength?
+  rw [stringStoreLiteConfig_storage]
+  change solidityStorageLength? StringStoreLite.stringStoreLiteLayout
+    { base := "current" } .string evm = _
+  simp [solidityStorageLength?, solidityReadBytesLength?,
+    StringStoreLite.stringStoreLiteLayout_current]
+  unfold Solm.bytesLikeLengthLoc
+  split <;> rfl
+
+theorem stringStoreLiteReadStorage_current (evm : EVM.State) :
+    stringStoreLiteReadStorage? evm { base := "current" } .string =
+      solidityValueResultToEval
+        (solidityReadBytesValue? StringStoreLite.stringStoreLiteLayout
+          { base := "current" } evm) := by
+  unfold stringStoreLiteReadStorage?
+  rw [stringStoreLiteConfig_storage]
+  change solidityReadStorage? StringStoreLite.stringStoreLiteLayout evm
+    { base := "current" } .string = _
+  simp [solidityReadStorage?]
+
 @[simp] theorem stringStoreLiteConfig_storage_current_length :
-    stringStoreLiteConfig.storage.layout { base := "current", steps := [.length] } =
+    stringStoreLiteConfig.storage.locate? { base := "current", steps := [] } =
       fun evm => some (StringStoreLite.bytesLikeLengthLoc ⟨0⟩ evm) :=
   rfl

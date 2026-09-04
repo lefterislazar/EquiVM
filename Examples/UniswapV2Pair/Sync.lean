@@ -659,15 +659,12 @@ theorem uniswapAssignPrice0CumulativeLastOfStore
         .ok ({ contract := contract, locals := locals }, evm') := by
   apply assignStorageRef_storage_scalar_value
       (er := ({ base := "price0CumulativeLast", steps := [] } : EvaledStorageRef))
-      (ty := uint256St) (loc := wordLoc ⟨9⟩)
+      (ty := uint256St)
   · simpa [price0CumulativeLastRef] using hbase
   · simp [evalStorageRef, evalStorageRefSteps, price0CumulativeLastRef, EvalResult.bind,
       pure, bind]
   · rfl
-  · rfl
-  · cases value <;> simp at hscalar ⊢
-    simp [storageLocStore, valueToWord] at hstore
-  · exact hstore
+  · exact config_storage_write_elem (loc := wordLoc ⟨9⟩) (by rfl) hstore
 
 theorem uniswapAssignPrice1CumulativeLastOfStore
     (evm evm' : EVM.State) (locals : Store) (value : Value)
@@ -679,15 +676,12 @@ theorem uniswapAssignPrice1CumulativeLastOfStore
         .ok ({ contract := contract, locals := locals }, evm') := by
   apply assignStorageRef_storage_scalar_value
       (er := ({ base := "price1CumulativeLast", steps := [] } : EvaledStorageRef))
-      (ty := uint256St) (loc := wordLoc ⟨10⟩)
+      (ty := uint256St)
   · simpa [price1CumulativeLastRef] using hbase
   · simp [evalStorageRef, evalStorageRefSteps, price1CumulativeLastRef, EvalResult.bind,
       pure, bind]
   · rfl
-  · rfl
-  · cases value <;> simp at hscalar ⊢
-    simp [storageLocStore, valueToWord] at hstore
-  · exact hstore
+  · exact config_storage_write_elem (loc := wordLoc ⟨10⟩) (by rfl) hstore
 
 theorem evalExpr_sync_balance0_le_max_true (evm : EVM.State) (balance0 balance1 : UInt256)
     (hbound : Int.ofNat balance0.toNat ≤ maxUint112) :
@@ -761,7 +755,7 @@ theorem evalExpr_sync_blockTimestampLast (evm : EVM.State) (locals : Store)
     (hbase := by simpa [blockTimestampLastRef] using hbase)
     (her := evalStorageRef_uniswap_blockTimestampLast evm locals)
     (hty := by rfl)
-    (hloc := by rfl), hload]
+    (hread := by apply config_storage_read_elem; rfl), hload]
 
 theorem evalExpr_sync_price0CumulativeLast (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "price0CumulativeLast" = none) :
@@ -782,7 +776,7 @@ theorem evalExpr_sync_price0CumulativeLast (evm : EVM.State) (locals : Store)
       simp [evalStorageRef, evalStorageRefSteps, price0CumulativeLastRef, EvalResult.bind,
         pure, bind])
     (hty := by rfl)
-    (hloc := by rfl), hload]
+    (hread := by apply config_storage_read_elem; rfl), hload]
 
 theorem evalExpr_sync_price1CumulativeLast (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "price1CumulativeLast" = none) :
@@ -803,7 +797,7 @@ theorem evalExpr_sync_price1CumulativeLast (evm : EVM.State) (locals : Store)
       simp [evalStorageRef, evalStorageRefSteps, price1CumulativeLastRef, EvalResult.bind,
         pure, bind])
     (hty := by rfl)
-    (hloc := by rfl), hload]
+    (hread := by apply config_storage_read_elem; rfl), hload]
 
 theorem evalExpr_sync_update_timeElapsed
     (evm : EVM.State) (balance0 balance1 : UInt256) :

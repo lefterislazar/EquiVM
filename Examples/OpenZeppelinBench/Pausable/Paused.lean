@@ -27,7 +27,7 @@ theorem pausablePausedBodyReturns (evm : EVM.State) (locals : Store)
           ({ base := "_paused", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
         decide
       rw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := by rfl), pausableStorageLocLoad_bool_offset0])
+        (hty := hty) (hread := config_read_paused evm), pausableStorageLocLoad_bool_offset0])
 
 theorem pausableX_paused {cA gh bl σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD pausableBenchBytecode I g

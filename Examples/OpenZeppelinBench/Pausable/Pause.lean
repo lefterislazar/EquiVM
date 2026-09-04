@@ -61,8 +61,8 @@ theorem pauseAssign (evm : EVM.State) :
   exact assignStorageRef_storage_scalar_value (cfg := config)
     (solm := { contract := contract, locals := ∅ }) (evm := evm) (evm' := pausePostState evm)
     (slot := pausedRef) (er := { base := "_paused", steps := [] }) (ty := boolSt)
-    (loc := boolLoc ⟨0⟩) (value := .bool true) (by simp) her hty (by rfl)
-    (by trivial) hstore
+    (value := .bool true) (by simp) her hty (by
+      simpa [boolSt] using config_write_paused hstore)
 
 theorem pausablePauseBodyReturns (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

@@ -54,7 +54,7 @@ theorem erc20TotalSupplyBodyReturns (evm : EVM.State) (locals : Store)
           = some (.elem (.int uint256Int)) := by
         decide
       rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := vyperERC20Config_storage_totalSupply),
+        (hty := hty) (hread := vyperERC20Config_read_totalSupply evm),
         vyperERC20StorageLocLoad_uint256])
 
 macro "vyper_erc20_runtime_decode" : tactic =>

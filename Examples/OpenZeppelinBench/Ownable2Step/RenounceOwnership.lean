@@ -116,7 +116,7 @@ theorem evalExpr_renounceOwnership_owner (evm : EVM.State) :
       ({ base := "_owner", steps := [] } : EvaledStorageRef) = some (.elem .address) := by
     decide
   rw [evalExpr_storage_scalar (t := .address) (hbase := by simp) (her := her)
-    (hty := hty) (hloc := by rfl), ownable2StepStorageLocLoad_address_offset0]
+    (hty := hty) (hread := config_read_owner evm), ownable2StepStorageLocLoad_address_offset0]
 
 theorem evalExpr_renounceOwnership_sender (evm : EVM.State) :
     evalExpr? config { contract := contract, locals := ∅ } evm sender =
@@ -184,8 +184,8 @@ theorem renounceOwnershipAssignPending (evm : EVM.State) :
     (solm := { contract := contract, locals := ∅ }) (evm := evm)
     (evm' := renounceOwnershipAfterPendingState evm) (slot := pendingOwnerRef)
     (er := { base := "_pendingOwner", steps := [] }) (ty := .elem .address)
-    (loc := addrLoc ⟨1⟩) (value := .address (AccountAddress.ofNat 0))
-    (by simp) her hty (by rfl) (by trivial) hstore
+    (value := .address (AccountAddress.ofNat 0))
+    (by simp) her hty (config_write_pendingOwner hstore)
 
 theorem renounceOwnershipAssignOwner (evm : EVM.State) :
     assignStorageRef? config { contract := contract, locals := ∅ }
@@ -211,8 +211,8 @@ theorem renounceOwnershipAssignOwner (evm : EVM.State) :
     (evm := renounceOwnershipAfterPendingState evm)
     (evm' := renounceOwnershipAfterOwnerState evm) (slot := ownerRef)
     (er := { base := "_owner", steps := [] }) (ty := .elem .address)
-    (loc := addrLoc ⟨0⟩) (value := .address (AccountAddress.ofNat 0))
-    (by simp) her hty (by rfl) (by trivial) hstore
+    (value := .address (AccountAddress.ofNat 0))
+    (by simp) her hty (config_write_owner hstore)
 
 theorem ownable2StepRenounceOwnershipBodyReturns (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

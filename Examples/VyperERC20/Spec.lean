@@ -50,8 +50,8 @@ def erc20AllowanceOwnerSlot (owner : KeyValue) : Ethereum.UInt256 :=
 def erc20AllowanceSlot (owner spender : KeyValue) : Ethereum.UInt256 :=
   vyperMappingSlot (erc20AllowanceOwnerSlot owner) spender
 
-def erc20StorageLayout : StorageLayout where
-  layout ref _ :=
+def erc20StorageLayout : StorageLayout :=
+  fun ref _ =>
     match ref.base, ref.steps with
     | "balanceOf", [.mindex owner] => some (vyperUint256Loc (erc20BalanceOfSlot owner))
     | "allowance", [.mindex owner, .mindex spender] =>
@@ -73,39 +73,95 @@ def erc20StorageLayout : StorageLayout where
   rfl
 
 @[simp] theorem erc20StorageLayout_totalSupply :
-    erc20StorageLayout.layout { base := "totalSupply", steps := [] } =
+    erc20StorageLayout { base := "totalSupply", steps := [] } =
       fun _ => some (vyperUint256Loc ⟨2⟩) :=
   rfl
 
 @[simp] theorem erc20StorageLayout_balanceOf (owner : KeyValue) :
-    erc20StorageLayout.layout { base := "balanceOf", steps := [.mindex owner] } =
+    erc20StorageLayout { base := "balanceOf", steps := [.mindex owner] } =
       fun _ => some (vyperUint256Loc (erc20BalanceOfSlot owner)) :=
   rfl
 
 @[simp] theorem erc20StorageLayout_allowance (owner spender : KeyValue) :
-    erc20StorageLayout.layout { base := "allowance", steps := [.mindex owner, .mindex spender] } =
+    erc20StorageLayout { base := "allowance", steps := [.mindex owner, .mindex spender] } =
       fun _ => some (vyperUint256Loc (erc20AllowanceSlot owner spender)) :=
   rfl
+
+def erc20StorageBackend : StorageBackend :=
+  solidityStorageBackend erc20StorageLayout
 
 end VyperERC20
 
 def vyperERC20Config : Config :=
-  { storage := VyperERC20.erc20StorageLayout
+  { storage := VyperERC20.erc20StorageBackend
     externalABI := defaultExternalCallABI
     abiDecodeMode := DecodeMode.vyper
     selfDeployment := genSolidityConstructorDeployment VyperERC20.erc20Contract.ctor.params }
 
 @[simp] theorem vyperERC20Config_storage_totalSupply :
-    vyperERC20Config.storage.layout { base := "totalSupply", steps := [] } =
+    vyperERC20Config.storage.locate? { base := "totalSupply", steps := [] } =
       fun _ => some (vyperUint256Loc ⟨2⟩) :=
   rfl
 
 @[simp] theorem vyperERC20Config_storage_balanceOf (owner : KeyValue) :
-    vyperERC20Config.storage.layout { base := "balanceOf", steps := [.mindex owner] } =
+    vyperERC20Config.storage.locate? { base := "balanceOf", steps := [.mindex owner] } =
       fun _ => some (vyperUint256Loc (VyperERC20.erc20BalanceOfSlot owner)) :=
   rfl
 
 @[simp] theorem vyperERC20Config_storage_allowance (owner spender : KeyValue) :
-    vyperERC20Config.storage.layout { base := "allowance", steps := [.mindex owner, .mindex spender] } =
+    vyperERC20Config.storage.locate? { base := "allowance", steps := [.mindex owner, .mindex spender] } =
       fun _ => some (vyperUint256Loc (VyperERC20.erc20AllowanceSlot owner spender)) :=
   rfl
+
+@[simp] theorem vyperERC20Config_read_totalSupply (evm : EVM.State) :
+    vyperERC20Config.storage.read { base := "totalSupply", steps := [] }
+        VyperERC20.uint256Storage evm =
+      .ok (storageLocLoad evm (vyperUint256Loc ⟨2⟩)) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem vyperERC20Config_read_balanceOf (owner : KeyValue) (evm : EVM.State) :
+    vyperERC20Config.storage.read { base := "balanceOf", steps := [.mindex owner] }
+        VyperERC20.uint256Storage evm =
+      .ok (storageLocLoad evm (vyperUint256Loc (VyperERC20.erc20BalanceOfSlot owner))) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem vyperERC20Config_read_allowance
+    (owner spender : KeyValue) (evm : EVM.State) :
+    vyperERC20Config.storage.read
+        { base := "allowance", steps := [.mindex owner, .mindex spender] }
+        VyperERC20.uint256Storage evm =
+      .ok (storageLocLoad evm (vyperUint256Loc
+        (VyperERC20.erc20AllowanceSlot owner spender))) := by
+  apply solidityStorageBackend_read_elem
+  rfl
+
+theorem vyperERC20Config_write_totalSupply {evm evm' : EVM.State} {n : Int}
+    (hstore : storageLocStore evm (vyperUint256Loc ⟨2⟩) (.int n) = some evm') :
+    vyperERC20Config.storage.write { base := "totalSupply", steps := [] }
+        VyperERC20.uint256Storage (.int n) evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+theorem vyperERC20Config_write_balanceOf {evm evm' : EVM.State}
+    (owner : KeyValue) {n : Int}
+    (hstore : storageLocStore evm
+      (vyperUint256Loc (VyperERC20.erc20BalanceOfSlot owner)) (.int n) = some evm') :
+    vyperERC20Config.storage.write { base := "balanceOf", steps := [.mindex owner] }
+        VyperERC20.uint256Storage (.int n) evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+theorem vyperERC20Config_write_allowance {evm evm' : EVM.State}
+    (owner spender : KeyValue) {n : Int}
+    (hstore : storageLocStore evm
+      (vyperUint256Loc (VyperERC20.erc20AllowanceSlot owner spender)) (.int n) = some evm') :
+    vyperERC20Config.storage.write
+        { base := "allowance", steps := [.mindex owner, .mindex spender] }
+        VyperERC20.uint256Storage (.int n) evm = .ok evm' := by
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore

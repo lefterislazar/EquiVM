@@ -760,13 +760,14 @@ theorem mintFeeAssignKLastZero
           mintFeeKLastClearedState evm) := by
   apply assignStorageRef_storage_scalar
       (er := ({ base := "kLast", steps := [] } : EvaledStorageRef))
-      (ty := uint256St) (loc := uint256Loc ⟨11⟩)
-  · simp [kLastRef]
-  · simp [evalStorageRef, evalStorageRefSteps, kLastRef, EvalResult.bind, pure, bind]
-  · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · rfl
-  · simpa [mintFeeKLastClearedState, uniswapUint256Value, uint256Value] using
-      uniswapStorageLocStore_uint256 evm ⟨11⟩ ⟨0⟩
+      (ty := uint256St)
+      (hbase := by simp [kLastRef])
+      (her := by
+        simp [evalStorageRef, evalStorageRefSteps, kLastRef, EvalResult.bind, pure, bind])
+      (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
+      (hwrite := config_storage_write_elem (loc := wordLoc ⟨11⟩) (by rfl) (by
+        simpa [mintFeeKLastClearedState, uniswapUint256Value, uint256Value] using
+          uniswapStorageLocStore_uint256 evm ⟨11⟩ ⟨0⟩))
 
 theorem uniswapMintFeeFunctionBody_feeOff_kLastZero
     (evm evmFee : EVM.State) (reserve0 reserve1 : UInt256) {out : ByteArray}

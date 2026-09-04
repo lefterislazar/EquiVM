@@ -83,15 +83,18 @@ theorem winningProposalVoteCountSlot_spec (p : UInt256) :
 
 theorem winningProposalArrayIndexInBounds_ok (evm : EVM.State) (p : UInt256)
     (hbound : p.toNat < (winningProposalLengthCurrent evm).toNat) :
-    arrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
+    backendArrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
       (.int (Int.ofNat p.toNat)) = .ok () := by
   have hboundStorage :
       p.toNat <
         UInt256.toNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩) := by
     simpa [winningProposalLengthCurrent] using hbound
-  simp [arrayIndexInBounds?, storageTypeAt?, ballotConfig, ballotStorageLayout,
-    ballotContract, ballotStorageDecls, proposalStructTy, uint256St, bytes32St,
-    ballotStorageLocLoad_uint256, hboundStorage]
+  apply backendArrayIndexInBounds_dynamicArray_ok
+    (elem := proposalStructTy)
+    (len := (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)
+  · simp [storageTypeAt?, ballotContract, ballotStorageDecls]
+  · exact ballotConfig_length_proposals proposalStructTy evm
+  · exact hboundStorage
 
 theorem winningProposalEvalLength (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "proposals" = none) :
@@ -103,11 +106,9 @@ theorem winningProposalEvalLength (evm : EVM.State) (locals : Store)
     exact hbase
   rw [evalExpr?]
   simp [resolveStorageRef?, evalStorageRef, evalStorageRefSteps, proposalsRef,
-    readStorageArrayLength?, storageTypeAt?, ballotConfig, ballotStorageLayout,
+    storageTypeAt?, ballotConfig_length_proposals,
     ballotContract, ballotStorageDecls, proposalStructTy, winningProposalLengthCurrent,
     EvalResult.ofOption, EvalResult.bind, bind, pure, hbaseGet]
-  rw [ballotStorageLocLoad_uint256 evm ⟨2⟩]
-  rfl
 
 theorem winningProposalEvalVoteCount (evm : EVM.State) (locals : Store) (p : UInt256)
     (hbaseProposals : locals.get? "proposals" = none)
@@ -126,7 +127,7 @@ theorem winningProposalEvalVoteCount (evm : EVM.State) (locals : Store) (p : UIn
       exact hp
     simp [evalExpr?, hpGet, EvalResult.ofOption]
   have hboundsOk :
-      arrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
+      backendArrayIndexInBounds? ballotConfig evm ballotContract.storage "proposals" []
         (.int (Int.ofNat p.toNat)) = .ok () :=
     winningProposalArrayIndexInBounds_ok evm p hbound
   have her :
@@ -142,19 +143,14 @@ theorem winningProposalEvalVoteCount (evm : EVM.State) (locals : Store) (p : UIn
         some (.elem (.int uint256Int)) := by
     simp [winningProposalCountEvaledRef, storageTypeAt?, storageTypeStep?, ballotContract,
       ballotStorageDecls, proposalStructTy, uint256St]
-  have hloc :
-      ballotConfig.storage.layout (winningProposalCountEvaledRef p) =
-        fun _ => some (wordLoc (winningProposalVoteCountSlot p)) := by
-    funext evm'
-    simp [winningProposalCountEvaledRef, winningProposalVoteCountSlot_spec, ballotConfig,
-      ballotStorageLayout]
   have hload :
       storageLocLoad evm (wordLoc (winningProposalVoteCountSlot p)) =
         .int (Int.ofNat (winningProposalVoteCountCurrent evm p).toNat) := by
     simpa [winningProposalVoteCountCurrent] using
       (ballotStorageLocLoad_uint256 evm (winningProposalVoteCountSlot p))
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase) (her := her)
-    (hty := hty) (hloc := hloc)]
+    (hty := hty) (hread := ballotConfig_read_proposal_voteCount (.int (Int.ofNat p.toNat)) evm)]
+  rw [← winningProposalVoteCountSlot_spec p]
   rw [hload]
 
 theorem winningProposalEvalVar (evm : EVM.State) (locals : Store) (name : Ident)
