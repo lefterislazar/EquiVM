@@ -119,15 +119,15 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
       .storage (allowanceRef sender (.var "spender")) (approveValueValue I) =
         .ok ({ contract := erc20Contract, locals := approveStore I }, approvePostState evm I) := by
   simp only [allowanceRef]
-  apply assignStorageRef_storage_scalar (ty := uint256Storage)
+  exact assignStorageRef_storage_scalar (ty := uint256Storage)
       (hbase := approveStore_allowance I)
       (her := evalStorageRef_approve_allowance evm I)
       (hty := by simp [storageTypeAt?, approveEvaledRef, erc20Contract, erc20StorageDecls,
                        uint256Storage, storageTypeStep?])
-      (hloc := erc20Config_storage_allowance (.address evm.executionEnv.source)
-          (.address (AccountAddress.ofNat (approveSpenderWord I).toNat)))
-  rw [erc20StorageLocStore_uint256]
-  simp [approvePostState, approveSlot, approveEvaledRef]
+      (hwrite := erc20Config_write_allowance (.address evm.executionEnv.source)
+        (.address (AccountAddress.ofNat (approveSpenderWord I).toNat)) (by
+          rw [erc20StorageLocStore_uint256]
+          simp [approvePostState, approveSlot, approveEvaledRef]))
 
 theorem erc20ApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :

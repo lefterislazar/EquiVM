@@ -77,8 +77,8 @@ theorem erc20BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             EvalResult.ofOption, bind, pure, evalExpr?])
         (hty := by simp [storageTypeAt?, erc20Contract, erc20StorageDecls, uint256Storage,
           storageTypeStep?])
-        (hloc := erc20Config_storage_balanceOf
-          (.address (AccountAddress.ofNat (balanceOfOwnerWord I).toNat)))]
+        (hread := erc20Config_read_balanceOf
+          (.address (AccountAddress.ofNat (balanceOfOwnerWord I).toNat)) evm)]
       simp [balanceOfSlot, erc20StorageLocLoad_uint256])
 
 /-! ## EVM scratch memory for the `balanceOf` mapping access -/

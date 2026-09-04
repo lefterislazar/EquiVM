@@ -778,7 +778,7 @@ theorem erc20CtorAssignBalance (evm : EVM.State) (initialSupply : Int)
       evm .storage (balanceOfRef sender) (.int initialSupply) =
         .ok ({ contract := erc20Contract, locals := erc20CtorLocals initialSupply },
           erc20CtorBalancePostState evm (EVM.word initialSupply.toNat)) := by
-  apply assignStorageRef_storage_scalar (ty := uint256Storage)
+  exact assignStorageRef_storage_scalar (ty := uint256Storage)
       (hbase := erc20CtorLocals_get_balanceOf initialSupply)
       (her := by
         simp [evalStorageRef, evalStorageRefStep, evalStorageRefSteps, balanceOfRef, sender,
@@ -786,19 +786,19 @@ theorem erc20CtorAssignBalance (evm : EVM.State) (initialSupply : Int)
           pure, evalExpr?])
       (hty := by simp [storageTypeAt?, erc20Contract, erc20StorageDecls, uint256Storage,
         storageTypeStep?])
-      (hloc := erc20Config_storage_balanceOf (.address evm.executionEnv.source))
-  have hword :
-      (EVM.word initialSupply.toNat).toNat = initialSupply.toNat :=
-    constructorUInt256Word_toNat initialSupply h0 hlt
-  have hint : Int.ofNat (EVM.word initialSupply.toNat).toNat = initialSupply := by
-    calc
-      Int.ofNat (EVM.word initialSupply.toNat).toNat = Int.ofNat initialSupply.toNat := by
-        rw [hword]
-      _ = initialSupply := by
-        exact Int.toNat_of_nonneg h0
-  conv_lhs => rw [← hint]
-  rw [erc20StorageLocStore_uint256]
-  rfl
+      (hwrite := erc20Config_write_balanceOf (.address evm.executionEnv.source) (by
+        have hword :
+            (EVM.word initialSupply.toNat).toNat = initialSupply.toNat :=
+          constructorUInt256Word_toNat initialSupply h0 hlt
+        have hint : Int.ofNat (EVM.word initialSupply.toNat).toNat = initialSupply := by
+          calc
+            Int.ofNat (EVM.word initialSupply.toNat).toNat = Int.ofNat initialSupply.toNat := by
+              rw [hword]
+            _ = initialSupply := by
+              exact Int.toNat_of_nonneg h0
+        conv_lhs => rw [← hint]
+        rw [erc20StorageLocStore_uint256]
+        rfl))
 
 theorem erc20CtorAssignTotalSupply (evm : EVM.State) (initialSupply : Int)
     (h0 : 0 ≤ initialSupply)
@@ -809,23 +809,23 @@ theorem erc20CtorAssignTotalSupply (evm : EVM.State) (initialSupply : Int)
         .ok ({ contract := erc20Contract, locals := erc20CtorLocals initialSupply },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨2⟩
             (EVM.word initialSupply.toNat)) := by
-  apply assignStorageRef_storage_scalar (ty := uint256Storage)
+  exact assignStorageRef_storage_scalar (ty := uint256Storage)
       (hbase := erc20CtorLocals_get_totalSupply initialSupply)
       (her := by
         simp [evalStorageRef, evalStorageRefSteps, totalSupplyRef, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, erc20Contract, erc20StorageDecls, uint256Storage])
-      (hloc := erc20Config_storage_totalSupply)
-  have hword :
-      (EVM.word initialSupply.toNat).toNat = initialSupply.toNat :=
-    constructorUInt256Word_toNat initialSupply h0 hlt
-  have hint : Int.ofNat (EVM.word initialSupply.toNat).toNat = initialSupply := by
-    calc
-      Int.ofNat (EVM.word initialSupply.toNat).toNat = Int.ofNat initialSupply.toNat := by
-        rw [hword]
-      _ = initialSupply := by
-        exact Int.toNat_of_nonneg h0
-  conv_lhs => rw [← hint]
-  rw [erc20StorageLocStore_uint256]
+      (hwrite := erc20Config_write_totalSupply (by
+        have hword :
+            (EVM.word initialSupply.toNat).toNat = initialSupply.toNat :=
+          constructorUInt256Word_toNat initialSupply h0 hlt
+        have hint : Int.ofNat (EVM.word initialSupply.toNat).toNat = initialSupply := by
+          calc
+            Int.ofNat (EVM.word initialSupply.toNat).toNat = Int.ofNat initialSupply.toNat := by
+              rw [hword]
+            _ = initialSupply := by
+              exact Int.toNat_of_nonneg h0
+        conv_lhs => rw [← hint]
+        rw [erc20StorageLocStore_uint256]))
 
 theorem erc20SolmCtorExecReverts_nonpayable
     {createdAccounts : Batteries.RBSet AccountAddress compare}

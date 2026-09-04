@@ -39,7 +39,8 @@ def totalSupplyRef : StorageRef :=
 def erc20StorageDecls : List StorageDecl :=
   [ { name := "balanceOf", ty := .mapping .address uint256Storage },
     { name := "allowance", ty := .mapping .address (.mapping .address uint256Storage) },
-    { name := "totalSupply", ty := uint256Storage } ]
+    { name := "totalSupply", ty := uint256Storage },
+    { name := "array", ty := .array (.elem .address) 5 } ]
 
 def erc20Uint256Loc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 32, hbound := by decide, type := .int uint256Int }
@@ -70,67 +71,11 @@ def erc20AllowanceSlot (owner spender : KeyValue) : Ethereum.UInt256 :=
         (erc20MappingSlot (keyValueToWord owner) ⟨1⟩) :=
   rfl
 
-/-!
-ERC20's storage declarations are all full-word values, so their Solidity base slots are exactly
-their declaration indices: `balanceOf` at slot 0, `allowance` at slot 1, and `totalSupply` at slot 2.
-Mapping entries then use Solidity's standard `keccak256(key ++ baseSlot)` slot derivation.
--/
-def erc20StorageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "balanceOf", [.mindex owner] => some (erc20Uint256Loc (erc20BalanceOfSlot owner))
-    | "allowance", [.mindex owner, .mindex spender] =>
-        some (erc20Uint256Loc (erc20AllowanceSlot owner spender))
-    | "totalSupply", [] => some (erc20Uint256Loc ⟨2⟩)
-    | _, _ => none
-
-/-- Generated counterpart of the original hand-written layout.  The pointwise checks below keep
-    this representative benchmark as an executable conformance test for static and nested mapping
-    storage. -/
-def erc20GeneratedStorageLayout : StorageLayout :=
-  solidityLayout! [([] : List StructDecl)] [erc20StorageDecls]
-
+/-- The complete ERC20 storage backend, generated at elaboration time from the Solidity
+    declarations.  Its generated locator is a single closed term rather than a runtime traversal
+    of `erc20StorageDecls`. -/
 def erc20GeneratedStorageBackend : StorageBackend :=
-  erc20GeneratedStorageLayout.toBackend
-
-example (evm : EVM.State) :
-    erc20GeneratedStorageLayout.layout { base := "totalSupply" } evm =
-      erc20StorageLayout.layout { base := "totalSupply" } evm := by
-  rfl
-
-example (owner : KeyValue) (evm : EVM.State) :
-    erc20GeneratedStorageLayout.layout { base := "balanceOf", steps := [.mindex owner] } evm =
-      erc20StorageLayout.layout { base := "balanceOf", steps := [.mindex owner] } evm := by
-  rfl
-
-example (owner spender : KeyValue) (evm : EVM.State) :
-    erc20GeneratedStorageLayout.layout
-        { base := "allowance", steps := [.mindex owner, .mindex spender] } evm =
-      erc20StorageLayout.layout
-        { base := "allowance", steps := [.mindex owner, .mindex spender] } evm := by
-  rfl
-
-@[simp] theorem erc20StorageLayout_totalSupply :
-    erc20StorageLayout.layout { base := "totalSupply", steps := [] } = fun _ => some (erc20Uint256Loc ⟨2⟩) :=
-  rfl
-
-@[simp] theorem erc20StorageLayout_balanceOf (owner : KeyValue) :
-    erc20StorageLayout.layout { base := "balanceOf", steps := [.mindex owner] } =
-      fun _ => some (erc20Uint256Loc (erc20BalanceOfSlot owner)) :=
-  rfl
-
-@[simp] theorem erc20StorageLayout_allowance (owner spender : KeyValue) :
-    erc20StorageLayout.layout { base := "allowance", steps := [.mindex owner, .mindex spender] } =
-      fun _ => some (erc20Uint256Loc (erc20AllowanceSlot owner spender)) :=
-  rfl
-
-@[simp] theorem erc20StorageLayout_balanceOf_missingIndex :
-    erc20StorageLayout.layout { base := "balanceOf", steps := [] } = fun _ => none :=
-  rfl
-
-@[simp] theorem erc20StorageLayout_allowance_missingSpender (owner : KeyValue) :
-    erc20StorageLayout.layout { base := "allowance", steps := [.mindex owner] } = fun _ => none :=
-  rfl
+  solidityStorage! [([] : List StructDecl)] [erc20StorageDecls]
 
 def constructorDecl : ConstructorDecl :=
   { params := [{ name := "initialSupply", ty := uint256 }]
@@ -224,32 +169,77 @@ def erc20Contract : ContractDecl :=
 end ERC20
 
 def erc20Config : Config :=
-  { storage := ERC20.erc20GeneratedStorageLayout
-    storageBackend? := some ERC20.erc20GeneratedStorageBackend
-    storageBackend_read_scalar := by
-      intro backend er ty evm loc hbackend hloc
-      cases hbackend
-      exact StorageLayout.toBackend_read_elem
-        ERC20.erc20GeneratedStorageLayout er ty evm loc hloc
-    storageBackend_write_scalar := by
-      intro backend er ty value evm evm' loc hbackend hloc hscalar hstore
-      cases hbackend
-      exact StorageLayout.toBackend_write_scalar
-        ERC20.erc20GeneratedStorageLayout er ty value evm evm' loc hloc hscalar hstore
+  { storage := ERC20.erc20GeneratedStorageBackend
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment ERC20.erc20Contract.ctor.params }
 
 @[simp] theorem erc20Config_storage_totalSupply :
-    erc20Config.storage.layout { base := "totalSupply", steps := [] } =
+    erc20Config.storage.locate? { base := "totalSupply", steps := [] } =
       fun _ => some (ERC20.erc20Uint256Loc ⟨2⟩) :=
   rfl
 
 @[simp] theorem erc20Config_storage_balanceOf (owner : KeyValue) :
-    erc20Config.storage.layout { base := "balanceOf", steps := [.mindex owner] } =
+    erc20Config.storage.locate? { base := "balanceOf", steps := [.mindex owner] } =
       fun _ => some (ERC20.erc20Uint256Loc (ERC20.erc20BalanceOfSlot owner)) :=
   rfl
 
 @[simp] theorem erc20Config_storage_allowance (owner spender : KeyValue) :
-    erc20Config.storage.layout { base := "allowance", steps := [.mindex owner, .mindex spender] } =
+    erc20Config.storage.locate? { base := "allowance", steps := [.mindex owner, .mindex spender] } =
       fun _ => some (ERC20.erc20Uint256Loc (ERC20.erc20AllowanceSlot owner spender)) :=
   rfl
+
+@[simp] theorem erc20Config_read_totalSupply (evm : EVM.State) :
+    erc20Config.storage.read { base := "totalSupply", steps := [] }
+        ERC20.uint256Storage evm =
+      .ok (storageLocLoad evm (ERC20.erc20Uint256Loc ⟨2⟩)) := by
+  change (solidityStorageBackend _).read _ (.elem (.int ERC20.uint256Int)) evm = _
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem erc20Config_read_balanceOf (owner : KeyValue) (evm : EVM.State) :
+    erc20Config.storage.read { base := "balanceOf", steps := [.mindex owner] }
+        ERC20.uint256Storage evm =
+      .ok (storageLocLoad evm (ERC20.erc20Uint256Loc (ERC20.erc20BalanceOfSlot owner))) := by
+  change (solidityStorageBackend _).read _ (.elem (.int ERC20.uint256Int)) evm = _
+  apply solidityStorageBackend_read_elem
+  rfl
+
+@[simp] theorem erc20Config_read_allowance (owner spender : KeyValue) (evm : EVM.State) :
+    erc20Config.storage.read
+        { base := "allowance", steps := [.mindex owner, .mindex spender] }
+        ERC20.uint256Storage evm =
+      .ok (storageLocLoad evm
+        (ERC20.erc20Uint256Loc (ERC20.erc20AllowanceSlot owner spender))) := by
+  change (solidityStorageBackend _).read _ (.elem (.int ERC20.uint256Int)) evm = _
+  apply solidityStorageBackend_read_elem
+  rfl
+
+theorem erc20Config_write_totalSupply {evm evm' : EVM.State} {n : Int}
+    (hstore : storageLocStore evm (ERC20.erc20Uint256Loc ⟨2⟩) (.int n) = some evm') :
+    erc20Config.storage.write { base := "totalSupply", steps := [] }
+        ERC20.uint256Storage (.int n) evm = .ok evm' := by
+  change (solidityStorageBackend _).write _ (.elem (.int ERC20.uint256Int)) (.int n) evm = _
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+theorem erc20Config_write_balanceOf {evm evm' : EVM.State} (owner : KeyValue) {n : Int}
+    (hstore : storageLocStore evm
+      (ERC20.erc20Uint256Loc (ERC20.erc20BalanceOfSlot owner)) (.int n) = some evm') :
+    erc20Config.storage.write { base := "balanceOf", steps := [.mindex owner] }
+        ERC20.uint256Storage (.int n) evm = .ok evm' := by
+  change (solidityStorageBackend _).write _ (.elem (.int ERC20.uint256Int)) (.int n) evm = _
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore
+
+theorem erc20Config_write_allowance {evm evm' : EVM.State} (owner spender : KeyValue) {n : Int}
+    (hstore : storageLocStore evm
+      (ERC20.erc20Uint256Loc (ERC20.erc20AllowanceSlot owner spender)) (.int n) = some evm') :
+    erc20Config.storage.write
+        { base := "allowance", steps := [.mindex owner, .mindex spender] }
+        ERC20.uint256Storage (.int n) evm = .ok evm' := by
+  change (solidityStorageBackend _).write _ (.elem (.int ERC20.uint256Int)) (.int n) evm = _
+  apply solidityStorageBackend_write_elem
+  · rfl
+  · exact hstore

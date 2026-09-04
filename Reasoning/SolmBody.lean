@@ -767,13 +767,12 @@ theorem store_get_ne5 (L : Solm.Store) {k1 k2 k3 k4 k5 a : Ident}
     (k := k5) (a := a) v5 h5]
   exact store_get_ne4 L v1 v2 v3 v4 h1 h2 h3 h4
 
-/-! ## Storage-access collapse (post storage-pointer refactor)
+/-! ## Storage-operation collapse
 
-After native storage pointers, `evalExpr? (.storage …)` and `assignStorageRef? .storage` route
-through `resolveStorageRef?` (a `locals` pointer-check + `storageTypeAt?`) and then
-`readStorage?`/`writeStorage?`.  For the common case — a base that is **not** a storage pointer and a
-**scalar** (`.elem`) type — these collapse the new wrappers back to the plain
-`storageLocLoad`/`storageLocStore`, so storage proofs are a single `rw` longer than before. -/
+`evalExpr? (.storage …)` and `assignStorageRef? .storage` resolve a typed reference and then invoke
+the configured backend.  The lemmas below deliberately assume equations about `StorageBackend.read`
+and `StorageBackend.write`: `locate?` is only a proof/debug oracle and carries no generic law tying a
+physical location to backend behavior. -/
 
 /-- `resolveStorageRef?` for a base that is not a local storage pointer: just `evalStorageRef`
     paired with the declared type from `storageTypeAt?`. -/
@@ -786,12 +785,17 @@ theorem resolveStorageRef?_ok {cfg : Config} {solm : Frame} {evm : EVM.State} {s
   unfold resolveStorageRef?
   simp only [hbase, her, hty, EvalResult.ofOption, bind, EvalResult.bind, pure]
 
-/-- `readStorage?` at a scalar type is exactly the single-slot `storageLocLoad`. -/
-theorem readStorage?_elem {cfg : Config} {evm : EVM.State} {er : EvaledStorageRef}
-    {t : ABI.ElemType} {loc : StorageLoc} (hloc : cfg.storage.layout er = fun _ => some loc) :
-    readStorage? cfg evm er (.elem t) = .ok (storageLocLoad evm loc) := by
-  rw [readStorage?]
-  simp only [hloc]
+/-- A resolved storage read reduces to the corresponding backend operation. -/
+theorem evalExpr_storage_of_read {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {slot : StorageRef} {er : EvaledStorageRef} {ty : StorageType} {value : Value}
+    (hbase : solm.locals.get? slot.base = none)
+    (her : evalStorageRef cfg solm evm slot = .ok er)
+    (hty : storageTypeAt? solm.contract.storage er = some ty)
+    (hread : cfg.storage.read er ty evm = .ok value) :
+    evalExpr? cfg solm evm (.storage slot) = .ok value := by
+  rw [evalExpr?]
+  simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind]
+  exact hread
 
 /-- A scalar storage read collapses to a single `storageLocLoad`. -/
 theorem evalExpr_storage_scalar {cfg : Config} {solm : Frame} {evm : EVM.State} {slot : StorageRef}
@@ -799,11 +803,9 @@ theorem evalExpr_storage_scalar {cfg : Config} {solm : Frame} {evm : EVM.State} 
     (hbase : solm.locals.get? slot.base = none)
     (her : evalStorageRef cfg solm evm slot = .ok er)
     (hty : storageTypeAt? solm.contract.storage er = some (.elem t))
-    (hloc : cfg.storage.layout er = fun _ => some loc) :
+    (hread : cfg.storage.read er (.elem t) evm = .ok (storageLocLoad evm loc)) :
     evalExpr? cfg solm evm (.storage slot) = .ok (storageLocLoad evm loc) := by
-  rw [evalExpr?]
-  simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind]
-  exact backendReadStorage?_elem (congrFun hloc evm)
+  exact evalExpr_storage_of_read hbase her hty hread
 
 /-- A scalar storage read with an already-normalized `storageLocLoad` value. -/
 theorem evalExpr_storage_scalar_value {cfg : Config} {solm : Frame} {evm : EVM.State}
@@ -812,36 +814,43 @@ theorem evalExpr_storage_scalar_value {cfg : Config} {solm : Frame} {evm : EVM.S
     (hbase : solm.locals.get? slot.base = none)
     (her : evalStorageRef cfg solm evm slot = .ok er)
     (hty : storageTypeAt? solm.contract.storage er = some (.elem t))
-    (hloc : cfg.storage.layout er = fun _ => some loc)
+    (hread : cfg.storage.read er (.elem t) evm = .ok (storageLocLoad evm loc))
     (hload : storageLocLoad evm loc = value) :
     evalExpr? cfg solm evm (.storage slot) = .ok value := by
-  rw [evalExpr_storage_scalar hbase her hty hloc]
+  rw [evalExpr_storage_scalar hbase her hty hread]
   exact congrArg EvalResult.ok hload
 
-/-- A scalar storage write collapses to a single `storageLocStore`. -/
-theorem assignStorageRef_storage_scalar_value {cfg : Config} {solm : Frame} {evm evm' : EVM.State}
-    {slot : StorageRef} {er : EvaledStorageRef} {ty : StorageType} {loc : StorageLoc} {value : Value}
+/-- A resolved storage write reduces to the corresponding backend operation. -/
+theorem assignStorageRef_storage_of_write {cfg : Config} {solm : Frame} {evm evm' : EVM.State}
+    {slot : StorageRef} {er : EvaledStorageRef} {ty : StorageType} {value : Value}
     (hbase : solm.locals.get? slot.base = none)
     (her : evalStorageRef cfg solm evm slot = .ok er)
     (hty : storageTypeAt? solm.contract.storage er = some ty)
-    (hloc : cfg.storage.layout er = fun _ => some loc)
-    (hscalar : match value with | .struct _ _ | .array _ | .bytes _ => False | _ => True)
-    (hstore : storageLocStore evm loc value = some evm') :
+    (hwrite : cfg.storage.write er ty value evm = .ok evm') :
     assignStorageRef? cfg solm evm .storage slot value = .ok (solm, evm') := by
   rw [assignStorageRef?]
   simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind]
-  rw [backendWriteStorage?_scalar (congrFun hloc evm) hscalar hstore]
+  rw [hwrite]
   rfl
 
-/-- A scalar integer storage write collapses to a single `storageLocStore`. -/
-theorem assignStorageRef_storage_scalar {cfg : Config} {solm : Frame} {evm evm' : EVM.State}
-    {slot : StorageRef} {er : EvaledStorageRef} {ty : StorageType} {loc : StorageLoc} {n : Int}
+/-- Scalar-valued specialization of `assignStorageRef_storage_of_write`. -/
+theorem assignStorageRef_storage_scalar_value {cfg : Config} {solm : Frame} {evm evm' : EVM.State}
+    {slot : StorageRef} {er : EvaledStorageRef} {ty : StorageType} {value : Value}
     (hbase : solm.locals.get? slot.base = none)
     (her : evalStorageRef cfg solm evm slot = .ok er)
     (hty : storageTypeAt? solm.contract.storage er = some ty)
-    (hloc : cfg.storage.layout er = fun _ => some loc)
-    (hstore : storageLocStore evm loc (.int n) = some evm') :
+    (hwrite : cfg.storage.write er ty value evm = .ok evm') :
+    assignStorageRef? cfg solm evm .storage slot value = .ok (solm, evm') :=
+  assignStorageRef_storage_of_write hbase her hty hwrite
+
+/-- A scalar integer storage write collapses to a single `storageLocStore`. -/
+theorem assignStorageRef_storage_scalar {cfg : Config} {solm : Frame} {evm evm' : EVM.State}
+    {slot : StorageRef} {er : EvaledStorageRef} {ty : StorageType} {n : Int}
+    (hbase : solm.locals.get? slot.base = none)
+    (her : evalStorageRef cfg solm evm slot = .ok er)
+    (hty : storageTypeAt? solm.contract.storage er = some ty)
+    (hwrite : cfg.storage.write er ty (.int n) evm = .ok evm') :
     assignStorageRef? cfg solm evm .storage slot (.int n) = .ok (solm, evm') := by
-  exact assignStorageRef_storage_scalar_value hbase her hty hloc (by trivial) hstore
+  exact assignStorageRef_storage_scalar_value hbase her hty hwrite
 
 end Reasoning.Theory

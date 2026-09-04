@@ -240,7 +240,7 @@ theorem evalExpr_transfer_sender_balance (evm : EVM.State) (I : ExecutionEnv) :
     (her := evalStorageRef_transfer_sender_balance evm I)
     (hty := by simp [storageTypeAt?, transferSenderEvaledRef, erc20Contract, erc20StorageDecls,
        uint256Storage, storageTypeStep?])
-    (hloc := erc20Config_storage_balanceOf (.address evm.executionEnv.source))]
+    (hread := erc20Config_read_balanceOf (.address evm.executionEnv.source) evm)]
   simp [transferSenderEvaledRef, transferSenderSlot, transferFromBalanceWord,
     erc20StorageLocLoad_uint256]
 
@@ -322,14 +322,14 @@ theorem transferAssignSender (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := erc20Contract, locals := transferStoreFromBalance evm I },
           transferAfterDebitState evm I) := by
   simp only [balanceOfRef]
-  apply assignStorageRef_storage_scalar (ty := uint256Storage)
+  exact assignStorageRef_storage_scalar (ty := uint256Storage)
       (hbase := by simp [transferStoreFromBalance, balanceOfRef])
       (her := evalStorageRef_transfer_sender_balance_fromBalance evm I)
       (hty := by simp [storageTypeAt?, transferSenderEvaledRef, erc20Contract, erc20StorageDecls,
          uint256Storage, storageTypeStep?])
-      (hloc := erc20Config_storage_balanceOf (.address evm.executionEnv.source))
-  rw [erc20StorageLocStore_uint256]
-  simp [transferAfterDebitState, transferSenderSlot]
+      (hwrite := erc20Config_write_balanceOf (.address evm.executionEnv.source) (by
+        rw [erc20StorageLocStore_uint256]
+        simp [transferAfterDebitState, transferSenderSlot]))
 
 theorem evalExpr_transfer_to_balance (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? erc20Config
@@ -341,8 +341,9 @@ theorem evalExpr_transfer_to_balance (evm : EVM.State) (I : ExecutionEnv) :
     (her := evalStorageRef_transfer_to_balance_fromBalance evm (transferAfterDebitState evm I) I)
     (hty := by simp [storageTypeAt?, transferToEvaledRef, erc20Contract, erc20StorageDecls,
        uint256Storage, storageTypeStep?])
-    (hloc := erc20Config_storage_balanceOf
-      (.address (AccountAddress.ofNat (transferToWord I).toNat)))]
+    (hread := erc20Config_read_balanceOf
+      (.address (AccountAddress.ofNat (transferToWord I).toNat))
+      (transferAfterDebitState evm I))]
   simp [transferToEvaledRef, transferToSlot, transferToBalanceWord,
     erc20StorageLocLoad_uint256, transferAfterDebit_codeOwner]
 
@@ -399,16 +400,16 @@ theorem transferAssignTo (evm : EVM.State) (I : ExecutionEnv)
         .ok ({ contract := erc20Contract, locals := transferStoreNewToBalance evm I },
           transferPostState evm I) := by
   simp only [balanceOfRef]
-  apply assignStorageRef_storage_scalar (ty := uint256Storage)
+  exact assignStorageRef_storage_scalar (ty := uint256Storage)
       (hbase := by simp [transferStoreNewToBalance, balanceOfRef])
       (her := evalStorageRef_transfer_to_balance_newToBalance evm (transferAfterDebitState evm I) I)
       (hty := by simp [storageTypeAt?, transferToEvaledRef, erc20Contract, erc20StorageDecls,
          uint256Storage, storageTypeStep?])
-      (hloc := erc20Config_storage_balanceOf
-        (.address (AccountAddress.ofNat (transferToWord I).toNat)))
-  rw [← transferNewToWord_toNat evm I hfit]
-  rw [erc20StorageLocStore_uint256]
-  simp [transferPostState, transferToSlot, transferAfterDebit_codeOwner]
+      (hwrite := erc20Config_write_balanceOf
+        (.address (AccountAddress.ofNat (transferToWord I).toNat)) (by
+          rw [← transferNewToWord_toNat evm I hfit]
+          rw [erc20StorageLocStore_uint256]
+          simp [transferPostState, transferToSlot, transferAfterDebit_codeOwner]))
 
 theorem erc20TransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

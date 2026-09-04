@@ -15,17 +15,17 @@ Solidity's short/long representation from `Solm.SolidityLayout`.
 namespace Solm
 open ABI
 
-private def solidityNatResultToEval : StorageReadResult Nat -> EvalResult Nat
+def solidityNatResultToEval : StorageReadResult Nat -> EvalResult Nat
   | .ok n => .ok n
   | .revert => .revert
   | .error => .error .storageError
 
-private def solidityStateResultToEval : StorageReadResult EVM.State -> EvalResult EVM.State
+def solidityStateResultToEval : StorageReadResult EVM.State -> EvalResult EVM.State
   | .ok evm => .ok evm
   | .revert => .revert
   | .error => .error .storageError
 
-private def solidityValueResultToEval : StorageReadResult Value -> EvalResult Value
+def solidityValueResultToEval : StorageReadResult Value -> EvalResult Value
   | .ok value => .ok value
   | .revert => .revert
   | .error => .error .storageError
@@ -299,5 +299,13 @@ def solidityStorageBackend (layout : StorageLayout) : StorageBackend :=
   simp only [solidityStorageBackend, solidityReadStorage?]
   rw [hloc]
   rfl
+
+@[simp] theorem solidityStorageBackend_write_elem (layout : StorageLayout)
+    (er : EvaledStorageRef) (ty : ElemType) (value : Value) (evm evm' : EVM.State)
+    (loc : StorageLoc) (hloc : layout er evm = some loc)
+    (hstore : storageLocStore evm loc value = some evm') :
+    (solidityStorageBackend layout).write er (.elem ty) value evm = .ok evm' := by
+  simp [solidityStorageBackend, solidityWriteStorage?, hloc, hstore,
+    EvalResult.ofOption, EvalResult.bind, bind]
 
 end Solm
