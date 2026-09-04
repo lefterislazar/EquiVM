@@ -87,7 +87,7 @@ def resumeAfterInternalCall (caller : Frame) (retVar : Ident) (value : Option (L
 def pushArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
     (value : Option Value) : EvalResult EVM.State := do
   let (er, ty) <- resolveStorageRef? cfg solm evm ref
-  backendPushStorage? cfg evm er ty value
+  cfg.storage.push er ty value evm
 
 /-- `arr.pop()`: delegate removal to the configured storage backend. A Solidity backend reverts
     for an empty array; other source-language backends may choose their own representation while
@@ -95,13 +95,13 @@ def pushArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef
 def popArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
     : EvalResult EVM.State := do
   let (er, ty) <- resolveStorageRef? cfg solm evm ref
-  backendPopStorage? cfg evm er ty
+  cfg.storage.pop er ty evm
 
 /-- `delete x`: resolve the reference and let the configured backend perform the whole clear. -/
 def deleteStorage? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
     : EvalResult EVM.State := do
   let (er, ty) <- resolveStorageRef? cfg solm evm ref
-  backendClearStorage? cfg evm er ty
+  cfg.storage.clear er ty evm
 
 /-- Evaluate a `new`'s optional salt: `none` ⇒ CREATE; `some e` must be a `bytes32` ⇒ CREATE2. -/
 def evalSalt? (cfg : Config) (solm : Frame) (evm : EVM.State) :

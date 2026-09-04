@@ -5,10 +5,10 @@ import Solm.Semantics.StorageOps
 /-!
 # Compile-time Solidity storage generation
 
-The elaborators below evaluate the closed storage declarations while elaborating the spec.  They
-validate supported types and precompute every top-level slot/offset, emitting a direct match on the
-storage variable name. Nested paths retain only the arithmetic that necessarily depends on runtime
-mapping keys, array indices, or the current short/long bytes representation.
+`solidityLayout!` evaluates a closed storage schema while elaborating and emits one self-contained
+locator function. The generated function contains only matching on the evaluated reference and the
+slot arithmetic required by that reference; it does not rebuild `StorageNode`s, traverse the
+declaration list, or run another layout-generation function at runtime.
 -/
 
 namespace Solm
@@ -19,9 +19,24 @@ namespace MetaSolidityLayout
 
 private structure BaseAllocation where
   name : Ident
+  ty : StorageType
   slot : Nat
   offset : Nat
-  size : Nat
+
+private inductive StepPattern where
+  | field : Ident -> StepPattern
+  | tupleElem : Nat -> StepPattern
+  | mindex : Name -> StepPattern
+  | aindex : Name -> StepPattern
+  | length : StepPattern
+
+private structure GeneratedCase where
+  steps : List StepPattern
+  body : Term
+
+private structure GeneratedLoc where
+  slot : Term
+  offset : Term
 
 private def supportedKeyType : ElemType -> Bool
   | .bool | .address | .int _ | .bytes _ => true
@@ -62,7 +77,7 @@ private def allocateBases (structs : List StructDecl) :
                       else startSlot + words
       let nextOffset := if packable && endOffset < 32 then endOffset else 0
       let tail <- allocateBases structs rest nextSlot nextOffset
-      pure ({ name := decl.name, slot := startSlot, offset := startOffset, size := size } :: tail)
+      pure ({ name := decl.name, ty := decl.ty, slot := startSlot, offset := startOffset } :: tail)
 
 private unsafe def evalClosedTerm (alpha : Type) (typeStx valueStx : Term) : TermElabM alpha := do
   let type <- elabType typeStx
@@ -72,31 +87,244 @@ private unsafe def evalClosedTerm (alpha : Type) (typeStx valueStx : Term) : Ter
 private def natTerm (n : Nat) : Term := Syntax.mkNumLit (toString n)
 private def stringTerm (s : String) : Term := Syntax.mkStrLit s
 
-private def allocationTerm (a : BaseAllocation) : TermElabM Term :=
-  `(term|
-    ({ slot := Ethereum.UInt256.ofNat $(natTerm a.slot)
-       offset := (Fin.ofNat 32 $(natTerm a.offset))
-       size := $(natTerm a.size)
-       bitOffset := none } : IntermediateStorageLoc))
+private def finTerm (bound value : Nat) : TermElabM Term :=
+  `(term| Fin.ofNat $(natTerm bound) $(natTerm value))
 
-private def generatedRawLayout
-    (structsStx declsStx : Term)
-    (allocations : List BaseAllocation) : TermElabM Term := do
-  let refName := mkIdent (← mkFreshUserName `ref)
-  let evmName := mkIdent (← mkFreshUserName `evm)
-  let mut alts : Array (TSyntax ``Lean.Parser.Term.matchAlt) := #[]
-  for a in allocations do
-    let loc <- allocationTerm a
-    let name := stringTerm a.name
-    let body <- `(term|
-      match (($declsStx).find? (fun decl : StorageDecl => decl.name == $name)) with
-      | some decl => followSolidityType $structsStx $evmName $loc ($refName).steps decl.ty
-      | none => none)
-    alts := alts.push (← `(Lean.Parser.Term.matchAltExpr| | $name => $body))
-  alts := alts.push (← `(Lean.Parser.Term.matchAltExpr| | _ => none))
-  let body <- `(term| match ($refName).base with $alts:matchAlt*)
+private def elemTypeTerm : ElemType -> TermElabM Term
+  | .bool => `(term| ABI.ElemType.bool)
+  | .address => `(term| ABI.ElemType.address)
+  | .int (.uint width) =>
+      `(term| ABI.ElemType.int (.uint ⟨$(natTerm width.val), by decide⟩))
+  | .int (.sint width) =>
+      `(term| ABI.ElemType.int (.sint ⟨$(natTerm width.val), by decide⟩))
+  | .bytes width =>
+      `(term| ABI.ElemType.bytes ⟨$(natTerm width.val), by decide⟩)
+  | .fixed _ => throwError "fixed-point storage is not supported by solidityLayout!"
+  | .function => throwError "function storage is not supported by solidityLayout!"
+
+private def slotPlusNat (slot : Term) (amount : Nat) : TermElabM Term :=
+  if amount = 0 then
+    pure slot
+  else
+    `(term| $slot + Ethereum.UInt256.ofNat $(natTerm amount))
+
+private def storageLocBody (loc : GeneratedLoc) (size : Nat) (elem : ElemType) :
+    TermElabM Term := do
+  let elemStx <- elemTypeTerm elem
+  let sizeStx := natTerm size
   `(term|
-    ((fun $refName:ident $evmName:ident => $body) :
+    some
+      ({ slot := $(loc.slot)
+         offset := $(loc.offset)
+         size := $sizeStx
+         bitOffset := none
+         type := $elemStx
+         hbound := by simp only [Fin.val_ofNat] <;> omega } : StorageLoc))
+
+private def uint256LengthLocBody (slot : Term) : TermElabM Term :=
+  `(term|
+    some
+      ({ slot := $slot
+         offset := 0
+         size := 32
+         bitOffset := none
+         type := .int (.uint ⟨256, by decide⟩)
+         hbound := by decide } : StorageLoc))
+
+private def wrapLet (name : Name) (value : Term) (body : Term) : TermElabM Term := do
+  let ident := mkIdent name
+  `(term| let $ident:ident := $value; $body)
+
+private def wrapCasesLet (cases : List GeneratedCase) (name : Name) (value : Term) :
+    TermElabM (List GeneratedCase) :=
+  cases.mapM fun generated => do
+    let body <- wrapLet name value generated.body
+    pure { generated with body := body }
+
+private def declarationsOfFields (fields : List (Ident × StorageType)) : List StorageDecl :=
+  fields.map fun field => { name := field.1, ty := field.2 }
+
+private partial def generateCases (structs : List StructDecl) (evmName : Name)
+    (ty : StorageType) (loc : GeneratedLoc) (path : List StepPattern) :
+    TermElabM (List GeneratedCase) := do
+  match ty with
+  | .elem elem =>
+      let size := (elemTypeSoliditySize elem).val
+      let body <- storageLocBody loc size elem
+      pure [{ steps := path, body := body }]
+  | .contract _ =>
+      let body <- storageLocBody loc 20 .address
+      pure [{ steps := path, body := body }]
+  | .mapping key value =>
+      unless supportedKeyType key do
+        throwError "unsupported Solidity mapping key type"
+      let indexName <- mkFreshUserName `key
+      let slotName <- mkFreshUserName `mappedSlot
+      let index := mkIdent indexName
+      let mappedSlot := mkIdent slotName
+      let slotValue <- `(term|
+        Ethereum.uInt256OfByteArray
+          (ffi.KEC ((keyValueToWord $index).toByteArray ++ ($(loc.slot)).toByteArray)))
+      let zero <- finTerm 32 0
+      let cases <- generateCases structs evmName value
+        { slot := mappedSlot, offset := zero } (path ++ [.mindex indexName])
+      wrapCasesLet cases slotName slotValue
+  | .array elem _ =>
+      let elemSize <-
+        match typeSize? structs elem with
+        | some size => pure size
+        | none => throwError "unsupported Solidity fixed-array element type"
+      if elemSize = 0 then
+        throwError "zero-sized Solidity fixed-array element"
+      let indexName <- mkFreshUserName `index
+      let indexNatName <- mkFreshUserName `indexNat
+      let elementSlotName <- mkFreshUserName `elementSlot
+      let index := mkIdent indexName
+      let indexNat := mkIdent indexNatName
+      let elementSlot := mkIdent elementSlotName
+      let indexNatValue <- `(term| (keyValueToWord $index).toNat)
+      let (slotValue, offset) <-
+        if elemSize <= 32 then
+          let elemsPerWord := 32 / elemSize
+          if elemsPerWord = 0 then
+            throwError "invalid packed Solidity fixed-array element size"
+          let slotValue <- `(term|
+            $(loc.slot) + Ethereum.UInt256.ofNat
+              ($indexNat / $(natTerm elemsPerWord)))
+          let offset <- `(term|
+            Fin.ofNat 32 (($indexNat % $(natTerm elemsPerWord)) * $(natTerm elemSize)))
+          pure (slotValue, offset)
+        else
+          let wordsPerElem := (elemSize + 31) / 32
+          let slotValue <- `(term|
+            $(loc.slot) + Ethereum.UInt256.ofNat
+              ($indexNat * $(natTerm wordsPerElem)))
+          let offset <- finTerm 32 0
+          pure (slotValue, offset)
+      let cases <- generateCases structs evmName elem
+        { slot := elementSlot, offset := offset } (path ++ [.aindex indexName])
+      let cases <- wrapCasesLet cases elementSlotName slotValue
+      wrapCasesLet cases indexNatName indexNatValue
+  | .dynamicArray elem =>
+      let lengthBody <- uint256LengthLocBody loc.slot
+      let lengthCase : GeneratedCase := { steps := path ++ [.length], body := lengthBody }
+      let elemSize <-
+        match typeSize? structs elem with
+        | some size => pure size
+        | none => throwError "unsupported Solidity dynamic-array element type"
+      if elemSize = 0 then
+        throwError "zero-sized Solidity dynamic-array element"
+      let indexName <- mkFreshUserName `index
+      let indexNatName <- mkFreshUserName `indexNat
+      let dataBaseName <- mkFreshUserName `dataBase
+      let elementSlotName <- mkFreshUserName `elementSlot
+      let index := mkIdent indexName
+      let indexNat := mkIdent indexNatName
+      let dataBase := mkIdent dataBaseName
+      let elementSlot := mkIdent elementSlotName
+      let indexNatValue <- `(term| (keyValueToWord $index).toNat)
+      let dataBaseValue <- `(term|
+        Ethereum.uInt256OfByteArray (ffi.KEC ($(loc.slot)).toByteArray))
+      let (slotValue, offset) <-
+        if elemSize <= 32 then
+          let elemsPerWord := 32 / elemSize
+          if elemsPerWord = 0 then
+            throwError "invalid packed Solidity dynamic-array element size"
+          let slotValue <- `(term|
+            $dataBase + Ethereum.UInt256.ofNat
+              ($indexNat / $(natTerm elemsPerWord)))
+          let offset <- `(term|
+            Fin.ofNat 32 (($indexNat % $(natTerm elemsPerWord)) * $(natTerm elemSize)))
+          pure (slotValue, offset)
+        else
+          let wordsPerElem := (elemSize + 31) / 32
+          let slotValue <- `(term|
+            $dataBase + Ethereum.UInt256.ofNat
+              ($indexNat * $(natTerm wordsPerElem)))
+          let offset <- finTerm 32 0
+          pure (slotValue, offset)
+      let elementCases <- generateCases structs evmName elem
+        { slot := elementSlot, offset := offset } (path ++ [.aindex indexName])
+      let elementCases <- wrapCasesLet elementCases elementSlotName slotValue
+      let elementCases <- wrapCasesLet elementCases dataBaseName dataBaseValue
+      let elementCases <- wrapCasesLet elementCases indexNatName indexNatValue
+      pure (lengthCase :: elementCases)
+  | .bytes | .string =>
+      let evm := mkIdent evmName
+      let lengthBody <- `(term| some (bytesLikeLengthLoc $(loc.slot) $evm))
+      let lengthCase : GeneratedCase := { steps := path ++ [.length], body := lengthBody }
+      let indexName <- mkFreshUserName `index
+      let indexNatName <- mkFreshUserName `indexNat
+      let index := mkIdent indexName
+      let indexNat := mkIdent indexNatName
+      let indexNatValue <- `(term| (keyValueToWord $index).toNat)
+      let packedOffset <- `(term| Fin.ofNat 32 (31 - $indexNat))
+      let packedBody <- storageLocBody
+        { slot := loc.slot, offset := packedOffset } 1 (.int (.uint ⟨8, by decide⟩))
+      let longSlot <- `(term|
+        Ethereum.uInt256OfByteArray (ffi.KEC ($(loc.slot)).toByteArray) +
+          Ethereum.UInt256.ofNat ($indexNat / 32))
+      let longOffset <- `(term| Fin.ofNat 32 (31 - $indexNat % 32))
+      let longBody <- storageLocBody
+        { slot := longSlot, offset := longOffset } 1 (.int (.uint ⟨8, by decide⟩))
+      let indexedBody <- `(term|
+        let $(mkIdent indexNatName):ident := $indexNatValue
+        if checkBytesPacked $(loc.slot) $evm then
+          if $indexNat < 31 then $packedBody else none
+        else
+          $longBody)
+      pure
+        [ lengthCase,
+          { steps := path ++ [.aindex indexName], body := indexedBody } ]
+  | .struct _ fields =>
+      let some allocations := allocateBases structs (declarationsOfFields fields) 0 0
+        | throwError "unsupported Solidity struct field"
+      let mut cases := []
+      for allocation in allocations do
+        let fieldSlot <- slotPlusNat loc.slot allocation.slot
+        let fieldOffset <- finTerm 32 allocation.offset
+        let generated <- generateCases structs evmName allocation.ty
+          { slot := fieldSlot, offset := fieldOffset }
+          (path ++ [.field allocation.name])
+        cases := cases ++ generated
+      pure cases
+  | .tuple _ =>
+      throwError "tuple storage is not supported by Solidity"
+
+private def stepPatternTerm : StepPattern -> TermElabM Term
+  | .field name => `(term| .field $(stringTerm name))
+  | .tupleElem index => `(term| .tupleElem $(natTerm index))
+  | .mindex name => `(term| .mindex $(mkIdent name))
+  | .aindex name => `(term| .aindex $(mkIdent name))
+  | .length => `(term| .length)
+
+private def stepsPatternTerm : List StepPattern -> TermElabM Term
+  | [] => `(term| [])
+  | step :: rest => do
+      let head <- stepPatternTerm step
+      let tail <- stepsPatternTerm rest
+      `(term| $head :: $tail)
+
+private def generatedRawLayout (structs : List StructDecl)
+    (allocations : List BaseAllocation) : TermElabM Term := do
+  let refName <- mkFreshUserName `ref
+  let evmName <- mkFreshUserName `evm
+  let ref := mkIdent refName
+  let evm := mkIdent evmName
+  let mut alts : Array (TSyntax ``Lean.Parser.Term.matchAlt) := #[]
+  for allocation in allocations do
+    let slot <- `(term| Ethereum.UInt256.ofNat $(natTerm allocation.slot))
+    let offset <- finTerm 32 allocation.offset
+    let generated <- generateCases structs evmName allocation.ty { slot := slot, offset := offset } []
+    for generatedCase in generated do
+      let name := stringTerm allocation.name
+      let steps <- stepsPatternTerm generatedCase.steps
+      let body := generatedCase.body
+      alts := alts.push (← `(Lean.Parser.Term.matchAltExpr| | $name, $steps => $body))
+  alts := alts.push (← `(Lean.Parser.Term.matchAltExpr| | _, _ => none))
+  let body <- `(term| match ($ref).base, ($ref).steps with $alts:matchAlt*)
+  `(term|
+    ((fun $ref:ident $evm:ident => $body) :
       EvaledStorageRef -> EVM.State -> Option StorageLoc))
 
 private def elaborateLayout (structsStx declsStx : Term) : TermElabM Term := do
@@ -107,8 +335,7 @@ private def elaborateLayout (structsStx declsStx : Term) : TermElabM Term := do
     throwError "duplicate Solidity storage declaration name"
   let some allocations := allocateBases structs decls 0 0
     | throwError "unsupported Solidity persistent-storage type or invalid layout"
-  let raw <- generatedRawLayout structsStx declsStx allocations
-  `(term| solidityStorageLayout $raw)
+  generatedRawLayout structs allocations
 
 elab "solidityLayout! " "[" structs:term "]" "[" decls:term "]" : term => do
   let stx <- elaborateLayout structs decls

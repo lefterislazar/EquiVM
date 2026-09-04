@@ -24,6 +24,7 @@ def storageTypeAt? (decls : List StorageDecl) (er : EvaledStorageRef) : Option S
   let baseTy <- (decls.find? (fun d => d.name == er.base)).map (·.ty)
   er.steps.foldlM storageTypeStep? baseTy
 
+/-
 def storageNatResultToEval : StorageReadResult Nat -> EvalResult Nat
   | .ok n => .ok n
   | .revert => .revert
@@ -299,6 +300,7 @@ def readStorageArrayLength? (cfg : Config) (evm : EVM.State) (er : EvaledStorage
       pure (.int len)
   | _ => .error .typeError
 
+-/
 mutual
 def defaultValue? : StorageType -> EvalResult Value
   | .elem (.bool) => pure (.bool false)
@@ -337,6 +339,7 @@ def defaultValues? : List StorageType -> EvalResult (List Value)
   termination_by ts => (sizeOf ts, 0)
 end
 
+/-
 /-! ## Operation-owned storage backends
 
 The definitions above are the compatibility implementation for the historical slot layout.  New
@@ -626,5 +629,7 @@ private def backendArrayIndexInBoundsWith? (backend : StorageBackend) (evm : EVM
   match cfg.storageBackend? with
   | some backend => backendArrayIndexInBoundsWith? backend evm decls base pre i
   | none => arrayIndexInBounds? cfg evm decls base pre i
+
+-/
 
 end Solm

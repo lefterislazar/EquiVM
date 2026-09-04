@@ -59,6 +59,7 @@ structure StorageLoc where
   size    : Fin 33        -- size within that slot in bytes
   hbound  : offset.val + size.val - 1 < 32
                           -- proof that we are withing slot bounds
+  --TODO: do we need this now?
   bitOffset : Option (Fin 8) := .none -- offset within byte in bits; Needed for packed bytes
   type    : ElemType      -- A value to be loaded from storage must be a primitive
   deriving Repr
@@ -153,29 +154,7 @@ def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Opti
   let resUInt256 : Ethereum.UInt256 := ⟨Ethereum.fromBytes' resList, hresSize⟩
   EVM.storageStore self self.executionEnv.codeOwner loc.slot resUInt256
 
-structure StorageLayout where
-  layout : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  -- Optional high-level storage read hook. Keep ordinary scalar/structured storage on `layout`;
-  -- layouts that need representation-specific behavior can opt in at selected leaves.
-  readValue? : EvaledStorageRef -> StorageType -> EVM.State -> Option (StorageReadResult Value) :=
-    fun _ _ _ => none
-  -- Optional high-level storage write hook. Used for representation-sensitive leaves such as
-  -- Solidity `bytes`/`string`, where slot-level byte locations are not the ABI boundary.
-  writeValue? : EvaledStorageRef -> StorageType -> Value -> EVM.State ->
-      Option (StorageReadResult EVM.State) :=
-    fun _ _ _ _ => none
-  -- Optional high-level storage clear hook, for the same representation-sensitive leaves.
-  clearValue? : EvaledStorageRef -> StorageType -> EVM.State ->
-      Option (StorageReadResult EVM.State) :=
-    fun _ _ _ => none
-  -- Optional layout-owned read for whole `bytes`/`string` lengths. This is needed for layouts
-  -- such as Solidity's packed short/long representation, where reading the length can validate
-  -- and revert on malformed encodings rather than merely loading a configured location.
-  readBytesLength : EvaledStorageRef -> EVM.State -> Option (StorageReadResult Nat) :=
-    fun _ _ => none
-  -- Note: The above definition may need to also carry some assumptions if
-  -- we want have a type system on top of these semantics,
-  -- e.g. access within array bounds returns `.some v`
+abbrev StorageLayout := EvaledStorageRef -> EVM.State -> Option StorageLoc
 
 /-- Complete storage behavior used by the Solm semantics.  A backend owns representation-sensitive
     reads and mutations; `locate?` is optional proof/debug information and is never consulted by

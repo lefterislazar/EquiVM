@@ -247,14 +247,6 @@ def solidityClearValue?
   | .bytes | .string => some (solidityPrepareBytesWrite? layout er 0 evm)
   | _ => none
 
-def solidityStorageLayout
-    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc) : StorageLayout where
-  layout := layout
-  readValue? := solidityReadValue? layout
-  writeValue? := solidityWriteValue? layout
-  clearValue? := solidityClearValue? layout
-  readBytesLength := solidityReadBytesLength? layout
-
 mutual
 
 /-- Only elementary values and contract addresses participate in Solidity's cross-declaration
@@ -535,12 +527,15 @@ def genSolidityLayout (structs : List StructDecl) (decls : List StorageDecl) : O
     let (iloc, node') <- indirector evaledStorageRef.base
     followSteps evm iloc evaledStorageRef.steps node'
 
+/-
 def genSolidityStorageLayout (structs : List StructDecl) (decls : List StorageDecl) :
     Option StorageLayout := do
   let layout <- genSolidityLayout structs decls
   pure (solidityStorageLayout layout)
+  -/
 
 -- TODO Maybe move this, or make the file be for general solidity specific components
 def genSolidityConstructorDeployment (params : List Param) (pureInit : EVM.Bytes) (values : List Value) : Option EVM.Bytes := do
   let args ← ABI.encodeABIValues? (params.map Param.ty) values
   pureInit ++ args.toByteArray
+
