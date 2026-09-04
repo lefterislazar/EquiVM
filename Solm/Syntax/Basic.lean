@@ -22,8 +22,6 @@ inductive EvaledStorageRefStep where
   | tupleElem : Nat -> EvaledStorageRefStep
   | mindex : KeyValue -> EvaledStorageRefStep
   | aindex : KeyValue -> EvaledStorageRefStep
-  /- Accessor for the slot that holds the length of an array. -/
-  | length : EvaledStorageRefStep
   deriving Repr, Inhabited
 
 /- The evaluated path to a storage reference. -/

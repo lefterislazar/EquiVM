@@ -38,8 +38,8 @@ def readStorageBytesLength? (cfg : Config) (evm : EVM.State) (er : EvaledStorage
 
 /-- Bounds-check a single array index `i` against the array reached by the evaled prefix `pre`.
     Fixed arrays are checked against their declared static bound. Dynamic arrays are checked by
-    asking the layout for the distinct `.length` ref `layout {base, pre ++ [.length]}` and reading
-    the stored length. In both cases, an index outside `[0, length)` reverts, matching Solidity's
+    asking the layout for the bare aggregate ref `layout {base, pre}` and reading the stored
+    length. In both cases, an index outside `[0, length)` reverts, matching Solidity's
     `Panic(0x32)`.
 
     This is invoked from `evalStorageRefStep` as each `.aindex` is evaluated, so the check is
@@ -52,7 +52,7 @@ def readStorageBytesLength? (cfg : Config) (evm : EVM.State) (er : EvaledStorage
       if 0 ≤ iv ∧ iv < n then .ok () else .revert
   | some (.array _ _), _ => .error .typeError
   | some (.dynamicArray _), .int iv =>
-      match cfg.storage.layout { base := base, steps := pre ++ [.length] } evm with
+      match cfg.storage.layout { base := base, steps := pre } evm with
       | some lenLoc =>
           match storageLocLoad evm lenLoc with
           | .int len => if 0 ≤ iv ∧ iv < len then .ok () else .revert
@@ -97,7 +97,7 @@ def clearStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
   | .tuple ts => clearTupleElems? cfg evm er 0 ts
   | .array t' n => clearArrayElems? cfg evm er t' n
   | .dynamicArray t' =>
-      match cfg.storage.layout { er with steps := er.steps ++ [.length] } evm with
+      match cfg.storage.layout er evm with
       | some lenLoc =>
           match storageLocLoad evm lenLoc with
           | .int len =>
@@ -169,7 +169,7 @@ def writeStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
       let evm0 <- clearStorage? cfg evm er (.dynamicArray t')
       let evm1 <- writeArrayElems? cfg evm0 er t' 0 vs
       let lenLoc <- EvalResult.ofOption .storageError
-        (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
+        (cfg.storage.layout er evm)
       EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int vs.length))
   | .bytes, .bytes bs =>
       match cfg.storage.writeValue? er .bytes (.bytes bs) evm with
@@ -238,7 +238,7 @@ def readStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
       let vs <- readArrayElems? cfg evm er t' 0 n
       pure (.array vs)
   | .dynamicArray t' =>
-      match cfg.storage.layout { er with steps := er.steps ++ [.length] } evm with
+      match cfg.storage.layout er evm with
       | some lenLoc =>
           match storageLocLoad evm lenLoc with
           | .int len => do
@@ -289,7 +289,7 @@ def readStorageArrayLength? (cfg : Config) (evm : EVM.State) (er : EvaledStorage
   | .array _ n => pure (.int n)
   | .elem (.bytes n) => pure (.int (fixedBytesSize n))
   | .dynamicArray _ =>
-      match cfg.storage.layout { er with steps := er.steps ++ [.length] } evm with
+      match cfg.storage.layout er evm with
       | some lenLoc =>
           match storageLocLoad evm lenLoc with
           | .int n => pure (.int n)
@@ -360,7 +360,7 @@ def legacyPushStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef)
   match ty with
   | .dynamicArray elemTy => do
       let lenLoc <- EvalResult.ofOption .storageError
-        (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
+        (cfg.storage.layout er evm)
       match storageLocLoad evm lenLoc with
       | .int len => do
           let evmLen <- EvalResult.ofOption .storageError
@@ -389,7 +389,7 @@ def legacyPopStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef)
   match ty with
   | .dynamicArray elemTy => do
       let lenLoc <- EvalResult.ofOption .storageError
-        (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
+        (cfg.storage.layout er evm)
       match storageLocLoad evm lenLoc with
       | .int len =>
           if len ≤ 0 then .revert

@@ -1,14 +1,16 @@
 import Lean
 import Solm.SolidityLayout
-import Solm.Semantics.StorageOps
+import Solm.SolidityStorage
 
 /-!
 # Compile-time Solidity storage generation
 
 `solidityLayout!` evaluates a closed storage schema while elaborating and emits one self-contained
-locator function. The generated function contains only matching on the evaluated reference and the
-slot arithmetic required by that reference; it does not rebuild `StorageNode`s, traverse the
-declaration list, or run another layout-generation function at runtime.
+locator function. Bare dynamically-sized references locate their length/header anchor; `.length`
+itself is implemented by `StorageBackend.length` and is not a synthetic reference step. The
+generated function contains only matching on the evaluated reference and its slot arithmetic; it
+does not rebuild `StorageNode`s, traverse the declaration list, or run another layout-generation
+function at runtime.
 -/
 
 namespace Solm
@@ -28,7 +30,6 @@ private inductive StepPattern where
   | tupleElem : Nat -> StepPattern
   | mindex : Name -> StepPattern
   | aindex : Name -> StepPattern
-  | length : StepPattern
 
 private structure GeneratedCase where
   steps : List StepPattern
@@ -207,7 +208,7 @@ private partial def generateCases (structs : List StructDecl) (evmName : Name)
       wrapCasesLet cases indexNatName indexNatValue
   | .dynamicArray elem =>
       let lengthBody <- uint256LengthLocBody loc.slot
-      let lengthCase : GeneratedCase := { steps := path ++ [.length], body := lengthBody }
+      let anchorCase : GeneratedCase := { steps := path, body := lengthBody }
       let elemSize <-
         match typeSize? structs elem with
         | some size => pure size
@@ -248,11 +249,11 @@ private partial def generateCases (structs : List StructDecl) (evmName : Name)
       let elementCases <- wrapCasesLet elementCases elementSlotName slotValue
       let elementCases <- wrapCasesLet elementCases dataBaseName dataBaseValue
       let elementCases <- wrapCasesLet elementCases indexNatName indexNatValue
-      pure (lengthCase :: elementCases)
+      pure (anchorCase :: elementCases)
   | .bytes | .string =>
       let evm := mkIdent evmName
       let lengthBody <- `(term| some (bytesLikeLengthLoc $(loc.slot) $evm))
-      let lengthCase : GeneratedCase := { steps := path ++ [.length], body := lengthBody }
+      let anchorCase : GeneratedCase := { steps := path, body := lengthBody }
       let indexName <- mkFreshUserName `index
       let indexNatName <- mkFreshUserName `indexNat
       let index := mkIdent indexName
@@ -274,7 +275,7 @@ private partial def generateCases (structs : List StructDecl) (evmName : Name)
         else
           $longBody)
       pure
-        [ lengthCase,
+        [ anchorCase,
           { steps := path ++ [.aindex indexName], body := indexedBody } ]
   | .struct _ fields =>
       let some allocations := allocateBases structs (declarationsOfFields fields) 0 0
@@ -296,7 +297,6 @@ private def stepPatternTerm : StepPattern -> TermElabM Term
   | .tupleElem index => `(term| .tupleElem $(natTerm index))
   | .mindex name => `(term| .mindex $(mkIdent name))
   | .aindex name => `(term| .aindex $(mkIdent name))
-  | .length => `(term| .length)
 
 private def stepsPatternTerm : List StepPattern -> TermElabM Term
   | [] => `(term| [])
@@ -342,7 +342,7 @@ elab "solidityLayout! " "[" structs:term "]" "[" decls:term "]" : term => do
   elabTerm stx none
 
 macro "solidityStorage! " "[" structs:term "]" "[" decls:term "]" : term =>
-  `((solidityLayout! [$structs] [$decls]).toBackend)
+  `(solidityStorageBackend (solidityLayout! [$structs] [$decls]))
 
 end MetaSolidityLayout
 end Solm

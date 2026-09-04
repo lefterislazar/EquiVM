@@ -154,6 +154,10 @@ def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Opti
   let resUInt256 : Ethereum.UInt256 := ⟨Ethereum.fromBytes' resList, hresSize⟩
   EVM.storageStore self self.executionEnv.codeOwner loc.slot resUInt256
 
+/-- Physical locations used by a storage backend. Elementary references locate their value;
+    a bare dynamically-sized array, bytes, or string reference locates its representation header.
+    Semantic `.length` access remains a `StorageBackend.length` operation rather than a synthetic
+    reference step. -/
 abbrev StorageLayout := EvaledStorageRef -> EVM.State -> Option StorageLoc
 
 /-- Complete storage behavior used by the Solm semantics.  A backend owns representation-sensitive

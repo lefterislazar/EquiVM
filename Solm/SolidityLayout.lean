@@ -92,7 +92,7 @@ def solidityDecodeBytesLengthHeader (header : EVM.Word) : StorageReadResult Nat 
 def solidityBytesBaseSlotAndLength?
     (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
     (er : EvaledStorageRef) (evm : EVM.State) : StorageReadResult (EVM.Word × Nat) :=
-  match layout { er with steps := er.steps ++ [.length] } evm with
+  match layout er evm with
   | some lenLoc =>
       match solidityDecodeBytesLengthHeader (EVM.storageLoad evm evm.executionEnv.codeOwner lenLoc.slot) with
       | .ok len => .ok (lenLoc.slot, len)
@@ -103,7 +103,7 @@ def solidityBytesBaseSlotAndLength?
 def solidityReadBytesLength?
     (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
     (er : EvaledStorageRef) (evm : EVM.State) : Option (StorageReadResult Nat) := do
-  let lenLoc <- layout { er with steps := er.steps ++ [.length] } evm
+  let lenLoc <- layout er evm
   let header := EVM.storageLoad evm evm.executionEnv.codeOwner lenLoc.slot
   some (solidityDecodeBytesLengthHeader header)
 
@@ -491,7 +491,6 @@ def followSteps (evm : EVM.State) (loc : IntermediateStorageLoc) (steps : List E
     | .indexed indirector _ node' , .mindex v => do
       let iloc <- indirector loc.slot v evm
       followSteps evm iloc steps' node'
-    | .indexed _ (.some length) _ , .length => length loc.slot evm
     | .indexed indirector _ node' , .aindex v => do
       let iloc <- indirector loc.slot v evm
       followSteps evm iloc steps' node'
@@ -507,11 +506,13 @@ def followSteps (evm : EVM.State) (loc : IntermediateStorageLoc) (steps : List E
   | [] =>
     match node with
     | .atomic t => if h : loc.offset.val + loc.size - 1 < 32 then pure (interToLoc loc t h) else .none
+    | .indexed _ (some lengthLoc) _ => some (lengthLoc loc.slot evm)
     | _ => .none
 
 /-- Follow a path from an already allocated base using the Solidity schema carried by its
-    `StorageType`.  The metaprogrammed frontend precomputes base allocation and calls this helper
-    only for the selected declaration. -/
+    `StorageType`. A bare dynamically-sized node resolves to its length/header anchor. The
+    metaprogrammed frontend precomputes base allocation and calls this helper only for the selected
+    declaration. -/
 def followSolidityType (structs : List StructDecl) (evm : EVM.State)
     (loc : IntermediateStorageLoc) (steps : List EvaledStorageRefStep)
     (ty : StorageType) : Option StorageLoc := do
@@ -538,4 +539,3 @@ def genSolidityStorageLayout (structs : List StructDecl) (decls : List StorageDe
 def genSolidityConstructorDeployment (params : List Param) (pureInit : EVM.Bytes) (values : List Value) : Option EVM.Bytes := do
   let args ← ABI.encodeABIValues? (params.map Param.ty) values
   pureInit ++ args.toByteArray
-

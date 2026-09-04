@@ -98,6 +98,31 @@ mutual
     all_goals decreasing_tactic
 end
 
+private def backendArrayIndexInBoundsWith? (backend : StorageBackend) (evm : EVM.State)
+    (decls : List StorageDecl) (base : Ident) (pre : List EvaledStorageRefStep)
+    (i : KeyValue) : EvalResult Unit :=
+  match storageTypeAt? decls { base := base, steps := pre }, i with
+  | some (.array _ n), .int iv =>
+      if 0 ≤ iv ∧ iv < n then .ok () else .revert
+  | some (.array _ _), _ => .error .typeError
+  | some ty@(.dynamicArray _), .int iv
+  | some ty@(.bytes), .int iv
+  | some ty@(.string), .int iv =>
+      match backend.length { base := base, steps := pre } ty evm with
+      | .ok len => if 0 ≤ iv ∧ iv < len then .ok () else .revert
+      | .revert => .revert
+      | .error e => .error e
+  | some (.dynamicArray _), _ | some (.bytes), _ | some (.string), _ => .error .typeError
+  | some _, _ => .error .typeError
+  | none, _ => .error .storageError
+
+/-- Bounds checks use backend-owned lengths when a backend is configured. The legacy branch is
+    definitionally the historical checker so existing slot-layout proofs remain source-compatible. -/
+@[simp] def backendArrayIndexInBounds? (cfg : Config) (evm : EVM.State)
+    (decls : List StorageDecl) (base : Ident) (pre : List EvaledStorageRefStep)
+    (i : KeyValue) : EvalResult Unit :=
+  backendArrayIndexInBoundsWith? cfg.storage evm decls base pre i
+
 mutual
 
 def evalStorageRefStep (cfg : Config) (solm : Frame) (evm : EVM.State)
@@ -111,21 +136,17 @@ def evalStorageRefStep (cfg : Config) (solm : Frame) (evm : EVM.State)
   | .aindex expr => do
     let index <- evalExpr? cfg solm evm expr
     let indexKey <- EvalResult.ofOption .typeError (valueToKey? index)
-    -- check this index in bounds against the array reached by `pre`, *before* descending —
-    -- interleaved with index evaluation exactly as solc emits it
-    /-
-      TODO: the plan is to have the out of bounds happen
-      by the backend itself, not during the reference evaluation
+    -- Evaluating a reference only evaluates its index expression. Bounds are representation-
+    -- sensitive and are therefore checked by the backend operation that consumes the reference.
     let _ <- backendArrayIndexInBounds? cfg evm solm.contract.storage base pre indexKey
-    -/
     pure (.aindex indexKey)
   termination_by (slotStepEvalSize step, 0)
   decreasing_by
     all_goals simp [slotStepEvalSize]
     all_goals omega
 
-/-- Evaluate a list of storage-ref steps left to right, threading the evaled prefix so each
-    `.aindex` can be bounds-checked against the array reached so far (see `evalStorageRefStep`). -/
+/-- Evaluate a list of storage-ref steps left to right. The resulting path is purely structural;
+    representation-sensitive validation belongs to the storage backend. -/
 @[simp] def evalStorageRefSteps (cfg : Config) (solm : Frame) (evm : EVM.State)
     (base : Ident) (pre : List EvaledStorageRefStep) :
     List StorageRefStep -> EvalResult (List EvaledStorageRefStep)

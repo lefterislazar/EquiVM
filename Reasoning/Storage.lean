@@ -1689,7 +1689,7 @@ theorem solidityBytesBaseSlotAndLength?_ok_of_layout
     {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
     {er : EvaledStorageRef} {evm : EVM.State} {baseSlot header : UInt256} {len : Nat}
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
     (hdecode : solidityDecodeBytesLengthHeader header = .ok len) :
@@ -1703,7 +1703,7 @@ theorem solidityBytesBaseSlotAndLength?_revert_of_layout
     {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
     {er : EvaledStorageRef} {evm : EVM.State} {baseSlot header : UInt256}
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
     (hdecode : solidityDecodeBytesLengthHeader header = .revert) :
@@ -1718,7 +1718,7 @@ theorem clearSolidityStringShortZero
     {evm : EVM.State} {er : EvaledStorageRef} {baseSlot : UInt256}
     (hcfg : cfg.storage = solidityStorageLayout layout)
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = ⟨0⟩) :
     clearStorage? cfg evm er .string =
@@ -1737,7 +1737,7 @@ theorem clearSolidityStringShortPacked
     {evm : EVM.State} {er : EvaledStorageRef} {baseSlot header len : UInt256}
     (hcfg : cfg.storage = solidityStorageLayout layout)
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
     (hpacked : checkBytesPacked baseSlot evm = true)
@@ -1760,7 +1760,7 @@ theorem clearSolidityStringLongPrepared
     {evm : EVM.State} {er : EvaledStorageRef} {baseSlot header len : UInt256}
     (hcfg : cfg.storage = solidityStorageLayout layout)
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
     (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
@@ -1789,7 +1789,7 @@ theorem deleteSolidityStringShortZero
     (hbackend : cfg.storageBackend? = none)
     (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, .string))
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = ⟨0⟩) :
     deleteStorage? cfg solm evm ref =
@@ -1809,7 +1809,7 @@ theorem deleteSolidityStringShortPacked
     (hbackend : cfg.storageBackend? = none)
     (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, .string))
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
     (hpacked : checkBytesPacked baseSlot evm = true)
@@ -1834,7 +1834,7 @@ theorem deleteSolidityStringLongPrepared
     (hbackend : cfg.storageBackend? = none)
     (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, .string))
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
     (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
@@ -1858,7 +1858,7 @@ theorem writeSolidityStringShortPacked
     {value : ByteArray}
     (hcfg : cfg.storage = solidityStorageLayout layout)
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hvalueSize : value.size < 32)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
@@ -1882,7 +1882,7 @@ theorem writeSolidityStringShortFromLongPrepared
     {value : ByteArray}
     (hcfg : cfg.storage = solidityStorageLayout layout)
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hvalueSize : value.size < 32)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
@@ -1912,7 +1912,7 @@ theorem writeSolidityStringLongPacked
     {value : ByteArray}
     (hcfg : cfg.storage = solidityStorageLayout layout)
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hvalueSize : ¬ value.size < 32)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
@@ -1941,7 +1941,7 @@ theorem writeSolidityStringLongPackedAbsent
     {value : ByteArray}
     (hcfg : cfg.storage = solidityStorageLayout layout)
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hvalueSize : ¬ value.size < 32)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
@@ -1979,7 +1979,7 @@ theorem writeSolidityStringLongFromLongPrepared
     {value : ByteArray}
     (hcfg : cfg.storage = solidityStorageLayout layout)
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hvalueSize : ¬ value.size < 32)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
@@ -2015,7 +2015,7 @@ theorem writeSolidityStringMalformedLong
     {value : ByteArray}
     (hcfg : cfg.storage = solidityStorageLayout layout)
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
     (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
@@ -2035,7 +2035,7 @@ theorem writeSolidityStringMalformedShort
     {value : ByteArray}
     (hcfg : cfg.storage = solidityStorageLayout layout)
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
     (hflag : UInt256.land header ⟨1⟩ = ⟨0⟩)
@@ -2058,7 +2058,7 @@ theorem writeSolidityStringEmptyFromZero
     {evm : EVM.State} {er : EvaledStorageRef} {baseSlot : UInt256}
     (hcfg : cfg.storage = solidityStorageLayout layout)
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = ⟨0⟩) :
     writeStorage? cfg evm er .string (.bytes ByteArray.empty) =
@@ -2081,7 +2081,7 @@ theorem assignSolidityStringEmptyFromZero
     (hbackend : cfg.storageBackend? = none)
     (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, .string))
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = ⟨0⟩) :
     assignStorageRef? cfg solm evm .storage ref (.bytes ByteArray.empty) =
@@ -2099,7 +2099,7 @@ theorem readSolidityStringShortPackedExists
     {evm : EVM.State} {er : EvaledStorageRef} {baseSlot header len : UInt256}
     (hcfg : cfg.storage = solidityStorageLayout layout)
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
     (hflag : UInt256.land header ⟨1⟩ = ⟨0⟩)
@@ -2127,7 +2127,7 @@ theorem readSolidityStringLongExists
     {evm : EVM.State} {er : EvaledStorageRef} {baseSlot header len : UInt256}
     (hcfg : cfg.storage = solidityStorageLayout layout)
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
     (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
@@ -2166,7 +2166,7 @@ theorem evalSolidityStringShortPackedExists
     (hbackend : cfg.storageBackend? = none)
     (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, .string))
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
     (hflag : UInt256.land header ⟨1⟩ = ⟨0⟩)
@@ -2190,7 +2190,7 @@ theorem evalSolidityStringLongExists
     (hbackend : cfg.storageBackend? = none)
     (hresolve : resolveStorageRef? cfg solm evm ref = .ok (er, .string))
     (hbase :
-      ∃ loc, layout { er with steps := er.steps ++ [.length] } evm = some loc ∧
+      ∃ loc, layout er evm = some loc ∧
         loc.slot = baseSlot)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot = header)
     (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
