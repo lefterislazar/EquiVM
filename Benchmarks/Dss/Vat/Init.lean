@@ -90,10 +90,10 @@ theorem evalExpr_initStorageRate (evm : EVM.State) (I : ExecutionEnv)
       (.storage (ilksF (.var "ilk") "rate")) =
         .ok (.int (Int.ofNat
           (vatSlotWord (initRateSlot I) evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
-    (cfg := config) (solm := { contract := contract, locals := initStore I }) (evm := evm)
-    (slot := ilksF (.var "ilk") "rate") (er := initRateEvaledRef I)
-    (t := .int uint256Int) (loc := wordLoc (initRateSlot I))
+  exact vatEvalExpr_storage_scalar_value
+    (solm := { contract := contract, locals := initStore I }) (evm := evm)
+    (slotRef := ilksF (.var "ilk") "rate") (er := initRateEvaledRef I)
+    (t := .int uint256Int) (slot := initRateSlot I)
     (value := .int (Int.ofNat
       (vatSlotWord (initRateSlot I) evm.accountMap evm.executionEnv).toNat))
     (initStore_get_ilks I)
@@ -149,10 +149,9 @@ theorem assign_initRateStorage (evm : EVM.State) (I : ExecutionEnv)
       .storage (ilksF (.var "ilk") "rate") (.int (Int.ofNat initRayWord.toNat)) =
         .ok ({ contract := contract, locals := initStore I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
-      (ty := uint256St)
+  apply vatAssignStorageRef_storage_uint256
       (er := initRateEvaledRef I)
-      (loc := wordLoc (initRateSlot I))
+      (slot := initRateSlot I)
       (hbase := initStore_get_ilks I)
       (her := by
         have hkeyLen : ((I.calldata.toList.drop 4).take 32).length =

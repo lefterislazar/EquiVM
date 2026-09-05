@@ -546,20 +546,59 @@ theorem RD.solcSixWordThreeAddressExternalLoadAndJump {code : ByteArray} {g : Sa
         solcAddrMask from by decide, u256_land_comm]
       using rd49.jump hd49 hroutine (by evm_ov)⟩
 
+/-! The generated backend is opaque at proof call sites.  These two Vat-local wrappers expose the
+    standard scalar read/write proof shape while keeping backend reduction in one place. -/
+
+theorem vatEvalExpr_storage_scalar {solm : Frame} {evm : EVM.State}
+    {slotRef : StorageRef} {er : EvaledStorageRef} {t : ElemType} {slot : UInt256}
+    (hbase : solm.locals.get? slotRef.base = none)
+    (her : evalStorageRef config solm evm slotRef = .ok er)
+    (hty : storageTypeAt? solm.contract.storage er = some (.elem t))
+    (hloc : storageLayout er = fun _ => some (wordLoc slot)) :
+    evalExpr? config solm evm (.storage slotRef) =
+      .ok (storageLocLoad evm (wordLoc slot)) := by
+  exact evalExpr_storage_scalar hbase her hty
+    (config_storage_read_elem er t evm (wordLoc slot) (congrFun hloc evm))
+
+theorem vatEvalExpr_storage_scalar_value {solm : Frame} {evm : EVM.State}
+    {slotRef : StorageRef} {er : EvaledStorageRef} {t : ElemType} {slot : UInt256}
+    {value : Value}
+    (hbase : solm.locals.get? slotRef.base = none)
+    (her : evalStorageRef config solm evm slotRef = .ok er)
+    (hty : storageTypeAt? solm.contract.storage er = some (.elem t))
+    (hloc : storageLayout er = fun _ => some (wordLoc slot))
+    (hload : storageLocLoad evm (wordLoc slot) = value) :
+    evalExpr? config solm evm (.storage slotRef) = .ok value := by
+  exact evalExpr_storage_scalar_value hbase her hty
+    (config_storage_read_elem er t evm (wordLoc slot) (congrFun hloc evm)) hload
+
+theorem vatAssignStorageRef_storage_uint256 {solm : Frame} {evm evm' : EVM.State}
+    {slotRef : StorageRef} {er : EvaledStorageRef} {slot : UInt256} {n : Int}
+    (hbase : solm.locals.get? slotRef.base = none)
+    (her : evalStorageRef config solm evm slotRef = .ok er)
+    (hty : storageTypeAt? solm.contract.storage er = some uint256St)
+    (hloc : storageLayout er = fun _ => some (wordLoc slot))
+    (hstore : storageLocStore evm (wordLoc slot) (.int n) = some evm') :
+    assignStorageRef? config solm evm .storage slotRef (.int n) = .ok (solm, evm') := by
+  exact assignStorageRef_storage_scalar hbase her hty
+    (config_storage_write_elem er (.int uint256Int) (.int n) evm evm' (wordLoc slot)
+      (congrFun hloc evm) hstore)
+
 theorem vatUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
-    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : storageLayout er = fun _ => some (wordLoc slot)) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [vatEvalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty)
+        (hloc := hloc)]
       exact congrArg EvalResult.ok (vatStorageLocLoad_uint256 evm slot))
 
 theorem vatUint256GetterBodyCore

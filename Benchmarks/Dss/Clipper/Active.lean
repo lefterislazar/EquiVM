@@ -94,10 +94,16 @@ theorem clipperEvalActiveElem_ok (v : ClipperImmutables) (evm : EVM.State)
     constructor
     · exact Int.natCast_nonneg _
     · exact Int.ofNat_lt.mpr hbound
-  rw [evalExpr_storage_scalar_value
-    (cfg := config v)
+  have hlen :
+      (config v).storage.length ({ base := "active", steps := [] } : EvaledStorageRef)
+        uint256St.dynamicArray evm =
+        .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat := by
+    apply config_storage_length_dynamicArray v _ uint256St evm (wordLoc ⟨11⟩)
+    · rfl
+    · exact clipperStorageLocLoad_uint256 evm ⟨11⟩
+  rw [clipperEvalExpr_storage_scalar_value
     (solm := { contract := contract v, locals := clipperActiveStore I })
-    (slot := activeElemRef (.var "arg0"))
+    (slotRef := activeElemRef (.var "arg0"))
     (er := ({ base := "active", steps := [.aindex (clipperActiveArgKey I)] } :
       EvaledStorageRef))
     (t := .int uint256Int)
@@ -109,13 +115,13 @@ theorem clipperEvalActiveElem_ok (v : ClipperImmutables) (evm : EVM.State)
     (her := by
       simp [evalStorageRef, evalStorageRefStep, activeElemRef, clipperActiveStore,
         clipperActiveArgValue, clipperActiveArgKey, valueToKey?, EvalResult.bind,
-        EvalResult.ofOption, bind, pure, evalExpr?, config, storageLayout, solidityStorageLayout,
-        storageLayoutRaw, storageTypeAt?, contract, storageDecls, clipperStorageLocLoad_uint256,
-        hbound])
+        EvalResult.ofOption, bind, pure, evalExpr?, backendArrayIndexInBoundsWith?,
+        storageTypeAt?, contract, storageDecls, hlen, hbound])
     (hty := by
       simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, clipperActiveArgKey,
         uint256St])
-    (hloc := by rfl)
+    (hloc := by
+      exact storageLayout_active_elem (clipperActiveArgKey I))
     (hload := by
       simpa [wordLoc, uint256Loc] using
         clipperStorageLocLoad_uint256 evm (clipperActiveSlot I))]
@@ -140,11 +146,17 @@ theorem clipperEvalActiveElem_revert (v : ClipperImmutables) (evm : EVM.State)
       ¬ (clipperActiveArgWord I).toNat <
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat :=
     Nat.not_lt_of_ge hbound
+  have hlen :
+      (config v).storage.length ({ base := "active", steps := [] } : EvaledStorageRef)
+        uint256St.dynamicArray evm =
+        .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat := by
+    apply config_storage_length_dynamicArray v _ uint256St evm (wordLoc ⟨11⟩)
+    · rfl
+    · exact clipperStorageLocLoad_uint256 evm ⟨11⟩
   simp [evalExpr?, resolveStorageRef?, evalStorageRef, evalStorageRefStep, activeElemRef,
     clipperActiveStore, clipperActiveArgValue, valueToKey?,
-    EvalResult.bind, EvalResult.ofOption, bind, pure, config, storageLayout, solidityStorageLayout,
-    storageLayoutRaw, storageTypeAt?, contract, storageDecls, clipperStorageLocLoad_uint256,
-    hnot]
+    EvalResult.bind, EvalResult.ofOption, bind, pure, backendArrayIndexInBoundsWith?,
+    storageTypeAt?, contract, storageDecls, hlen, hnot]
 
 theorem clipperActiveBodyReturns (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (h : evm.executionEnv.weiValue = ⟨0⟩)

@@ -182,10 +182,10 @@ theorem slipStorageType_gem (I : ExecutionEnv) :
   simp [slipEvaledRef, storageTypeAt?, storageTypeStep?, storageDecls, uint256St]
 
 theorem slipStorageLayout_gem (I : ExecutionEnv) :
-    config.storage.layout (slipEvaledRef I) = fun _ => some (wordLoc (slipStorageSlot I)) := by
+    storageLayout (slipEvaledRef I) = fun _ => some (wordLoc (slipStorageSlot I)) := by
   funext evm
-  change storageLayoutRaw (slipEvaledRef I) evm = some (wordLoc (slipStorageSlot I))
-  simp [storageLayoutRaw, slipEvaledRef, slipStorageSlot]
+  simp [storageLayout, wordLoc, uint256Int, slipEvaledRef, slipStorageSlot,
+    gemSlot, gemIlkSlot, mapSlot]
 
 theorem slipWadInt_mod_word (I : ExecutionEnv) :
     slipWadInt I % (Int.ofNat EVM.wordModulus) =
@@ -231,7 +231,7 @@ theorem evalExpr_slip_gem_old {evm : EVM.State} {I : ExecutionEnv}
       (.storage (gemRef (.var "ilk") (.var "usr"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (slipStorageSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [vatEvalExpr_storage_scalar
     (hbase := slipStore_gem I)
     (her := evalStorageRef_slip_gem evm I hsz100)
     (hty := slipStorageType_gem I)
@@ -245,7 +245,7 @@ theorem evalExpr_slip_gem_old_after_let {evm : EVM.State} {I : ExecutionEnv}
       (.storage (gemRef (.var "ilk") (.var "usr"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (slipStorageSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [vatEvalExpr_storage_scalar
     (hbase := slipStoreGemNew_gem I gemNew)
     (her := evalStorageRef_slip_gemNew evm I gemNew hsz100)
     (hty := slipStorageType_gem I)
@@ -290,7 +290,7 @@ theorem assignStorageRef_slip_gemNew {evm evm' : EVM.State} {I : ExecutionEnv}
         some evm' := by
     rw [hevm']
     exact vatStorageLocStore_uint256 evm (slipStorageSlot I) gemNew
-  exact assignStorageRef_storage_scalar
+  exact vatAssignStorageRef_storage_uint256
     (hbase := slipStoreGemNew_gem I gemNew)
     (her := evalStorageRef_slip_gemNew evm I gemNew hsz100)
     (hty := slipStorageType_gem I)

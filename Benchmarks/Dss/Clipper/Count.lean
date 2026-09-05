@@ -71,20 +71,9 @@ theorem clipperEvalActiveLength (v : ClipperImmutables) (evm : EVM.State) (local
     resolveStorageRef?_ok hbase her hty
   rw [evalExpr?]
   simp only [hres, bind, EvalResult.bind]
-  change readStorageArrayLength? (config v) evm er (.dynamicArray uint256St) =
-    .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat))
-  change (match (config v).storage.layout
-      ({ base := "active", steps := [.length] } : EvaledStorageRef) evm with
-    | some lenLoc =>
-        match storageLocLoad evm lenLoc with
-        | Value.int n => pure (Value.int n)
-        | _ => EvalResult.error .storageError
-    | none => EvalResult.error .storageError) =
-      .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat))
-  rw [show (config v).storage.layout
-      ({ base := "active", steps := [.length] } : EvaledStorageRef) evm =
-        some (wordLoc ⟨11⟩) from rfl]
-  simp [clipperStorageLocLoad_uint256]
+  rw [config_storage_length_dynamicArray v er uint256St evm (wordLoc ⟨11⟩)
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat
+    (by rfl) (clipperStorageLocLoad_uint256 evm ⟨11⟩)]
   rfl
 
 theorem clipperCountBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)

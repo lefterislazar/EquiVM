@@ -150,10 +150,9 @@ theorem clipperWardsBodyReturns (v : ClipperImmutables) (evm : EVM.State)
             (clipperWardsStorageSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar_value
-        (cfg := config v)
+      rw [clipperEvalExpr_storage_scalar_value
         (solm := { contract := contract v, locals := clipperWardsStore I })
-        (slot := wardsRef (.var "arg0"))
+        (slotRef := wardsRef (.var "arg0"))
         (er := ({ base := "wards", steps := [.mindex (clipperWardsArgKey I)] } :
           EvaledStorageRef))
         (t := .int uint256Int)

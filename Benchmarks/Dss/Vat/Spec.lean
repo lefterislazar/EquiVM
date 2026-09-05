@@ -1,5 +1,5 @@
 import Solm.Semantics
-import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # MakerDAO/Sky DSS Vat benchmark spec
@@ -164,36 +164,11 @@ def sinSlot (usr : KeyValue) : Ethereum.UInt256 :=
 def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 32, hbound := by decide, type := .int uint256Int }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
-  | { base := "can", steps := [.mindex src, .mindex usr] }, _ =>
-      some (wordLoc (canSlot src usr))
-  | { base := "ilks", steps := [.mindex ilk, .field "Art"] }, _ =>
-      some (wordLoc (ilksBase ilk))
-  | { base := "ilks", steps := [.mindex ilk, .field "rate"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨1⟩))
-  | { base := "ilks", steps := [.mindex ilk, .field "spot"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨2⟩))
-  | { base := "ilks", steps := [.mindex ilk, .field "line"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨3⟩))
-  | { base := "ilks", steps := [.mindex ilk, .field "dust"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨4⟩))
-  | { base := "urns", steps := [.mindex ilk, .mindex usr, .field "ink"] }, _ =>
-      some (wordLoc (urnsBase ilk usr))
-  | { base := "urns", steps := [.mindex ilk, .mindex usr, .field "art"] }, _ =>
-      some (wordLoc (urnsBase ilk usr + ⟨1⟩))
-  | { base := "gem", steps := [.mindex ilk, .mindex usr] }, _ =>
-      some (wordLoc (gemSlot ilk usr))
-  | { base := "dai", steps := [.mindex usr] }, _ => some (wordLoc (daiSlot usr))
-  | { base := "sin", steps := [.mindex usr] }, _ => some (wordLoc (sinSlot usr))
-  | { base := "debt", steps := [] }, _ => some (wordLoc ⟨7⟩)
-  | { base := "vice", steps := [] }, _ => some (wordLoc ⟨8⟩)
-  | { base := "Line", steps := [] }, _ => some (wordLoc ⟨9⟩)
-  | { base := "live", steps := [] }, _ => some (wordLoc ⟨10⟩)
-  | _, _ => none
-
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  solidityLayout! [structs] [storageDecls]
+
+def storageBackend : StorageBackend :=
+  solidityStorageBackend storageLayout
 
 /-! ## Shared source patterns -/
 
@@ -668,9 +643,21 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storage := storageBackend
     externalABI := defaultExternalCallABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
+
+theorem config_storage_read_elem (er : EvaledStorageRef) (ty : ElemType)
+    (evm : EVM.State) (loc : StorageLoc) (hloc : storageLayout er evm = some loc) :
+    config.storage.read er (.elem ty) evm = .ok (storageLocLoad evm loc) := by
+  exact solidityStorageBackend_read_elem storageLayout er ty evm loc hloc
+
+theorem config_storage_write_elem (er : EvaledStorageRef) (ty : ElemType)
+    (value : Value) (evm evm' : EVM.State) (loc : StorageLoc)
+    (hloc : storageLayout er evm = some loc)
+    (hstore : storageLocStore evm loc value = some evm') :
+    config.storage.write er (.elem ty) value evm = .ok evm' := by
+  exact solidityStorageBackend_write_elem storageLayout er ty value evm evm' loc hloc hstore
 
 end Benchmarks.Dss.Vat

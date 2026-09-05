@@ -135,15 +135,14 @@ theorem vatCageBodyCore : VatBodyTheorem 1 := by
         have hstore :
             storageLocStore evm0 (wordLoc ⟨10⟩) (.int 0) = some evm1 := by
           simpa [evm1] using vatStorageLocStore_uint256 evm0 ⟨10⟩ ⟨0⟩
-        exact assignStorageRef_storage_scalar
-          (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨10⟩)
+        exact vatAssignStorageRef_storage_uint256
+          (slot := ⟨10⟩)
           (hbase := by simp [liveRef])
           (her := her)
           (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
           (hloc := by
             funext evm
-            simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
-              vatLiveEvaledRef])
+            simp [storageLayout, wordLoc, uint256Int, vatLiveEvaledRef])
           (hstore := hstore)
       have hblock :
           ExecBlock config { contract := contract, locals := ∅ } evm0

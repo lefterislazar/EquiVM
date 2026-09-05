@@ -339,14 +339,14 @@ theorem assign_vatCtorWardsCaller (evm : EVM.State) {locals : Store}
         some evm' := by
     simpa [evm', vatCtorAfterWardsState] using
       storageLocStore_uint256 evm (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source)))
+  exact vatAssignStorageRef_storage_uint256
+    (slot := wardsSlot (.address evm.executionEnv.source))
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
       funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [storageLayout, wordLoc, uint256Int, wardsSlot, mapSlot])
     (hstore := hstore)
 
 theorem assign_vatCtorLiveStorage (evm : EVM.State) {locals : Store}
@@ -362,14 +362,14 @@ theorem assign_vatCtorLiveStorage (evm : EVM.State) {locals : Store}
     simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
   have hstore : storageLocStore evm (wordLoc ⟨10⟩) (.int 1) = some evm' := by
     simpa [evm', vatCtorAfterLiveState] using storageLocStore_uint256 evm ⟨10⟩ ⟨1⟩
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨10⟩)
+  exact vatAssignStorageRef_storage_uint256
+    (slot := ⟨10⟩)
     (hbase := by simpa [liveRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
       funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [storageLayout, wordLoc, uint256Int])
     (hstore := hstore)
 
 theorem vatCtorCallerWardsSlot_eq (I : ExecutionEnv) :

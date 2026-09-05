@@ -28,7 +28,7 @@ abbrev liftSrcsEvaledRef : EvaledStorageRef :=
   { base := "srcs", steps := [] }
 
 abbrev liftSrcsLengthRef : EvaledStorageRef :=
-  { base := "srcs", steps := [.length] }
+  { base := "srcs" }
 
 -- Placeholder-free slot abbreviations for the EVM side of `srcs.push(src)`.
 abbrev liftSrcsLenWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=

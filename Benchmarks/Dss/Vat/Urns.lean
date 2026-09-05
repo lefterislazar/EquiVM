@@ -296,10 +296,10 @@ theorem vatUrnsBodyReturns {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (urnsF (.var "arg0") (.var "arg1") "ink")) =
         .ok (.int (Int.ofNat
           (vatSlotWord (urnsInkStorageSlot I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
-      (cfg := config) (solm := frame) (evm := evm)
-      (slot := urnsF (.var "arg0") (.var "arg1") "ink") (er := urnsInkEvaledRef I)
-      (t := .int uint256Int) (loc := wordLoc (urnsInkStorageSlot I))
+    exact vatEvalExpr_storage_scalar_value
+      (solm := frame) (evm := evm)
+      (slotRef := urnsF (.var "arg0") (.var "arg1") "ink") (er := urnsInkEvaledRef I)
+      (t := .int uint256Int) (slot := urnsInkStorageSlot I)
       (value := .int (Int.ofNat
         (vatSlotWord (urnsInkStorageSlot I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, urnsStore, urnsF])
@@ -317,10 +317,10 @@ theorem vatUrnsBodyReturns {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (urnsF (.var "arg0") (.var "arg1") "art")) =
         .ok (.int (Int.ofNat
           (vatSlotWord (urnsArtStorageSlot I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
-      (cfg := config) (solm := frame) (evm := evm)
-      (slot := urnsF (.var "arg0") (.var "arg1") "art") (er := urnsArtEvaledRef I)
-      (t := .int uint256Int) (loc := wordLoc (urnsArtStorageSlot I))
+    exact vatEvalExpr_storage_scalar_value
+      (solm := frame) (evm := evm)
+      (slotRef := urnsF (.var "arg0") (.var "arg1") "art") (er := urnsArtEvaledRef I)
+      (t := .int uint256Int) (slot := urnsArtStorageSlot I)
       (value := .int (Int.ofNat
         (vatSlotWord (urnsArtStorageSlot I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, urnsStore, urnsF])

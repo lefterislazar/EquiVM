@@ -937,6 +937,45 @@ theorem clipperJumpDestBeforeFirstPatch (v : ClipperImmutables) {code : ByteArra
   exact Reasoning.Theory.D_J_contains_append_left
     (clipperBytecode.extract 0 1463) (code.extract 1463 code.size) pc hpc
 
+/-! The generated backend remains opaque at proof call sites.  These wrappers retain the standard
+    scalar read/write proof shape for all Clipper scalar storage locations. -/
+
+theorem clipperEvalExpr_storage_scalar {v : ClipperImmutables} {solm : Frame}
+    {evm : EVM.State} {slotRef : StorageRef} {er : EvaledStorageRef} {t : ElemType}
+    {loc : StorageLoc}
+    (hbase : solm.locals.get? slotRef.base = none)
+    (her : evalStorageRef (config v) solm evm slotRef = .ok er)
+    (hty : storageTypeAt? solm.contract.storage er = some (.elem t))
+    (hloc : storageLayout er = fun _ => some loc) :
+    evalExpr? (config v) solm evm (.storage slotRef) =
+      .ok (storageLocLoad evm loc) := by
+  exact evalExpr_storage_scalar hbase her hty
+    (config_storage_read_elem v er t evm loc (congrFun hloc evm))
+
+theorem clipperEvalExpr_storage_scalar_value {v : ClipperImmutables} {solm : Frame}
+    {evm : EVM.State} {slotRef : StorageRef} {er : EvaledStorageRef} {t : ElemType}
+    {loc : StorageLoc} {value : Value}
+    (hbase : solm.locals.get? slotRef.base = none)
+    (her : evalStorageRef (config v) solm evm slotRef = .ok er)
+    (hty : storageTypeAt? solm.contract.storage er = some (.elem t))
+    (hloc : storageLayout er = fun _ => some loc)
+    (hload : storageLocLoad evm loc = value) :
+    evalExpr? (config v) solm evm (.storage slotRef) = .ok value := by
+  exact evalExpr_storage_scalar_value hbase her hty
+    (config_storage_read_elem v er t evm loc (congrFun hloc evm)) hload
+
+theorem clipperAssignStorageRef_storage_scalar {v : ClipperImmutables} {solm : Frame}
+    {evm evm' : EVM.State} {slotRef : StorageRef} {er : EvaledStorageRef}
+    {t : ElemType} {loc : StorageLoc} {n : Int}
+    (hbase : solm.locals.get? slotRef.base = none)
+    (her : evalStorageRef (config v) solm evm slotRef = .ok er)
+    (hty : storageTypeAt? solm.contract.storage er = some (.elem t))
+    (hloc : storageLayout er = fun _ => some loc)
+    (hstore : storageLocStore evm loc (.int n) = some evm') :
+    assignStorageRef? (config v) solm evm .storage slotRef (.int n) = .ok (solm, evm') := by
+  exact assignStorageRef_storage_scalar hbase her hty
+    (config_storage_write_elem v er t (.int n) evm evm' loc (congrFun hloc evm) hstore)
+
 theorem clipperStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (wordLoc slot) =
       .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by

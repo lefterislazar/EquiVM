@@ -1,5 +1,6 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # MakerDAO/Sky DSS End benchmark spec
@@ -240,7 +241,10 @@ def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
   | _, _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  solidityLayout! [([] : List StructDecl)] [storageDecls]
+
+def storageBackend : StorageBackend :=
+  solidityStorageBackend storageLayout
 
 /-! ## Shared source patterns -/
 
@@ -664,7 +668,7 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storage := storageBackend
     externalABI := externalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment constructorDecl.params }

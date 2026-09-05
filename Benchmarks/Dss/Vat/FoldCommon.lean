@@ -1025,7 +1025,8 @@ theorem evalExpr_fold_ilks_rate (evm : EVM.State) (I : ExecutionEnv)
         (.storage (ilksF (.var "i") "rate")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (foldRateSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [vatEvalExpr_storage_scalar (t := .int uint256Int) (slot := foldRateSlot I)
+    (hbase := hbase)
     (her := evalStorageRef_fold_ilksField evm I locals "rate" hsz100 hi)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
       IlkStructTy, uint256St])
@@ -1040,7 +1041,8 @@ theorem evalExpr_fold_ilks_art (evm : EVM.State) (I : ExecutionEnv)
         (.storage (ilksF (.var "i") "Art")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (foldArtSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [vatEvalExpr_storage_scalar (t := .int uint256Int) (slot := foldArtSlot I)
+    (hbase := hbase)
     (her := evalStorageRef_fold_ilksField evm I locals "Art" hsz100 hi)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
       IlkStructTy, uint256St])
@@ -1054,15 +1056,15 @@ theorem evalExpr_fold_dai_u (evm : EVM.State) (I : ExecutionEnv)
         (.storage (daiRef (.var "u"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (foldDaiSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [vatEvalExpr_storage_scalar (t := .int uint256Int) (slot := foldDaiSlot I)
+    (hbase := hbase)
     (her := evalStorageRef_fold_dai_u evm I locals hu)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract,
       storageDecls, uint256St])
     (hloc := by
       funext evm
-      change storageLayoutRaw (foldDaiEvaledRef I) evm =
-        some (wordLoc (foldDaiSlot I))
-      simp [storageLayoutRaw, foldDaiEvaledRef, foldDaiSlot])]
+      simp [storageLayout, wordLoc, uint256Int, foldDaiEvaledRef, foldDaiSlot,
+        daiSlot, mapSlot])]
   exact congrArg EvalResult.ok (vatStorageLocLoad_uint256 evm (foldDaiSlot I))
 
 theorem evalExpr_fold_debt (evm : EVM.State) (locals : Store)
@@ -1070,7 +1072,7 @@ theorem evalExpr_fold_debt (evm : EVM.State) (locals : Store)
     evalExpr? config { contract := contract, locals := locals } evm (.storage debtRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner foldDebtSlot).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [vatEvalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_fold_debt evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
@@ -1084,8 +1086,8 @@ theorem assign_fold_rate (evm : EVM.State) (I : ExecutionEnv)
       .storage (ilksF (.var "i") "rate") (.int (Int.ofNat rateNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := uint256St) (loc := wordLoc (foldRateSlot I))
+  exact vatAssignStorageRef_storage_uint256
+    (slot := foldRateSlot I)
     (hbase := hbase)
     (her := evalStorageRef_fold_ilksField evm I locals "rate" hsz100 hi)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
@@ -1101,15 +1103,15 @@ theorem assign_fold_dai_u (evm : EVM.State) (I : ExecutionEnv)
       .storage (daiRef (.var "u")) (.int (Int.ofNat daiNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (foldDaiSlot I))
+  exact vatAssignStorageRef_storage_uint256
+    (slot := foldDaiSlot I)
     (hbase := hbase)
     (her := evalStorageRef_fold_dai_u evm I locals hu)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
       funext evm
-      change storageLayoutRaw (foldDaiEvaledRef I) evm = some (wordLoc (foldDaiSlot I))
-      simp [storageLayoutRaw, foldDaiEvaledRef, foldDaiSlot])
+      simp [storageLayout, wordLoc, uint256Int, foldDaiEvaledRef, foldDaiSlot,
+        daiSlot, mapSlot])
     (hstore := by simpa [evm'] using vatStorageLocStore_uint256 evm (foldDaiSlot I) daiNew)
 
 theorem assign_fold_debt (evm : EVM.State) (locals : Store) (debtNew : UInt256)
@@ -1119,8 +1121,7 @@ theorem assign_fold_debt (evm : EVM.State) (locals : Store) (debtNew : UInt256)
       .storage debtRef (.int (Int.ofNat debtNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc foldDebtSlot)
+  exact vatAssignStorageRef_storage_uint256
     (hbase := hbase)
     (her := evalStorageRef_fold_debt evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])

@@ -57,10 +57,10 @@ theorem clipperEvalBuf (v : ClipperImmutables) (evm : EVM.State) (locals : Store
     rfl
   have hty : storageTypeAt? (contract v).storage er = some (.elem (.int uint256Int)) := by
     simp [er, storageTypeAt?, contract, storageDecls, uint256St]
-  have hloc : (config v).storage.layout er = fun _ => some (wordLoc ⟨5⟩) := by
+  have hloc : storageLayout er = fun _ => some (wordLoc ⟨5⟩) := by
     funext evm'
     rfl
-  exact evalExpr_storage_scalar_value hbase her hty hloc
+  exact clipperEvalExpr_storage_scalar_value hbase her hty hloc
     (clipperStorageLocLoad_uint256 evm ⟨5⟩)
 
 theorem clipperBufBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)

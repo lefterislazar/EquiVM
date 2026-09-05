@@ -262,11 +262,10 @@ theorem assign_fileIlkSpotStorage (evm : EVM.State) (I : ExecutionEnv)
       .storage (ilksF (.var "ilk") "spot") (.int (Int.ofNat (fileIlkData I).toNat)) =
         .ok ({ contract := contract, locals := fileIlkLocals I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
-      (ty := uint256St)
+  apply vatAssignStorageRef_storage_uint256
       (er := ({ base := "ilks", steps := [.mindex (fileIlkIlkKey I), .field "spot"] } :
         EvaledStorageRef))
-      (loc := wordLoc (fileIlkSpotSlotFor I))
+      (slot := fileIlkSpotSlotFor I)
       (hbase := fileIlkLocals_get_ilks I)
       (her := evalStorageRef_fileIlkField (I := I) (field := "spot") hsz100 rfl)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
@@ -282,11 +281,10 @@ theorem assign_fileIlkLineStorage (evm : EVM.State) (I : ExecutionEnv)
       .storage (ilksF (.var "ilk") "line") (.int (Int.ofNat (fileIlkData I).toNat)) =
         .ok ({ contract := contract, locals := fileIlkLocals I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
-      (ty := uint256St)
+  apply vatAssignStorageRef_storage_uint256
       (er := ({ base := "ilks", steps := [.mindex (fileIlkIlkKey I), .field "line"] } :
         EvaledStorageRef))
-      (loc := wordLoc (fileIlkLineSlotFor I))
+      (slot := fileIlkLineSlotFor I)
       (hbase := fileIlkLocals_get_ilks I)
       (her := evalStorageRef_fileIlkField (I := I) (field := "line") hsz100 rfl)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
@@ -302,11 +300,10 @@ theorem assign_fileIlkDustStorage (evm : EVM.State) (I : ExecutionEnv)
       .storage (ilksF (.var "ilk") "dust") (.int (Int.ofNat (fileIlkData I).toNat)) =
         .ok ({ contract := contract, locals := fileIlkLocals I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
-      (ty := uint256St)
+  apply vatAssignStorageRef_storage_uint256
       (er := ({ base := "ilks", steps := [.mindex (fileIlkIlkKey I), .field "dust"] } :
         EvaledStorageRef))
-      (loc := wordLoc (fileIlkDustSlotFor I))
+      (slot := fileIlkDustSlotFor I)
       (hbase := fileIlkLocals_get_ilks I)
       (her := evalStorageRef_fileIlkField (I := I) (field := "dust") hsz100 rfl)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,

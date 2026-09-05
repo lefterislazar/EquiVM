@@ -317,25 +317,25 @@ theorem fluxStorageType_can (I : ExecutionEnv) :
   simp [fluxWishEvaledRef, storageTypeAt?, storageTypeStep?, storageDecls, uint256St]
 
 theorem fluxStorageLayout_src_gem (I : ExecutionEnv) :
-    config.storage.layout (fluxSrcEvaledRef I) =
+    storageLayout (fluxSrcEvaledRef I) =
       fun _ => some (wordLoc (fluxSrcGemSlot I)) := by
   funext evm
-  change storageLayoutRaw (fluxSrcEvaledRef I) evm = some (wordLoc (fluxSrcGemSlot I))
-  simp [storageLayoutRaw, fluxSrcEvaledRef, fluxSrcGemSlot]
+  simp [storageLayout, wordLoc, uint256Int, fluxSrcEvaledRef, fluxSrcGemSlot,
+    gemSlot, gemIlkSlot, mapSlot]
 
 theorem fluxStorageLayout_dst_gem (I : ExecutionEnv) :
-    config.storage.layout (fluxDstEvaledRef I) =
+    storageLayout (fluxDstEvaledRef I) =
       fun _ => some (wordLoc (fluxDstGemSlot I)) := by
   funext evm
-  change storageLayoutRaw (fluxDstEvaledRef I) evm = some (wordLoc (fluxDstGemSlot I))
-  simp [storageLayoutRaw, fluxDstEvaledRef, fluxDstGemSlot]
+  simp [storageLayout, wordLoc, uint256Int, fluxDstEvaledRef, fluxDstGemSlot,
+    gemSlot, gemIlkSlot, mapSlot]
 
 theorem fluxStorageLayout_can (I : ExecutionEnv) :
-    config.storage.layout (fluxWishEvaledRef I) =
+    storageLayout (fluxWishEvaledRef I) =
       fun _ => some (wordLoc (fluxWishSlot I)) := by
   funext evm
-  change storageLayoutRaw (fluxWishEvaledRef I) evm = some (wordLoc (fluxWishSlot I))
-  simp [storageLayoutRaw, fluxWishEvaledRef, fluxWishSlot]
+  simp [storageLayout, wordLoc, uint256Int, fluxWishEvaledRef, fluxWishSlot,
+    canSlot, canOwnerSlot, mapSlot]
 
 set_option maxHeartbeats 1000000 in
 theorem evalExpr_flux_src_gem_old {evm : EVM.State} {I : ExecutionEnv}
@@ -344,7 +344,7 @@ theorem evalExpr_flux_src_gem_old {evm : EVM.State} {I : ExecutionEnv}
       (.storage (gemRef (.var "ilk") (.var "src"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (fluxSrcGemSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact vatEvalExpr_storage_scalar_value
     (hbase := fluxStore_gem I)
     (her := evalStorageRef_flux_src_gem evm I (by omega))
     (hty := fluxStorageType_src_gem I)
@@ -358,7 +358,7 @@ theorem evalExpr_flux_dst_gem_after_src {evm : EVM.State} {I : ExecutionEnv}
       (.storage (gemRef (.var "ilk") (.var "dst"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (fluxDstGemSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact vatEvalExpr_storage_scalar_value
     (hbase := fluxStoreSrcGemNew_gem I srcGemNew)
     (her := evalStorageRef_flux_dst_gem_after_src evm I srcGemNew (by omega))
     (hty := fluxStorageType_dst_gem I)
@@ -373,7 +373,7 @@ theorem evalExpr_flux_dst_gem_after_dst {evm : EVM.State} {I : ExecutionEnv}
       (.storage (gemRef (.var "ilk") (.var "dst"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (fluxDstGemSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact vatEvalExpr_storage_scalar_value
     (hbase := fluxStoreDstGemNew_gem I srcGemNew dstGemNew)
     (her := evalStorageRef_flux_dst_gem_after_dst evm I srcGemNew dstGemNew (by omega))
     (hty := fluxStorageType_dst_gem I)
@@ -387,7 +387,7 @@ theorem evalExpr_flux_src_gem_after_src {evm : EVM.State} {I : ExecutionEnv}
       (.storage (gemRef (.var "ilk") (.var "src"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (fluxSrcGemSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact vatEvalExpr_storage_scalar_value
     (hbase := fluxStoreSrcGemNew_gem I srcGemNew)
     (her := evalStorageRef_flux_src_gem_after_src evm I srcGemNew (by omega))
     (hty := fluxStorageType_src_gem I)
@@ -400,7 +400,7 @@ theorem evalExpr_flux_can {evm : EVM.State} {I : ExecutionEnv}
       (.storage (canRef (.var "src") sender)) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (fluxWishSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact vatEvalExpr_storage_scalar_value
     (hbase := fluxStore_can I)
     (her := evalStorageRef_flux_can evm I hsrc)
     (hty := fluxStorageType_can I)
@@ -1390,7 +1390,7 @@ theorem assignStorageRef_flux_src_gem {evm evm' : EVM.State} {I : ExecutionEnv}
         some evm' := by
     rw [hevm']
     exact vatStorageLocStore_uint256 evm (fluxSrcGemSlot I) srcGemNew
-  exact assignStorageRef_storage_scalar
+  exact vatAssignStorageRef_storage_uint256
     (hbase := fluxStoreSrcGemNew_gem I srcGemNew)
     (her := evalStorageRef_flux_src_gem_after_src evm I srcGemNew (by omega))
     (hty := fluxStorageType_src_gem I)
@@ -1412,7 +1412,7 @@ theorem assignStorageRef_flux_dst_gem {evm evm' : EVM.State} {I : ExecutionEnv}
         some evm' := by
     rw [hevm']
     exact vatStorageLocStore_uint256 evm (fluxDstGemSlot I) dstGemNew
-  exact assignStorageRef_storage_scalar
+  exact vatAssignStorageRef_storage_uint256
     (hbase := fluxStoreDstGemNew_gem I srcGemNew dstGemNew)
     (her := evalStorageRef_flux_dst_gem_after_dst evm I srcGemNew dstGemNew (by omega))
     (hty := fluxStorageType_dst_gem I)

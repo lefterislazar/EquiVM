@@ -107,7 +107,7 @@ private def slotPlusNat (slot : Term) (amount : Nat) : TermElabM Term :=
   if amount = 0 then
     pure slot
   else
-    `(term| $slot + Ethereum.UInt256.ofNat $(natTerm amount))
+    `(term| $slot + (⟨$(natTerm amount)⟩ : Ethereum.UInt256))
 
 private def storageLocBody (loc : GeneratedLoc) (size : Nat) (elem : ElemType) :
     TermElabM Term := do
@@ -313,7 +313,7 @@ private def generatedRawLayout (structs : List StructDecl)
   let evm := mkIdent evmName
   let mut alts : Array (TSyntax ``Lean.Parser.Term.matchAlt) := #[]
   for allocation in allocations do
-    let slot <- `(term| Ethereum.UInt256.ofNat $(natTerm allocation.slot))
+    let slot <- `(term| (⟨$(natTerm allocation.slot)⟩ : Ethereum.UInt256))
     let offset <- finTerm 32 allocation.offset
     let generated <- generateCases structs evmName allocation.ty { slot := slot, offset := offset } []
     for generatedCase in generated do

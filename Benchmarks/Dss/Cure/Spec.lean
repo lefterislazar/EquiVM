@@ -130,7 +130,7 @@ def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
   | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
   | { base := "live", steps := [] }, _ => some (wordLoc ⟨1⟩)
-  | { base := "srcs", steps := [.length] }, _ => some (wordLoc ⟨2⟩)
+  | { base := "srcs", steps := [] }, _ => some (wordLoc ⟨2⟩)
   | { base := "srcs", steps := [.aindex idx] }, _ => some (addrLoc (srcElemSlot idx))
   | { base := "wait", steps := [] }, _ => some (wordLoc ⟨3⟩)
   | { base := "when", steps := [] }, _ => some (wordLoc ⟨4⟩)

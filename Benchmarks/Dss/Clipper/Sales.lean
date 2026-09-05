@@ -186,9 +186,9 @@ theorem clipperSalesBodyReturns (v : ClipperImmutables) (evm : EVM.State)
   have hpos : evalExpr? (config v) frame evm (.storage (salesF (.var "arg0") "pos")) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperSalesPosSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
-      (cfg := config v) (solm := frame) (evm := evm)
-      (slot := salesF (.var "arg0") "pos") (er := clipperSalesPosRef I)
+    exact clipperEvalExpr_storage_scalar_value
+      (solm := frame) (evm := evm)
+      (slotRef := salesF (.var "arg0") "pos") (er := clipperSalesPosRef I)
       (t := .int uint256Int) (loc := wordLoc (clipperSalesPosSlot I))
       (value := .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperSalesPosSlot I)).toNat))
@@ -206,9 +206,9 @@ theorem clipperSalesBodyReturns (v : ClipperImmutables) (evm : EVM.State)
   have htab : evalExpr? (config v) frame evm (.storage (salesF (.var "arg0") "tab")) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperSalesTabSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
-      (cfg := config v) (solm := frame) (evm := evm)
-      (slot := salesF (.var "arg0") "tab") (er := clipperSalesTabRef I)
+    exact clipperEvalExpr_storage_scalar_value
+      (solm := frame) (evm := evm)
+      (slotRef := salesF (.var "arg0") "tab") (er := clipperSalesTabRef I)
       (t := .int uint256Int) (loc := wordLoc (clipperSalesTabSlot I))
       (value := .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperSalesTabSlot I)).toNat))
@@ -226,9 +226,9 @@ theorem clipperSalesBodyReturns (v : ClipperImmutables) (evm : EVM.State)
   have hlot : evalExpr? (config v) frame evm (.storage (salesF (.var "arg0") "lot")) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperSalesLotSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
-      (cfg := config v) (solm := frame) (evm := evm)
-      (slot := salesF (.var "arg0") "lot") (er := clipperSalesLotRef I)
+    exact clipperEvalExpr_storage_scalar_value
+      (solm := frame) (evm := evm)
+      (slotRef := salesF (.var "arg0") "lot") (er := clipperSalesLotRef I)
       (t := .int uint256Int) (loc := wordLoc (clipperSalesLotSlot I))
       (value := .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperSalesLotSlot I)).toNat))
@@ -247,9 +247,9 @@ theorem clipperSalesBodyReturns (v : ClipperImmutables) (evm : EVM.State)
       .ok (.address (AccountAddress.ofNat (UInt256.land
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (clipperSalesPackedSlot I))
         solcAddrMask).toNat)) := by
-    exact evalExpr_storage_scalar_value
-      (cfg := config v) (solm := frame) (evm := evm)
-      (slot := salesF (.var "arg0") "usr") (er := clipperSalesUsrRef I)
+    exact clipperEvalExpr_storage_scalar_value
+      (solm := frame) (evm := evm)
+      (slotRef := salesF (.var "arg0") "usr") (er := clipperSalesUsrRef I)
       (t := .address) (loc := addrLoc (clipperSalesPackedSlot I))
       (value := .address (AccountAddress.ofNat (UInt256.land
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (clipperSalesPackedSlot I))
@@ -269,9 +269,9 @@ theorem clipperSalesBodyReturns (v : ClipperImmutables) (evm : EVM.State)
       .ok (.int (Int.ofNat (clipperSalesPackedTicWord
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperSalesPackedSlot I))).toNat)) := by
-    exact evalExpr_storage_scalar_value
-      (cfg := config v) (solm := frame) (evm := evm)
-      (slot := salesF (.var "arg0") "tic") (er := clipperSalesTicRef I)
+    exact clipperEvalExpr_storage_scalar_value
+      (solm := frame) (evm := evm)
+      (slotRef := salesF (.var "arg0") "tic") (er := clipperSalesTicRef I)
       (t := .int uint96Int)
       (loc := uint96Loc (clipperSalesPackedSlot I) ⟨20, by decide⟩ (by decide))
       (value := .int (Int.ofNat (clipperSalesPackedTicWord
@@ -291,9 +291,9 @@ theorem clipperSalesBodyReturns (v : ClipperImmutables) (evm : EVM.State)
   have htop : evalExpr? (config v) frame evm (.storage (salesF (.var "arg0") "top")) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperSalesTopSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
-      (cfg := config v) (solm := frame) (evm := evm)
-      (slot := salesF (.var "arg0") "top") (er := clipperSalesTopRef I)
+    exact clipperEvalExpr_storage_scalar_value
+      (solm := frame) (evm := evm)
+      (slotRef := salesF (.var "arg0") "top") (er := clipperSalesTopRef I)
       (t := .int uint256Int) (loc := wordLoc (clipperSalesTopSlot I))
       (value := .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperSalesTopSlot I)).toNat))

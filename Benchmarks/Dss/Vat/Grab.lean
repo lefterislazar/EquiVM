@@ -2329,57 +2329,52 @@ theorem grabStorageType_vice :
   simp [storageTypeAt?, contract, storageDecls, uint256St]
 
 theorem grabStorageLayout_urn_ink_source (I : ExecutionEnv) :
-    config.storage.layout (grabUrnInkEvaledRef I) =
+    storageLayout (grabUrnInkEvaledRef I) =
       fun _ => some (wordLoc (grabUrnInkSourceSlot I)) := by
   funext evm
-  change storageLayoutRaw (grabUrnInkEvaledRef I) evm =
-    some (wordLoc (grabUrnInkSourceSlot I))
-  simp [storageLayoutRaw, grabUrnInkEvaledRef, grabUrnInkSourceSlot, grabUrnSourceBase]
+  simp [storageLayout, wordLoc, uint256Int, grabUrnInkEvaledRef,
+    grabUrnInkSourceSlot, grabUrnSourceBase, urnsBase, urnsIlkSlot, mapSlot]
 
 theorem grabStorageLayout_urn_art_source (I : ExecutionEnv) :
-    config.storage.layout (grabUrnArtEvaledRef I) =
+    storageLayout (grabUrnArtEvaledRef I) =
       fun _ => some (wordLoc (grabUrnArtSourceSlot I)) := by
   funext evm
-  change storageLayoutRaw (grabUrnArtEvaledRef I) evm =
-    some (wordLoc (grabUrnArtSourceSlot I))
-  simp [storageLayoutRaw, grabUrnArtEvaledRef, grabUrnArtSourceSlot, grabUrnSourceBase]
+  simp [storageLayout, wordLoc, uint256Int, grabUrnArtEvaledRef,
+    grabUrnArtSourceSlot, grabUrnSourceBase, urnsBase, urnsIlkSlot, mapSlot]
 
 theorem grabStorageLayout_ilk_art_source (I : ExecutionEnv) :
-    config.storage.layout (grabIlkArtEvaledRef I) =
+    storageLayout (grabIlkArtEvaledRef I) =
       fun _ => some (wordLoc (grabIlkArtSourceSlot I)) := by
   funext evm
-  change storageLayoutRaw (grabIlkArtEvaledRef I) evm =
-    some (wordLoc (grabIlkArtSourceSlot I))
-  simp [storageLayoutRaw, grabIlkArtEvaledRef, grabIlkArtSourceSlot, grabIlkSourceBase]
+  simp [storageLayout, wordLoc, uint256Int, grabIlkArtEvaledRef,
+    grabIlkArtSourceSlot, grabIlkSourceBase, ilksBase, mapSlot]
 
 theorem grabStorageLayout_ilk_rate_source (I : ExecutionEnv) :
-    config.storage.layout (grabIlkRateEvaledRef I) =
+    storageLayout (grabIlkRateEvaledRef I) =
       fun _ => some (wordLoc (grabIlkRateSourceSlot I)) := by
   funext evm
-  change storageLayoutRaw (grabIlkRateEvaledRef I) evm =
-    some (wordLoc (grabIlkRateSourceSlot I))
-  simp [storageLayoutRaw, grabIlkRateEvaledRef, grabIlkRateSourceSlot, grabIlkSourceBase]
+  simp [storageLayout, wordLoc, uint256Int, grabIlkRateEvaledRef,
+    grabIlkRateSourceSlot, grabIlkSourceBase, ilksBase, mapSlot]
 
 theorem grabStorageLayout_gem_source (I : ExecutionEnv) :
-    config.storage.layout (grabGemEvaledRef I) =
+    storageLayout (grabGemEvaledRef I) =
       fun _ => some (wordLoc (grabGemSourceSlot I)) := by
   funext evm
-  change storageLayoutRaw (grabGemEvaledRef I) evm = some (wordLoc (grabGemSourceSlot I))
-  simp [storageLayoutRaw, grabGemEvaledRef, grabGemSourceSlot]
+  simp [storageLayout, wordLoc, uint256Int, grabGemEvaledRef, grabGemSourceSlot,
+    gemSlot, gemIlkSlot, mapSlot]
 
 theorem grabStorageLayout_sin_source (I : ExecutionEnv) :
-    config.storage.layout (grabSinEvaledRef I) =
+    storageLayout (grabSinEvaledRef I) =
       fun _ => some (wordLoc (grabSinSourceSlot I)) := by
   funext evm
-  change storageLayoutRaw (grabSinEvaledRef I) evm = some (wordLoc (grabSinSourceSlot I))
-  simp [storageLayoutRaw, grabSinEvaledRef, grabSinSourceSlot]
+  simp [storageLayout, wordLoc, uint256Int, grabSinEvaledRef, grabSinSourceSlot,
+    sinSlot, mapSlot]
 
 theorem grabStorageLayout_vice_source :
-    config.storage.layout grabViceEvaledRef =
+    storageLayout grabViceEvaledRef =
       fun _ => some (wordLoc grabViceSourceSlot) := by
   funext evm
-  change storageLayoutRaw grabViceEvaledRef evm = some (wordLoc grabViceSourceSlot)
-  simp [storageLayoutRaw, grabViceEvaledRef, grabViceSourceSlot]
+  simp [storageLayout, wordLoc, uint256Int, grabViceEvaledRef, grabViceSourceSlot]
 
 set_option linter.unusedSimpArgs false in
 theorem evalStorageRef_grab_urn_ink_locals (evm : EVM.State) (I : ExecutionEnv)
@@ -2464,7 +2459,7 @@ theorem evalExpr_grab_urn_ink_locals {evm : EVM.State} {I : ExecutionEnv}
       (.storage (urnsF (.var "i") (.var "u") "ink")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (grabUrnInkSourceSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact vatEvalExpr_storage_scalar_value
     (hbase := hbase)
     (her := evalStorageRef_grab_urn_ink_locals evm I locals hsz196 hi hu)
     (hty := grabStorageType_urn_ink I)
@@ -2480,7 +2475,7 @@ theorem evalExpr_grab_urn_art_locals {evm : EVM.State} {I : ExecutionEnv}
       (.storage (urnsF (.var "i") (.var "u") "art")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (grabUrnArtSourceSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact vatEvalExpr_storage_scalar_value
     (hbase := hbase)
     (her := evalStorageRef_grab_urn_art_locals evm I locals hsz196 hi hu)
     (hty := grabStorageType_urn_art I)
@@ -2495,7 +2490,7 @@ theorem evalExpr_grab_ilk_art_locals {evm : EVM.State} {I : ExecutionEnv}
       (.storage (ilksF (.var "i") "Art")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (grabIlkArtSourceSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact vatEvalExpr_storage_scalar_value
     (hbase := hbase)
     (her := evalStorageRef_grab_ilk_art_locals evm I locals hsz196 hi)
     (hty := grabStorageType_ilk_art I)
@@ -2510,7 +2505,7 @@ theorem evalExpr_grab_ilk_rate_locals {evm : EVM.State} {I : ExecutionEnv}
       (.storage (ilksF (.var "i") "rate")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (grabIlkRateSourceSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact vatEvalExpr_storage_scalar_value
     (hbase := hbase)
     (her := evalStorageRef_grab_ilk_rate_locals evm I locals hsz196 hi)
     (hty := grabStorageType_ilk_rate I)
@@ -2526,7 +2521,7 @@ theorem evalExpr_grab_gem_locals {evm : EVM.State} {I : ExecutionEnv}
       (.storage (gemRef (.var "i") (.var "v"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (grabGemSourceSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact vatEvalExpr_storage_scalar_value
     (hbase := hbase)
     (her := evalStorageRef_grab_gem_locals evm I locals hsz196 hi hv)
     (hty := grabStorageType_gem I)
@@ -2541,7 +2536,7 @@ theorem evalExpr_grab_sin_locals {evm : EVM.State} {I : ExecutionEnv}
       (.storage (sinRef (.var "w"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (grabSinSourceSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact vatEvalExpr_storage_scalar_value
     (hbase := hbase)
     (her := evalStorageRef_grab_sin_locals evm I locals hw)
     (hty := grabStorageType_sin I)
@@ -2554,7 +2549,7 @@ theorem evalExpr_grab_vice_locals {evm : EVM.State} (locals : Store)
       (.storage viceRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner grabViceSourceSlot).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact vatEvalExpr_storage_scalar_value
     (hbase := hbase)
     (her := evalStorageRef_grab_vice_locals evm locals)
     (hty := grabStorageType_vice)
@@ -2572,7 +2567,7 @@ theorem assignStorageRef_grab_urn_ink (evm : EVM.State) (I : ExecutionEnv)
       (urnsF (.var "i") (.var "u") "ink") (.int (Int.ofNat urnInkNew.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact vatAssignStorageRef_storage_uint256
     (hbase := hbase)
     (her := evalStorageRef_grab_urn_ink_locals evm I locals hsz196 hi hu)
     (hty := grabStorageType_urn_ink I)
@@ -2591,7 +2586,7 @@ theorem assignStorageRef_grab_urn_art (evm : EVM.State) (I : ExecutionEnv)
       (urnsF (.var "i") (.var "u") "art") (.int (Int.ofNat urnArtNew.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact vatAssignStorageRef_storage_uint256
     (hbase := hbase)
     (her := evalStorageRef_grab_urn_art_locals evm I locals hsz196 hi hu)
     (hty := grabStorageType_urn_art I)
@@ -2609,7 +2604,7 @@ theorem assignStorageRef_grab_ilk_art (evm : EVM.State) (I : ExecutionEnv)
       (ilksF (.var "i") "Art") (.int (Int.ofNat ilkArtNew.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact vatAssignStorageRef_storage_uint256
     (hbase := hbase)
     (her := evalStorageRef_grab_ilk_art_locals evm I locals hsz196 hi)
     (hty := grabStorageType_ilk_art I)
@@ -2628,7 +2623,7 @@ theorem assignStorageRef_grab_gem (evm : EVM.State) (I : ExecutionEnv)
       (gemRef (.var "i") (.var "v")) (.int (Int.ofNat gemNew.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact vatAssignStorageRef_storage_uint256
     (hbase := hbase)
     (her := evalStorageRef_grab_gem_locals evm I locals hsz196 hi hv)
     (hty := grabStorageType_gem I)
@@ -2646,7 +2641,7 @@ theorem assignStorageRef_grab_sin (evm : EVM.State) (I : ExecutionEnv)
       (sinRef (.var "w")) (.int (Int.ofNat sinNew.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact vatAssignStorageRef_storage_uint256
     (hbase := hbase)
     (her := evalStorageRef_grab_sin_locals evm I locals hw)
     (hty := grabStorageType_sin I)
@@ -2663,7 +2658,7 @@ theorem assignStorageRef_grab_vice (evm : EVM.State)
       viceRef (.int (Int.ofNat viceNew.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact vatAssignStorageRef_storage_uint256
     (hbase := hbase)
     (her := evalStorageRef_grab_vice_locals evm locals)
     (hty := grabStorageType_vice)
