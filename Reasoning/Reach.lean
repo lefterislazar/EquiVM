@@ -3745,26 +3745,6 @@ theorem storageWrite_of_missing {owner : AccountAddress} {σ : AccountMap} {slot
     (haccount : σ.find? owner = none) : storageWrite owner σ slot value = σ := by
   simp [storageWrite, sstoreAccountMap, haccount, Option.option]
 
-/-
-lemma memExpansionConcat : ∀ (aw f1 l1 f2 l2 : UInt256),
-  l2 ≠ ⟨0⟩ →
-  f2 + l2 > f1 + l1 →
-  memExpansionCost (M aw f1 l1) f2 l2 =
-    memExpansionCost aw f2 l2 := by
-  intros aw f1 l1 f2 l2 hl2_neq hgt
-  simp [memExpansionCost, M, MachineState.M]
-  split <;> rename_i hl2
-  · split <;> rename_i hl1
-    · simp [UInt256_ofNat_toNat]
-    · simp [UInt256_ofNat_toNat]
-  · split <;> rename_i hl1
-    · simp [UInt256_ofNat_toNat]
-    · simp [max]
-      split <;> split <;> split <;> rename_i hmax2
-      <;> sorry
-      -/
-
-
 
 
 theorem RD.mstore {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
