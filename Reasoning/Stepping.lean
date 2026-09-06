@@ -390,6 +390,30 @@ theorem chainid_xstep {s : State} {code : ByteArray} {pcv : UInt256} {rest : Lis
   rw [← hcode, step_chainid s hd, if_neg hov']
   simp only [GasConstants.Gbase, stChainid]
 
+/-! ### SELFBALANCE (cost 5, pc += 1, pushes the code owner's balance) -/
+
+def stSelfbalance (s : State) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := (s.accountMap.find? s.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance)) ::
+        s.machineState.stack,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable.subNat 5 } }
+
+theorem selfbalance_xstep {s : State} {code : ByteArray} {pcv : UInt256}
+    {rest : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.SELFBALANCE, .none))
+    (hstk : s.machineState.stack = rest) (hov : rest.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 5 then .error .OutOfGass
+         else .ok (stSelfbalance s, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.SELFBALANCE, .none) := by
+    rw [hcode, hpc]; exact hdec
+  have hov' : ¬ (s.machineState.stack.length - 0 + 1 > 1024) := by rw [hstk]; omega
+  rw [← hcode, step_selfbalance s hd, if_neg hov']
+  simp only [GasConstants.Glow, stSelfbalance]
+
 /-! ### DUP1 (cost 3, pc += 1, duplicates top) -/
 
 def stDup1 (s : State) (a : UInt256) (t : List UInt256) : State :=
@@ -731,7 +755,7 @@ theorem shl_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List U
   have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
   simp only [if_neg hov', GasConstants.Gverylow, stBinop]
 
-/-! ### MOD / MUL / DIV (cost 5 = `Glow`, `a :: b :: t ↦ res :: t`, pc += 1) -/
+/-! ### MOD / MUL / DIV / SDIV (cost 5 = `Glow`, `a :: b :: t ↦ res :: t`, pc += 1) -/
 
 def stBinop5 (s : State) (res : UInt256) (t : List UInt256) : State :=
   { s with machineState := { s.machineState with
@@ -773,6 +797,19 @@ theorem div_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List U
          else .ok (stBinop5 s (UInt256.div a b) t, .none)) := by
   have hd : decode s.executionEnv.code s.machineState.pc = some (.DIV, .none) := by rw [hcode, hpc]; exact hdec
   rw [← hcode, step_div s hd, hstk]
+  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
+  simp only [if_neg hov', GasConstants.Glow, stBinop5]
+
+theorem sdiv_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.SDIV, .none))
+    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 5 then .error .OutOfGass
+         else .ok (stBinop5 s (UInt256.sdiv a b) t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.SDIV, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_sdiv s hd, hstk]
   have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
   simp only [if_neg hov', GasConstants.Glow, stBinop5]
 

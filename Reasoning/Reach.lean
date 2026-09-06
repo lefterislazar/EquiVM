@@ -1064,6 +1064,15 @@ theorem RD.div {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RD code ee g s0 (pc + ⟨1⟩) (UInt256.div a b :: t) mem aw rdata acc (k + 1) (C + 5) :=
   h.stepBinop5 (fun _ hc hp hs => div_xstep hc hp hdec hs hov)
 
+theorem RD.sdiv {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.SDIV, .none)) (hov : t.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) (UInt256.sdiv a b :: t) mem aw rdata acc (k + 1) (C + 5) :=
+  h.stepBinop5 (fun _ hc hp hs => sdiv_xstep hc hp hdec hs hov)
+
 theorem RD.exp {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
@@ -1225,6 +1234,38 @@ theorem RD.chainid {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Sta
       · simp only [stChainid]; exact haw
       · simp only [stChainid]; exact hrdata
       · simp only [stChainid]; exact hacc
+      · exact hee
+      · exact hworld
+
+/-- **SELFBALANCE**: push the current contract's balance from the carried account map
+    (cost `Glow = 5`, pc += 1). -/
+theorem RD.selfbalance {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hdec : decode code pc = some (.SELFBALANCE, .none))
+    (hov : stk.length + 1 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩)
+      ((acc.2.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)) :: stk) mem aw rdata acc
+      (k + 1) (C + 5) := by
+  unfold RD at h ⊢
+  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
+  · exact Or.inl hoog
+  · have st := selfbalance_xstep hcode hpc hdec hstk hov
+    by_cases gg : g.toNat < C + 5
+    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
+    · refine Or.inr ⟨stSelfbalance s,
+        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
+        by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [stSelfbalance]; exact hcode
+      · simp only [stSelfbalance]; rw [hpc]
+      · have haccm : s.accountMap = acc.2 := congrArg Prod.snd hacc
+        simp only [stSelfbalance]; rw [hstk, hee, haccm]
+      · simp only [stSelfbalance]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [stSelfbalance]; exact hmem
+      · simp only [stSelfbalance]; exact haw
+      · simp only [stSelfbalance]; exact hrdata
+      · simp only [stSelfbalance]; exact hacc
       · exact hee
       · exact hworld
 
