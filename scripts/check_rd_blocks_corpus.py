@@ -137,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
         def check(index: int, case: Case) -> tuple[Case, int, str | None]:
             prefix = rd.lean_ident(f"corpus_{case.module}_{case.term}")
             header = (
-                "import Reasoning.Reach\n"
+                "import Reasoning.SummaryPatterns\n"
                 f"import {case.module}\n\n"
                 "open Solm ABI Ethereum Ethereum.EVM\n"
                 "open Reasoning.Theory Reasoning.Reach\n\n"

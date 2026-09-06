@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import re
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Iterable
 
@@ -43,6 +44,119 @@ class Instruction:
     @property
     def size(self) -> int:
         return self.width + 1
+
+
+class SequenceEffect(Enum):
+    REVERT = "revert"
+    SELECTOR_MODERN = "selector_modern"
+    SELECTOR_LEGACY = "selector_legacy"
+    FREE_MEMORY_POINTER = "free_memory_pointer"
+    ADDRESS_MASK = "address_mask"
+    FREE_MEMORY_POINTER_LOAD = "free_memory_pointer_load"
+    ERROR_SELECTOR_STORE = "error_selector_store"
+
+
+@dataclass(frozen=True)
+class SequencePattern:
+    """An exact, within-basic-block opcode sequence with a summary theorem."""
+
+    name: str
+    instructions: tuple[tuple[int, int | None], ...]
+    theorem: str
+    effect: SequenceEffect
+    peak_growth: int
+    gas_cost: int
+
+    @property
+    def terminal(self) -> bool:
+        return self.effect is SequenceEffect.REVERT
+
+
+# Keep this explicitly longest-first.  That makes the copy-and-revert idioms win
+# over their revert suffixes and gives additions to the registry a visible order.
+SEQUENCE_PATTERNS = (
+    SequencePattern(
+        "error_revert_finalizer",
+        ((0x60, 68), (0x82, None), (0x01, None), (0x52, None),
+         (0x90, None), (0x51, None), (0x90, None), (0x81, None),
+         (0x90, None), (0x03, None), (0x60, 100), (0x01, None),
+         (0x90, None), (0xFD, None)),
+        "RD.solcSummaryErrorRevertFinalizer", SequenceEffect.REVERT, 2, 0,
+    ),
+    SequencePattern(
+        "return_data_copy_revert",
+        ((0x3D, None), (0x5F, None), (0x5F, None), (0x3E, None),
+         (0x3D, None), (0x5F, None), (0xFD, None)),
+        "RD.solcSummaryReturnDataCopyRevert", SequenceEffect.REVERT, 3, 0,
+    ),
+    SequencePattern(
+        "legacy_return_data_copy_revert",
+        ((0x3D, None), (0x60, 0), (0x80, None), (0x3E, None),
+         (0x3D, None), (0x60, 0), (0xFD, None)),
+        "RD.solcSummaryLegacyReturnDataCopyRevert", SequenceEffect.REVERT, 3, 0,
+    ),
+    SequencePattern(
+        "address_mask",
+        ((0x60, 1), (0x60, 1), (0x60, 160), (0x1B, None), (0x03, None)),
+        "RD.solcSummaryAddressMask", SequenceEffect.ADDRESS_MASK, 3, 15,
+    ),
+    SequencePattern(
+        "error_selector_store",
+        ((0x62, 4594637), (0x60, 229), (0x1B, None), (0x81, None), (0x52, None)),
+        "RD.solcSummaryErrorSelectorStore", SequenceEffect.ERROR_SELECTOR_STORE, 2, 15,
+    ),
+    SequencePattern(
+        "selector_load",
+        ((0x5F, None), (0x35, None), (0x60, 224), (0x1C, None)),
+        "RD.solcSummarySelectorLoad", SequenceEffect.SELECTOR_MODERN, 2, 11,
+    ),
+    SequencePattern(
+        "legacy_selector_load",
+        ((0x60, 0), (0x35, None), (0x60, 224), (0x1C, None)),
+        "RD.solcSummaryLegacySelectorLoad", SequenceEffect.SELECTOR_LEGACY, 2, 12,
+    ),
+    SequencePattern(
+        "revert0",
+        ((0x5F, None), (0x5F, None), (0xFD, None)),
+        "RD.solcSummaryRevert0", SequenceEffect.REVERT, 2, 0,
+    ),
+    SequencePattern(
+        "legacy_revert0",
+        ((0x60, 0), (0x80, None), (0xFD, None)),
+        "RD.solcSummaryLegacyRevert0", SequenceEffect.REVERT, 2, 0,
+    ),
+    SequencePattern(
+        "free_memory_pointer",
+        ((0x60, 128), (0x60, 64), (0x52, None)),
+        "RD.solcSummaryFreeMemoryPointer", SequenceEffect.FREE_MEMORY_POINTER, 2, 9,
+    ),
+    SequencePattern(
+        "free_memory_pointer_load",
+        ((0x60, 64), (0x80, None), (0x51, None)),
+        "RD.solcSummaryFreeMemoryPointerLoad", SequenceEffect.FREE_MEMORY_POINTER_LOAD, 2, 9,
+    ),
+)
+
+ADDRESS_MASK_INSTRUCTIONS = ((0x60, 1), (0x60, 1), (0x60, 160),
+                             (0x1B, None), (0x03, None))
+ERROR_SELECTOR_BUILD_INSTRUCTIONS = ((0x62, 4594637), (0x60, 229), (0x1B, None))
+
+
+def matches_instructions(run: list[Instruction], start: int,
+                         expected: tuple[tuple[int, int | None], ...]) -> bool:
+    end = start + len(expected)
+    return end <= len(run) and all(
+        ins.opcode == opcode and (argument is None or ins.argument == argument)
+        for ins, (opcode, argument) in zip(run[start:end], expected)
+    )
+
+
+def match_sequence(run: list[Instruction], start: int) -> SequencePattern | None:
+    """Return the first (therefore longest) exact pattern at ``start``."""
+    for pattern in SEQUENCE_PATTERNS:
+        if matches_instructions(run, start, pattern.instructions):
+            return pattern
+    return None
 
 
 NAMES = {
@@ -229,8 +343,9 @@ def supported_segments(block: list[Instruction]) -> list[list[Instruction] | Ins
 
 def bounded_supported_segments(
     block: list[Instruction], max_instructions: int = MAX_SUMMARY_INSTRUCTIONS,
+    use_sequence_patterns: bool = True,
 ) -> list[list[Instruction] | Instruction]:
-    """Split supported runs into summaries whose symbolic terms stay manageable."""
+    """Split supported runs without cutting through a recognized sequence."""
     if max_instructions <= 0:
         raise ValueError("max summary instruction count must be positive")
     result: list[list[Instruction] | Instruction] = []
@@ -238,10 +353,28 @@ def bounded_supported_segments(
         if isinstance(piece, Instruction):
             result.append(piece)
         else:
-            result.extend(
-                piece[start:start + max_instructions]
-                for start in range(0, len(piece), max_instructions)
-            )
+            start = 0
+            while start < len(piece):
+                end = min(start + max_instructions, len(piece))
+                if use_sequence_patterns and end < len(piece):
+                    crossing = [
+                        index for index in range(start, end)
+                        if (pattern := match_sequence(piece, index)) is not None
+                        and index + len(pattern.instructions) > end
+                    ]
+                    if crossing:
+                        end = crossing[0]
+                # A pattern is always shorter than the default bound.  For a
+                # deliberately tiny test bound, keep it intact and allow this
+                # one segment to exceed the requested instruction count.
+                if end == start and use_sequence_patterns:
+                    pattern = match_sequence(piece, start)
+                    if pattern is not None:
+                        end = start + len(pattern.instructions)
+                if end == start:
+                    end = min(start + max_instructions, len(piece))
+                result.append(piece[start:end])
+                start = end
     return result
 
 
@@ -302,9 +435,11 @@ class Summary:
     branch: str | None
     max_stack_prefix: int
     existential_words: list[str]
+    last_cursor: str
 
 
-def simulate(block: list[Instruction], branch: str | None) -> Summary:
+def simulate(block: list[Instruction], branch: str | None,
+             use_sequence_patterns: bool = True) -> Summary:
     depth = required_input_depth(block)
     initial = [f"x{i}" for i in range(depth)]
     stack = initial.copy()
@@ -343,7 +478,70 @@ def simulate(block: list[Instruction], branch: str | None) -> Summary:
         rno += 1
         return before, f"r{rno}"
 
-    for ins in block:
+    def ends_with(expected: tuple[tuple[int, int | None], ...], index: int) -> bool:
+        start = index - len(expected) + 1
+        return start >= 0 and matches_instructions(block, start, expected)
+
+    def apply_pattern_effect(pattern: SequencePattern) -> None:
+        nonlocal mem, aw
+        effect = pattern.effect
+        if effect is SequenceEffect.FREE_MEMORY_POINTER:
+            address = u256_nat(64)
+            value = u256_nat(128)
+            costs.append(f"memExpansionCost {aw} {address} {WORD32}")
+            mem = f"({value}.toByteArray.write 0 {mem} {address}.toNat 32)"
+            aw = f"(M {aw} {address} {WORD32})"
+        elif effect is SequenceEffect.ADDRESS_MASK:
+            stack.insert(0, "solcAddrMask")
+        elif effect is SequenceEffect.FREE_MEMORY_POINTER_LOAD:
+            address = u256_nat(64)
+            old_aw = aw
+            costs.append(f"memExpansionCost {old_aw} {address} {WORD32}")
+            stack.insert(0, address)
+            stack.insert(0, f"(memLoad {address} {old_aw} {mem})")
+            aw = f"(M {old_aw} {address} {WORD32})"
+        elif effect is SequenceEffect.ERROR_SELECTOR_STORE:
+            base = stack[0]
+            old_aw = aw
+            costs.append(f"memExpansionCost {old_aw} {base} {WORD32}")
+            mem = f"(solcErrorStringSelector.toByteArray.write 0 {mem} {base}.toNat 32)"
+            aw = f"(M {old_aw} {base} {WORD32})"
+        elif effect in {SequenceEffect.SELECTOR_MODERN, SequenceEffect.SELECTOR_LEGACY}:
+            zero = WORD0 if effect is SequenceEffect.SELECTOR_MODERN else u256_nat(0)
+            selector = (
+                f"(UInt256.shiftRight (uInt256OfByteArray "
+                f"(ee.calldata.readBytes {zero}.toNat 32)) {u256_nat(224)})"
+            )
+            stack.insert(0, selector)
+        else:
+            raise AssertionError(f"no nonterminal effect handler for {effect.value}")
+        costs.append(pattern.gas_cost)
+
+    index = 0
+    while index < len(block):
+        ins = block[index]
+        pattern = match_sequence(block, index) if use_sequence_patterns else None
+        if pattern is not None:
+            stack_before = len(stack)
+            before, after = next_r()
+            count = len(pattern.instructions)
+            witnesses = ", ".join(
+                [before] + ["by native_decide"] * count + ["by evm_ov"]
+            )
+            if pattern.terminal:
+                proof.append(f"  exact {pattern.theorem} (by exact ⟨{witnesses}⟩)")
+                terminal = "RDrev __CODE__ g s0"
+                max_stack_prefix = max(max_stack_prefix, stack_before + pattern.peak_growth)
+                break
+
+            apply_pattern_effect(pattern)
+            proof.append(f"  have {after} := {pattern.theorem} (by exact ⟨{witnesses}⟩)")
+            max_stack_prefix = max(max_stack_prefix, stack_before + pattern.peak_growth)
+            last = block[index + count - 1]
+            pc = u256_nat(last.pc + last.size)
+            index += count
+            continue
+
         op = ins.opcode
         before, after = next_r()
         decode = "(by native_decide)"
@@ -380,7 +578,21 @@ def simulate(block: list[Instruction], branch: str | None) -> Summary:
         elif op in BINOPS:
             a, b = stack.pop(0), stack.pop(0)
             stack.insert(0, BINOPS[op](a, b))
-            proof.append(f"  have {after} := {before}.{ins.name} {decode} {ov}")
+            normalization: str | None = None
+            if op == 0x03 and ends_with(ADDRESS_MASK_INSTRUCTIONS, index):
+                stack[0] = "solcAddrMask"
+                normalization = "solcAddrMask"
+            elif op == 0x1B and ends_with(ERROR_SELECTOR_BUILD_INSTRUCTIONS, index):
+                stack[0] = "solcErrorStringSelector"
+                normalization = "solcErrorStringSelector"
+            if normalization is None:
+                proof.append(f"  have {after} := {before}.{ins.name} {decode} {ov}")
+            else:
+                raw_after = f"{after}Raw"
+                proof.append(f"  have {raw_after} := {before}.{ins.name} {decode} {ov}")
+                proof.append(
+                    f"  have {after} := by simpa [{normalization}] using {raw_after}"
+                )
         elif op == 0x15:
             a = stack.pop(0)
             stack.insert(0, f"(UInt256.isZero {a})")
@@ -444,10 +656,14 @@ def simulate(block: list[Instruction], branch: str | None) -> Summary:
             costs.append(f"memExpansionCost {aw} {a} {c}")
             costs.append(f"GasConstants.Gverylow + GasConstants.Gcopy * (({c}.toNat + 31) / 32)")
             aw = f"(M {aw} {a} {c})"
-            guard_name = require(
-                f"hguard{sum(name.startswith('hguard') for name, _ in extra_hypotheses)}",
-                f"{b}.toNat + {c}.toNat ≤ rdata.size",
-            )
+            zero_terms = {WORD0, u256_nat(0)}
+            if b in zero_terms and c == "(UInt256.ofNat rdata.size)":
+                guard_name = "(solcSummaryReturnDataCopyGuard rdata)"
+            else:
+                guard_name = require(
+                    f"hguard{sum(name.startswith('hguard') for name, _ in extra_hypotheses)}",
+                    f"{b}.toNat + {c}.toNat ≤ rdata.size",
+                )
             proof.append(
                 f"  have {after} := RD.returndatacopy {before} {decode} {guard_name} {ov}"
             )
@@ -558,9 +774,11 @@ def simulate(block: list[Instruction], branch: str | None) -> Summary:
             pc = u256_nat(ins.pc + step_pc)
 
         max_stack_prefix = max(max_stack_prefix, len(stack))
+        index += 1
 
     return Summary(initial, stack, mem, aw, world_map, pc, costs, proof, existential,
-                   terminal, extra_hypotheses, branch, max_stack_prefix, existential_words)
+                   terminal, extra_hypotheses, branch, max_stack_prefix, existential_words,
+                   f"r{rno}")
 
 
 def render_summary(prefix: str, code_term: str, block: list[Instruction], summary: Summary) -> str:
@@ -618,7 +836,7 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
     lines.append("  let r0 := h")
     lines.extend(summary.proof)
     if not summary.terminal:
-        last = f"r{len(summary.proof)}"
+        last = summary.last_cursor
         if is_static_word(summary.pc):
             lines.append(
                 f"  have rFinal := RD.normalizePC (pc' := {summary.pc}) "
@@ -647,7 +865,8 @@ def unsupported_boundary_comment(ins: Instruction, code_size: int) -> str:
 
 def generate_units(code: bytes, prefix: str, code_term: str,
                    fail_on_unsupported: bool = False, keep_metadata: bool = False,
-                   max_summary_instructions: int = MAX_SUMMARY_INSTRUCTIONS) -> list[str]:
+                   max_summary_instructions: int = MAX_SUMMARY_INSTRUCTIONS,
+                   use_sequence_patterns: bool = True) -> list[str]:
     """Generate theorem/comment units without a Lean module wrapper."""
     prefix = lean_ident(prefix)
     analyzed_code = code if keep_metadata else strip_solidity_metadata(code)
@@ -663,7 +882,9 @@ def generate_units(code: bytes, prefix: str, code_term: str,
 
     units: list[str] = []
     for block in discovered_blocks:
-        for piece in bounded_supported_segments(block, max_summary_instructions):
+        for piece in bounded_supported_segments(
+            block, max_summary_instructions, use_sequence_patterns
+        ):
             if isinstance(piece, Instruction):
                 units.append(unsupported_boundary_comment(piece, len(analyzed_code)))
                 continue
@@ -671,7 +892,7 @@ def generate_units(code: bytes, prefix: str, code_term: str,
                 ["taken", "fallthrough"] if piece[-1].opcode == 0x57 else [None]
             )
             for branch in branches:
-                summary = simulate(piece, branch)
+                summary = simulate(piece, branch, use_sequence_patterns)
                 units.append(render_summary(prefix, code_term, piece, summary))
     return units
 
@@ -679,7 +900,7 @@ def generate_units(code: bytes, prefix: str, code_term: str,
 def render_module(prefix: str, imports: list[str], units: list[str]) -> str:
     """Wrap generated units as an independently elaboratable Lean module."""
     prefix = lean_ident(prefix)
-    output = ["import Reasoning.Reach"]
+    output = ["import Reasoning.SummaryPatterns"]
     output.extend(f"import {module}" for module in imports)
     output += ["", "open Solm ABI Ethereum Ethereum.EVM",
                "open Reasoning.Theory Reasoning.Reach", "",
@@ -692,10 +913,11 @@ def render_module(prefix: str, imports: list[str], units: list[str]) -> str:
 
 def generate(code: bytes, prefix: str, code_term: str, imports: list[str],
              fail_on_unsupported: bool = False, keep_metadata: bool = False,
-             max_summary_instructions: int = MAX_SUMMARY_INSTRUCTIONS) -> str:
+             max_summary_instructions: int = MAX_SUMMARY_INSTRUCTIONS,
+             use_sequence_patterns: bool = True) -> str:
     """Generate a single Lean module. Use ``write_outputs`` for file sharding."""
     units = generate_units(code, prefix, code_term, fail_on_unsupported, keep_metadata,
-                           max_summary_instructions)
+                           max_summary_instructions, use_sequence_patterns)
     return render_module(prefix, imports, units)
 
 
@@ -760,6 +982,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-summary-instructions", type=int,
                         default=MAX_SUMMARY_INSTRUCTIONS,
                         help="split long supported runs after this many instructions (default: 64)")
+    parser.add_argument("--no-sequence-patterns", action="store_true",
+                        help="emit one primitive RD step per opcode")
     args = parser.parse_args(argv)
     if (args.bytecode is None) == (args.hex_bytecode is None):
         parser.error("provide exactly one of BYTECODE or --hex")
@@ -767,7 +991,8 @@ def main(argv: list[str] | None = None) -> int:
         code = (parse_bytecode_text(args.hex_bytecode) if args.hex_bytecode is not None
                 else read_bytecode(args.bytecode, args.code_term))
         units = generate_units(code, args.name, args.code_term, args.fail_on_unsupported,
-                               args.keep_metadata, args.max_summary_instructions)
+                               args.keep_metadata, args.max_summary_instructions,
+                               not args.no_sequence_patterns)
         paths = write_outputs(args.output, args.name,
                               [args.bytecode_import, *args.imports], units,
                               args.shard_size)

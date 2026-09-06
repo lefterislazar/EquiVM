@@ -7,6 +7,34 @@ trap 'rm -rf -- "$test_dir"' EXIT
 
 cd "$repo_root"
 
+python3 scripts/test_generate_rd_blocks.py
+
+# Exercise the original six summariser companions in one elaborating fixture.
+# The copy-and-revert patterns appear before their revert suffixes, checking
+# longest-match use. The free-memory-pointer extension is covered below by both
+# real solc examples and the full corpus check.
+python3 scripts/generate_lean_bytecode.py \
+  --hex 5f3560e01c0060003560e01c005f5ffd600080fd3d5f5f3e3d5ffd3d6000803e3d6000fd \
+  --name summaryPatternsBytecode --output "$test_dir/SummaryPatternsBytecode.lean"
+lake env lean -R "$test_dir" -o "$test_dir/SummaryPatternsBytecode.olean" \
+  "$test_dir/SummaryPatternsBytecode.lean"
+python3 scripts/generate_rd_blocks.py "$test_dir/SummaryPatternsBytecode.lean" \
+  --name summaryPatterns --code-term summaryPatternsBytecode \
+  --bytecode-import SummaryPatternsBytecode --output "$test_dir/SummaryPatterns.lean"
+test "$(rg -c 'RD\.solcSummary' "$test_dir/SummaryPatterns.lean")" -eq 6
+LEAN_PATH="$test_dir${LEAN_PATH:+:$LEAN_PATH}" lake env lean "$test_dir/SummaryPatterns.lean"
+
+python3 scripts/generate_lean_bytecode.py \
+  --hex 6001600160a01b0300604080510062461bcd60e51b815200604482015290519081900360640190fd \
+  --name nextSummaryPatternsBytecode --output "$test_dir/NextSummaryPatternsBytecode.lean"
+lake env lean -R "$test_dir" -o "$test_dir/NextSummaryPatternsBytecode.olean" \
+  "$test_dir/NextSummaryPatternsBytecode.lean"
+python3 scripts/generate_rd_blocks.py "$test_dir/NextSummaryPatternsBytecode.lean" \
+  --name nextSummaryPatterns --code-term nextSummaryPatternsBytecode \
+  --bytecode-import NextSummaryPatternsBytecode --output "$test_dir/NextSummaryPatterns.lean"
+test "$(rg -c 'RD\.solcSummary' "$test_dir/NextSummaryPatterns.lean")" -eq 4
+LEAN_PATH="$test_dir${LEAN_PATH:+:$LEAN_PATH}" lake env lean "$test_dir/NextSummaryPatterns.lean"
+
 python3 scripts/generate_rd_blocks.py Examples/Truth/Bytecode.lean \
   --name truthAuto --code-term truthBytecode \
   --bytecode-import Examples.Truth.Bytecode \
