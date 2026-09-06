@@ -69,6 +69,15 @@ PRIMITIVES.update({
     "routine7": "JUMP", "routine8": "JUMP", "routine9": "JUMP",
     "routine9c": "JUMP", "routine10": "JUMP", "routine11": "JUMP",
     "routine12": "JUMP", "routine13": "JUMP", "routine14": "JUMP",
+    # High-level Reach wrappers still execute exactly one opcode.  Keeping
+    # these aliases here is important: otherwise extraction silently stops at
+    # the first wrapper and reports a truncated Solidity sequence.
+    "rawGas": "GAS", "rawReturndatacopy": "RETURNDATACOPY",
+    "rawMstore": "MSTORE", "rawCalldatacopy": "CALLDATACOPY",
+    "rawCodecopy": "CODECOPY", "rawMload": "MLOAD",
+    "rawSstore": "SSTORE", "rawKeccak256": "KECCAK256",
+    "rawSload": "SLOAD", "rawLog1": "LOG1", "rawLog3": "LOG3",
+    "rawLog4": "LOG4", "rawRet": "RETURN", "rawRev": "REVERT",
 })
 
 
@@ -104,6 +113,30 @@ def source_files() -> list[Path]:
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
     )
     return sorted((ROOT / line) for line in proc.stdout.splitlines() if line)
+
+
+def dss_summary_pattern_occurrences() -> list[tuple[str, int, int]]:
+    """Count registered summariser patterns in DSS bytecode, within basic blocks.
+
+    These counts are deliberately separate from Lean source-use counts: one is
+    compiled-bytecode evidence, while the other measures proof-library reuse.
+    """
+    import check_rd_blocks_corpus as corpus
+    import generate_rd_blocks as generator
+
+    counts: Counter[str] = Counter()
+    artifacts: dict[str, set[str]] = defaultdict(set)
+    cases = corpus.discover([ROOT / "Benchmarks" / "Dss"])
+    for case in cases:
+        code = generator.strip_solidity_metadata(case.code)
+        for block in generator.blocks(generator.disassemble(code)):
+            for index in range(len(block)):
+                pattern = generator.match_sequence(block, index)
+                if pattern is not None:
+                    counts[pattern.name] += 1
+                    artifacts[pattern.name].add(case.label)
+    return [(pattern.name, counts[pattern.name], len(artifacts[pattern.name]))
+            for pattern in generator.SEQUENCE_PATTERNS if counts[pattern.name]]
 
 
 def strip_comments(text: str) -> str:
@@ -623,6 +656,7 @@ def render(reasoning: list[Decl], candidates: list[Decl], rejected_count: int) -
     composed_paths, composed_theorems, composed_uses = novelty_stats("composed")
     potential_paths, potential_theorems, potential_uses = novelty_stats("potential")
     reasoning_composites = sum(bool(d.components) for d in reasoning)
+    bytecode_occurrences = dss_summary_pattern_occurrences()
 
     def ranking_lines(title: str, groups: list[list[Decl]], prefix: str) -> list[str]:
         ranked = [f"### {title}", "",
@@ -668,6 +702,12 @@ def render(reasoning: list[Decl], candidates: list[Decl], rejected_count: int) -
         "independence; that requires comparing the actual preconditions and postconditions.", "",
         f"Inside `Reasoning/` itself, {reasoning_composites} of {len(reasoning)} inventoried theorems",
         "explicitly compose other named summaries; the remainder present their path directly.", "",
+        "### Registered summariser patterns in DSS bytecode", "",
+        "These are actual within-basic-block bytecode matches, not Lean theorem references.",
+        "Overlapping specializations use the generator's longest-first precedence.", "",
+        "| Pattern | Bytecode occurrences | DSS artifacts |", "|---|---:|---:|",
+        *[f"| `{name}` | {count} | {artifact_count} |"
+          for name, count, artifact_count in bytecode_occurrences], "",
         "## Method", "",
         "- A sequence must establish an `RD`-family result and execute at least two opcodes.",
         "- Foundational one-opcode wrappers and non-executing conversions from `RD` to another logic are excluded.",
@@ -675,6 +715,7 @@ def render(reasoning: list[Decl], candidates: list[Decl], rejected_count: int) -
         "- Opcode paths come from decode contracts, well-formedness predicates, `evm_run`, or RD proof chains.",
         "- Concrete operands and PCs are shown, but fingerprints wildcard operands while preserving PUSH widths.",
         "- Uses are direct, comment-free source references. Calls through another summary appear under composition, not as transitive uses.",
+        "- Registered summary patterns are also counted directly in DSS bytecode, independently of source uses.",
         "- Duplicate local names are resolved through their source file and transitive imports; unresolved cases are labeled.",
         "", "Regenerate with `python3 scripts/audit_rd_sequences.py --write`; verify freshness with",
         "`python3 scripts/audit_rd_sequences.py --check`.", "",
@@ -778,6 +819,9 @@ def self_test() -> None:
         "PUSH1[x]", "DUP1", "JUMPI[fallthrough]"
     ]
     assert fingerprint(["PUSH2[target]", "JUMPI[taken]"]) == "PUSH2[*] · JUMPI[taken]"
+    assert chain_ops("exact h.rawMstore 0 mem aw hd hc hm ha hov |>.rawKeccak256") == [
+        "MSTORE", "KECCAK256"
+    ]
 
 
 def main(argv: list[str] | None = None) -> int:

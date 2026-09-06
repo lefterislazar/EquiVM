@@ -24,6 +24,24 @@ NEXT_CASES = {
     "error_revert_finalizer": "604482015290519081900360640190fd",
 }
 
+MIGRATED_CASES = {
+    "low_mask": "60016001609f1b03",
+    "uint_max": "600019",
+    "left_aligned_selector": "63ffffffff1660e01b",
+    "bool_normalize": "1515",
+    "selector_condition": "80631234567814611234",
+    "selector_split_condition": "8063123456781162123456",
+    "call_success_condition": "158015611234",
+    "callvalue_condition": "348015",
+    "calldata_size_condition": "60043610611234",
+    "returndata_size_condition": "3d6020811015611234",
+    "static_args_condition": "5b61123460048036036064811015615678",
+    "checked_add_condition": "5b80820182811015615678",
+    "checked_sub_condition": "5b80820382811115615678",
+    "mapping_hash_key_first": "6000908152600160205260409020",
+    "mapping_hash_slot_first": "6001602052600090815260409020",
+}
+
 
 def instructions(hex_code: str) -> list[rd.Instruction]:
     return rd.disassemble(bytes.fromhex(hex_code))
@@ -55,11 +73,58 @@ class SequencePatternTests(unittest.TestCase):
                 self.assertEqual(expected, match.name)
 
         for code in (
-            "60016001609f1b03", "60418051", "62461bcd60e41b8152",
+            "60016002609f1b03", "60418051", "62461bcd60e41b8152",
             "604482015290519081900360630190fd",
         ):
             with self.subTest(near_miss=code):
                 self.assertIsNone(rd.match_sequence(instructions(code), 0))
+
+    def test_migrated_patterns_capture_values_and_widths(self) -> None:
+        for expected, code in MIGRATED_CASES.items():
+            with self.subTest(expected):
+                match = rd.match_sequence(instructions(code), 0)
+                self.assertIsNotNone(match)
+                self.assertEqual(expected, match.name)
+
+        # The final target PUSH is width-generic for these condition producers.
+        for width_code in ("806312345678146012", "8063123456781462123456"):
+            self.assertEqual("selector_condition",
+                             rd.match_sequence(instructions(width_code), 0).name)
+
+    def test_migrated_patterns_match_primitive_symbolic_results(self) -> None:
+        for name, code in MIGRATED_CASES.items():
+            with self.subTest(name):
+                block = instructions(code)
+                enabled = rd.simulate(block, None, True)
+                disabled = rd.simulate(block, None, False)
+                for field in ("stack_in", "stack_out", "mem", "aw", "world_map", "pc",
+                              "existential_counters", "terminal", "extra_hypotheses",
+                              "max_stack_prefix", "existential_words"):
+                    self.assertEqual(getattr(disabled, field), getattr(enabled, field), field)
+                self.assertEqual(rd.block_cost(disabled.costs), rd.block_cost(enabled.costs))
+
+    def test_migrated_patterns_stay_inside_segments_and_shards(self) -> None:
+        for name, code in MIGRATED_CASES.items():
+            with self.subTest(name):
+                pattern = instructions(code)
+                run = instructions("30" * 63 + code)
+                pieces = rd.bounded_supported_segments(run, 64)
+                self.assertEqual([63, len(pattern)], [len(piece) for piece in pieces])
+
+    def test_nested_mapping_pair_composes_inside_one_block(self) -> None:
+        code = "5b60016020908152600092835260408084209091529082529020548156"
+        block = instructions(code)
+        self.assertEqual("nested_mapping_inner_hash", rd.match_sequence(block, 0).name)
+        inner_len = 14
+        self.assertEqual("nested_mapping_outer_hash",
+                         rd.match_sequence(block, inner_len).name)
+        enabled = rd.simulate(block, None, True)
+        disabled = rd.simulate(block, None, False)
+        for field in ("stack_in", "stack_out", "mem", "aw", "pc", "extra_hypotheses",
+                      "max_stack_prefix", "existential_counters"):
+            self.assertEqual(getattr(disabled, field), getattr(enabled, field), field)
+        self.assertIn("solcSummaryNestedMappingInnerHash", "\n".join(enabled.proof))
+        self.assertIn("solcSummaryNestedMappingOuterHash", "\n".join(enabled.proof))
 
     def test_next_four_symbolic_effects_match_primitive_mode(self) -> None:
         for name, code in NEXT_CASES.items():

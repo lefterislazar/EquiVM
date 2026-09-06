@@ -1056,6 +1056,10 @@ noncomputable def wordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
 noncomputable def twoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
   wordAt32Mem slot (wordAt0Mem key mem)
 
+/-- The alternative Solidity scratch-write order: slot first, then key. -/
+noncomputable def twoWordHashMemSlotFirst (key slot : UInt256) (mem : ByteArray) : ByteArray :=
+  wordAt0Mem key (wordAt32Mem slot mem)
+
 theorem wordAt0Mem_read0 (word : UInt256) (mem : ByteArray) :
     (wordAt0Mem word mem).readWithPadding 0 32 = UInt256.toByteArray word := by
   unfold wordAt0Mem
@@ -1064,6 +1068,100 @@ theorem wordAt0Mem_read0 (word : UInt256) (mem : ByteArray) :
     (by rw [toByteArray_size])
     (by norm_num)]
   rw [toByteArray_extract_all]
+
+theorem wordAt0Mem_size_ge_32 (word : UInt256) (mem : ByteArray) :
+    32 ≤ (wordAt0Mem word mem).size := by
+  unfold wordAt0Mem
+  have hdata := write0_data (UInt256.toByteArray word) mem 32
+    (by norm_num) (by rw [toByteArray_size])
+  change 32 ≤ ((UInt256.toByteArray word).write 0 mem 0 32).data.size
+  rw [hdata, Array.size_append, Array.size_extract]
+  have hs : (UInt256.toByteArray word).data.size = 32 := by
+    change (UInt256.toByteArray word).size = 32
+    rw [toByteArray_size]
+  omega
+
+theorem twoWordHashMem_size_ge_64 (key slot : UInt256) (mem : ByteArray) :
+    64 ≤ (twoWordHashMem key slot mem).size := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_eq _ _ 32 (by rw [toByteArray_size]) (wordAt0Mem_size_ge_32 key mem)]
+  rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, toByteArray_size]
+  have h := wordAt0Mem_size_ge_32 key mem
+  omega
+
+theorem twoWordHashMem_read0_any (key slot : UInt256) (mem : ByteArray) :
+    (twoWordHashMem key slot mem).readWithPadding 0 32 = UInt256.toByteArray key := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
+      (wordAt0Mem_size_ge_32 key mem) (by omega)]
+  exact wordAt0Mem_read0 key mem
+
+theorem twoWordHashMem_read32_any (key slot : UInt256) (mem : ByteArray) :
+    (twoWordHashMem key slot mem).readWithPadding 32 32 = UInt256.toByteArray slot := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_back _ _ 32 (by rw [toByteArray_size])
+      (wordAt0Mem_size_ge_32 key mem), toByteArray_extract_all]
+
+theorem twoWordHashMem_read0_64_any (key slot : UInt256) (mem : ByteArray) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [byteArray_readWithPadding_split _ 0 32 32 (by norm_num) (by norm_num)
+    (by norm_num) (by norm_num) (by norm_num) (twoWordHashMem_size_ge_64 key slot mem),
+    twoWordHashMem_read0_any, twoWordHashMem_read32_any]
+
+theorem wordAt32Mem_size_ge_64 (word : UInt256) (mem : ByteArray) :
+    64 ≤ (wordAt32Mem word mem).size := by
+  unfold wordAt32Mem
+  exact toByteArray_write_size_ge_off_add32 word mem 32 (by
+    have hu : 32 < USize.size := by native_decide
+    omega)
+
+theorem wordAt32Mem_read32_any (word : UInt256) (mem : ByteArray) :
+    (wordAt32Mem word mem).readWithPadding 32 32 = UInt256.toByteArray word := by
+  unfold wordAt32Mem
+  exact toByteArray_write_read_back_of_gap word mem 32 (by
+    have hu : 32 < USize.size := by native_decide
+    omega)
+
+theorem twoWordHashMemSlotFirst_size_ge_64 (key slot : UInt256) (mem : ByteArray) :
+    64 ≤ (twoWordHashMemSlotFirst key slot mem).size := by
+  unfold twoWordHashMemSlotFirst
+  have h := wordAt0Mem_size_ge_32 key (wordAt32Mem slot mem)
+  have hs := wordAt32Mem_size_ge_64 slot mem
+  unfold wordAt0Mem at h ⊢
+  have hdata := write0_data (UInt256.toByteArray key) (wordAt32Mem slot mem) 32
+    (by norm_num) (by rw [toByteArray_size])
+  change 64 ≤ ((UInt256.toByteArray key).write 0 (wordAt32Mem slot mem) 0 32).data.size
+  rw [hdata, Array.size_append, Array.size_extract, Array.size_extract]
+  have hk : (UInt256.toByteArray key).data.size = 32 := by
+    change (UInt256.toByteArray key).size = 32
+    rw [toByteArray_size]
+  have hb : (wordAt32Mem slot mem).data.size = (wordAt32Mem slot mem).size := rfl
+  rw [hk, hb, Nat.min_self]
+  omega
+
+theorem twoWordHashMemSlotFirst_read0_any (key slot : UInt256) (mem : ByteArray) :
+    (twoWordHashMemSlotFirst key slot mem).readWithPadding 0 32 =
+      UInt256.toByteArray key := by
+  unfold twoWordHashMemSlotFirst
+  exact wordAt0Mem_read0 key (wordAt32Mem slot mem)
+
+theorem twoWordHashMemSlotFirst_read32_any (key slot : UInt256) (mem : ByteArray) :
+    (twoWordHashMemSlotFirst key slot mem).readWithPadding 32 32 =
+      UInt256.toByteArray slot := by
+  unfold twoWordHashMemSlotFirst wordAt0Mem
+  rw [write32_read_above _ _ 0 32 (by rw [toByteArray_size]) (by omega)
+      (by omega) (wordAt32Mem_size_ge_64 slot mem)]
+  exact wordAt32Mem_read32_any slot mem
+
+theorem twoWordHashMemSlotFirst_read0_64_any (key slot : UInt256) (mem : ByteArray) :
+    (twoWordHashMemSlotFirst key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [byteArray_readWithPadding_split _ 0 32 32 (by norm_num) (by norm_num)
+    (by norm_num) (by norm_num) (by norm_num)
+    (twoWordHashMemSlotFirst_size_ge_64 key slot mem),
+    twoWordHashMemSlotFirst_read0_any, twoWordHashMemSlotFirst_read32_any]
 
 theorem wordAt0Mem_keccak_word (word : UInt256) (mem : ByteArray) :
     UInt256.ofNat

@@ -54,6 +54,23 @@ class SequenceEffect(Enum):
     ADDRESS_MASK = "address_mask"
     FREE_MEMORY_POINTER_LOAD = "free_memory_pointer_load"
     ERROR_SELECTOR_STORE = "error_selector_store"
+    LOW_MASK = "low_mask"
+    UINT_MAX = "uint_max"
+    LEFT_ALIGNED_SELECTOR = "left_aligned_selector"
+    BOOL_NORMALIZE = "bool_normalize"
+    SELECTOR_CONDITION = "selector_condition"
+    SELECTOR_SPLIT_CONDITION = "selector_split_condition"
+    CALL_SUCCESS_CONDITION = "call_success_condition"
+    CALLVALUE_CONDITION = "callvalue_condition"
+    CALLDATA_SIZE_CONDITION = "calldata_size_condition"
+    RETURNDATA_SIZE_CONDITION = "returndata_size_condition"
+    STATIC_ARGS_CONDITION = "static_args_condition"
+    CHECKED_ADD_CONDITION = "checked_add_condition"
+    CHECKED_SUB_CONDITION = "checked_sub_condition"
+    MAPPING_HASH_KEY_FIRST = "mapping_hash_key_first"
+    MAPPING_HASH_SLOT_FIRST = "mapping_hash_slot_first"
+    NESTED_MAPPING_INNER_HASH = "nested_mapping_inner_hash"
+    NESTED_MAPPING_OUTER_HASH = "nested_mapping_outer_hash"
 
 
 @dataclass(frozen=True)
@@ -66,6 +83,7 @@ class SequencePattern:
     effect: SequenceEffect
     peak_growth: int
     gas_cost: int
+    generic_final_push: bool = False
 
     @property
     def terminal(self) -> bool:
@@ -74,6 +92,8 @@ class SequencePattern:
 
 # Keep this explicitly longest-first.  That makes the copy-and-revert idioms win
 # over their revert suffixes and gives additions to the registry a visible order.
+ANY_PUSH = -1
+
 SEQUENCE_PATTERNS = (
     SequencePattern(
         "error_revert_finalizer",
@@ -82,6 +102,55 @@ SEQUENCE_PATTERNS = (
          (0x90, None), (0x03, None), (0x60, 100), (0x01, None),
          (0x90, None), (0xFD, None)),
         "RD.solcSummaryErrorRevertFinalizer", SequenceEffect.REVERT, 2, 0,
+    ),
+    SequencePattern(
+        "static_args_condition",
+        ((0x5B, None), (0x61, None), (0x60, 4), (0x80, None),
+         (0x36, None), (0x03, None), (0x60, None), (0x81, None),
+         (0x10, None), (0x15, None), (0x61, None)),
+        "RD.solcSummaryStaticArgsCondition", SequenceEffect.STATIC_ARGS_CONDITION, 5, 30,
+    ),
+    SequencePattern(
+        "nested_mapping_inner_hash",
+        ((0x5B, None), (0x60, None), (0x60, 32), (0x90, None),
+         (0x81, None), (0x52, None), (0x60, 0), (0x92, None),
+         (0x83, None), (0x52, None), (0x60, 64), (0x80, None),
+         (0x84, None), (0x20, None)),
+        "RD.solcSummaryNestedMappingInnerHash", SequenceEffect.NESTED_MAPPING_INNER_HASH,
+        4, 37,
+    ),
+    SequencePattern(
+        "nested_mapping_outer_hash",
+        ((0x90, None), (0x91, None), (0x52, None), (0x90, None),
+         (0x82, None), (0x52, None), (0x90, None), (0x20, None)),
+        "RD.solcSummaryNestedMappingOuterHash", SequenceEffect.NESTED_MAPPING_OUTER_HASH,
+        0, 21,
+    ),
+    SequencePattern(
+        "mapping_hash_key_first",
+        ((0x60, 0), (0x90, None), (0x81, None), (0x52, None),
+         (0x60, None), (0x60, 32), (0x52, None), (0x60, 64),
+         (0x90, None), (0x20, None)),
+        "RD.solcSummaryMappingHashKeyFirst", SequenceEffect.MAPPING_HASH_KEY_FIRST, 2, 27,
+    ),
+    SequencePattern(
+        "mapping_hash_slot_first",
+        ((0x60, None), (0x60, 32), (0x52, None), (0x60, 0),
+         (0x90, None), (0x81, None), (0x52, None), (0x60, 64),
+         (0x90, None), (0x20, None)),
+        "RD.solcSummaryMappingHashSlotFirst", SequenceEffect.MAPPING_HASH_SLOT_FIRST, 2, 27,
+    ),
+    SequencePattern(
+        "checked_add_condition",
+        ((0x5B, None), (0x80, None), (0x82, None), (0x01, None),
+         (0x82, None), (0x81, None), (0x10, None), (0x15, None), (0x61, None)),
+        "RD.solcSummaryCheckedAddCondition", SequenceEffect.CHECKED_ADD_CONDITION, 3, 25,
+    ),
+    SequencePattern(
+        "checked_sub_condition",
+        ((0x5B, None), (0x80, None), (0x82, None), (0x03, None),
+         (0x82, None), (0x81, None), (0x11, None), (0x15, None), (0x61, None)),
+        "RD.solcSummaryCheckedSubCondition", SequenceEffect.CHECKED_SUB_CONDITION, 3, 25,
     ),
     SequencePattern(
         "return_data_copy_revert",
@@ -99,6 +168,11 @@ SEQUENCE_PATTERNS = (
         "address_mask",
         ((0x60, 1), (0x60, 1), (0x60, 160), (0x1B, None), (0x03, None)),
         "RD.solcSummaryAddressMask", SequenceEffect.ADDRESS_MASK, 3, 15,
+    ),
+    SequencePattern(
+        "low_mask",
+        ((0x60, 1), (0x60, 1), (0x60, None), (0x1B, None), (0x03, None)),
+        "RD.solcSummaryLowMask", SequenceEffect.LOW_MASK, 3, 15,
     ),
     SequencePattern(
         "error_selector_store",
@@ -135,7 +209,64 @@ SEQUENCE_PATTERNS = (
         ((0x60, 64), (0x80, None), (0x51, None)),
         "RD.solcSummaryFreeMemoryPointerLoad", SequenceEffect.FREE_MEMORY_POINTER_LOAD, 2, 9,
     ),
+    SequencePattern(
+        "left_aligned_selector",
+        ((0x63, 0xFFFFFFFF), (0x16, None), (0x60, 224), (0x1B, None)),
+        "RD.solcSummaryLeftAlignedSelector", SequenceEffect.LEFT_ALIGNED_SELECTOR, 1, 12,
+    ),
+    SequencePattern(
+        "selector_condition",
+        ((0x80, None), (0x63, None), (0x14, None), (ANY_PUSH, None)),
+        "RD.solcSummarySelectorCondition", SequenceEffect.SELECTOR_CONDITION, 2, 12, True,
+    ),
+    SequencePattern(
+        "selector_split_condition",
+        ((0x80, None), (0x63, None), (0x11, None), (ANY_PUSH, None)),
+        "RD.solcSummarySelectorSplitCondition", SequenceEffect.SELECTOR_SPLIT_CONDITION,
+        2, 12, True,
+    ),
+    SequencePattern(
+        "call_success_condition",
+        ((0x15, None), (0x80, None), (0x15, None), (ANY_PUSH, None)),
+        "RD.solcSummaryCallSuccessCondition", SequenceEffect.CALL_SUCCESS_CONDITION,
+        2, 12, True,
+    ),
+    SequencePattern(
+        "calldata_size_condition",
+        ((0x60, 4), (0x36, None), (0x10, None), (ANY_PUSH, None)),
+        "RD.solcSummaryCalldataSizeCondition", SequenceEffect.CALLDATA_SIZE_CONDITION,
+        2, 11, True,
+    ),
+    SequencePattern(
+        "returndata_size_condition",
+        ((0x3D, None), (0x60, 32), (0x81, None), (0x10, None),
+         (0x15, None), (0x61, None)),
+        "RD.solcSummaryReturnDataSizeCondition", SequenceEffect.RETURNDATA_SIZE_CONDITION,
+        3, 17,
+    ),
+    SequencePattern(
+        "callvalue_condition",
+        ((0x34, None), (0x80, None), (0x15, None)),
+        "RD.solcSummaryCallvalueCondition", SequenceEffect.CALLVALUE_CONDITION, 2, 8,
+    ),
+    SequencePattern(
+        "uint_max",
+        ((0x60, 0), (0x19, None)),
+        "RD.solcSummaryUintMax", SequenceEffect.UINT_MAX, 1, 6,
+    ),
+    SequencePattern(
+        "bool_normalize",
+        ((0x15, None), (0x15, None)),
+        "RD.solcSummaryBoolNormalize", SequenceEffect.BOOL_NORMALIZE, 0, 6,
+    ),
 )
+
+# Matching is longest-first within the only relevant first-opcode bucket.  This
+# keeps a large registry from turning every instruction into a full linear scan.
+_patterns_by_first: dict[int, tuple[SequencePattern, ...]] = {}
+for _pattern in sorted(SEQUENCE_PATTERNS, key=lambda item: len(item.instructions), reverse=True):
+    _first = _pattern.instructions[0][0]
+    _patterns_by_first[_first] = _patterns_by_first.get(_first, ()) + (_pattern,)
 
 ADDRESS_MASK_INSTRUCTIONS = ((0x60, 1), (0x60, 1), (0x60, 160),
                              (0x1B, None), (0x03, None))
@@ -146,14 +277,17 @@ def matches_instructions(run: list[Instruction], start: int,
                          expected: tuple[tuple[int, int | None], ...]) -> bool:
     end = start + len(expected)
     return end <= len(run) and all(
-        ins.opcode == opcode and (argument is None or ins.argument == argument)
+        (opcode == ANY_PUSH and 0x60 <= ins.opcode <= 0x7F or ins.opcode == opcode)
+        and (argument is None or ins.argument == argument)
         for ins, (opcode, argument) in zip(run[start:end], expected)
     )
 
 
 def match_sequence(run: list[Instruction], start: int) -> SequencePattern | None:
     """Return the first (therefore longest) exact pattern at ``start``."""
-    for pattern in SEQUENCE_PATTERNS:
+    if start < 0 or start >= len(run):
+        return None
+    for pattern in _patterns_by_first.get(run[start].opcode, ()):
         if matches_instructions(run, start, pattern.instructions):
             return pattern
     return None
@@ -455,6 +589,8 @@ def simulate(block: list[Instruction], branch: str | None,
     rno = 0
     max_stack_prefix = len(stack)
     existential_words: list[str] = []
+    stack_snapshots: dict[int, list[str]] = {}
+    memory_snapshots: dict[int, str] = {}
 
     def require(name: str, proposition: str) -> str:
         """Add an opcode side condition to the enclosing block theorem.
@@ -482,9 +618,10 @@ def simulate(block: list[Instruction], branch: str | None,
         start = index - len(expected) + 1
         return start >= 0 and matches_instructions(block, start, expected)
 
-    def apply_pattern_effect(pattern: SequencePattern) -> None:
+    def apply_pattern_effect(pattern: SequencePattern, start: int) -> None:
         nonlocal mem, aw
         effect = pattern.effect
+        matched = block[start:start + len(pattern.instructions)]
         if effect is SequenceEffect.FREE_MEMORY_POINTER:
             address = u256_nat(64)
             value = u256_nat(128)
@@ -513,6 +650,120 @@ def simulate(block: list[Instruction], branch: str | None,
                 f"(ee.calldata.readBytes {zero}.toNat 32)) {u256_nat(224)})"
             )
             stack.insert(0, selector)
+        elif effect is SequenceEffect.LOW_MASK:
+            assert matched[2].argument is not None
+            stack.insert(0, f"(solcLowMask {u256_nat(matched[2].argument)})")
+        elif effect is SequenceEffect.UINT_MAX:
+            stack.insert(0, "solcUintMax")
+        elif effect is SequenceEffect.LEFT_ALIGNED_SELECTOR:
+            selector = stack.pop(0)
+            stack.insert(0, f"(solcLeftAlignedSelectorWord {selector})")
+        elif effect is SequenceEffect.BOOL_NORMALIZE:
+            word = stack.pop(0)
+            stack.insert(0, f"(solcBoolWord {word})")
+        elif effect in {SequenceEffect.SELECTOR_CONDITION,
+                       SequenceEffect.SELECTOR_SPLIT_CONDITION}:
+            actual = stack[0]
+            expected = matched[1].argument
+            target = matched[-1].argument
+            assert expected is not None and target is not None
+            term = ("solcSelectorMatches" if effect is SequenceEffect.SELECTOR_CONDITION
+                    else "solcSelectorBelowPivot")
+            stack[0:1] = [u256_nat(target), f"({term} {u256_nat(expected)} {actual})", actual]
+        elif effect is SequenceEffect.CALL_SUCCESS_CONDITION:
+            status = stack.pop(0)
+            target = matched[-1].argument
+            assert target is not None
+            stack[0:0] = [u256_nat(target), f"(solcCallSucceededWord {status})",
+                          f"(solcCallFailedWord {status})"]
+        elif effect is SequenceEffect.CALLVALUE_CONDITION:
+            stack[0:0] = ["(solcCallFailedWord ee.weiValue)", "ee.weiValue"]
+        elif effect is SequenceEffect.CALLDATA_SIZE_CONDITION:
+            target = matched[-1].argument
+            assert target is not None
+            size = "(UInt256.ofNat ee.calldata.size)"
+            stack[0:0] = [u256_nat(target), f"(solcCalldataTooShortWord {size})"]
+        elif effect is SequenceEffect.RETURNDATA_SIZE_CONDITION:
+            target = matched[-1].argument
+            assert target is not None
+            size = "(UInt256.ofNat rdata.size)"
+            stack[0:0] = [u256_nat(target), f"(solcReturnWordAvailableWord {size})", size]
+        elif effect is SequenceEffect.STATIC_ARGS_CONDITION:
+            ret, need, target = matched[1].argument, matched[6].argument, matched[10].argument
+            assert ret is not None and need is not None and target is not None
+            size = "(UInt256.ofNat ee.calldata.size)"
+            tail = f"(UInt256.sub {size} {u256_nat(4)})"
+            stack[0:0] = [u256_nat(target),
+                          f"(solcStaticArgsSufficientWord {size} {u256_nat(need)})",
+                          tail, u256_nat(4), u256_nat(ret)]
+        elif effect in {SequenceEffect.CHECKED_ADD_CONDITION,
+                       SequenceEffect.CHECKED_SUB_CONDITION}:
+            b, a = stack.pop(0), stack.pop(0)
+            target = matched[-1].argument
+            assert target is not None
+            if effect is SequenceEffect.CHECKED_ADD_CONDITION:
+                result = f"({a} + {b})"
+                ok = f"(solcCheckedAddOkWord {a} {b})"
+            else:
+                result = f"(UInt256.sub {a} {b})"
+                ok = f"(solcCheckedSubOkWord {a} {b})"
+            stack[0:0] = [u256_nat(target), ok, result, b, a]
+        elif effect in {SequenceEffect.MAPPING_HASH_KEY_FIRST,
+                       SequenceEffect.MAPPING_HASH_SLOT_FIRST}:
+            key = stack.pop(0)
+            slot_index = 4 if effect is SequenceEffect.MAPPING_HASH_KEY_FIRST else 0
+            slot = matched[slot_index].argument
+            assert slot is not None
+            old_aw = aw
+            first = u256_nat(0 if effect is SequenceEffect.MAPPING_HASH_KEY_FIRST else 32)
+            second = u256_nat(32 if effect is SequenceEffect.MAPPING_HASH_KEY_FIRST else 0)
+            aw1 = f"(M {old_aw} {first} {WORD32})"
+            aw2 = f"(M {aw1} {second} {WORD32})"
+            costs.extend([
+                f"memExpansionCost {old_aw} {first} {WORD32}",
+                f"memExpansionCost {aw1} {second} {WORD32}",
+                f"memExpansionCost {aw2} {u256_nat(0)} {u256_nat(64)}",
+                f"GasConstants.Gkeccak256 + GasConstants.Gkeccak256word * "
+                f"(({u256_nat(64)}.toNat + 31) / 32)",
+            ])
+            mem_name = ("twoWordHashMem" if effect is SequenceEffect.MAPPING_HASH_KEY_FIRST
+                        else "twoWordHashMemSlotFirst")
+            mem = f"({mem_name} {key} {u256_nat(slot)} {mem})"
+            aw = f"(M {aw2} {u256_nat(0)} {u256_nat(64)})"
+            stack.insert(0, f"(solcMappingSlot {u256_nat(slot)} {key})")
+        elif effect is SequenceEffect.NESTED_MAPPING_INNER_HASH:
+            spender, owner = stack.pop(0), stack.pop(0)
+            slot = matched[1].argument
+            assert slot is not None
+            old_aw = aw
+            aw1 = f"(M {old_aw} {u256_nat(32)} {WORD32})"
+            aw2 = f"(M {aw1} {u256_nat(0)} {WORD32})"
+            costs.extend([
+                f"memExpansionCost {old_aw} {u256_nat(32)} {WORD32}",
+                f"memExpansionCost {aw1} {u256_nat(0)} {WORD32}",
+                f"memExpansionCost {aw2} {u256_nat(0)} {u256_nat(64)}",
+                f"GasConstants.Gkeccak256 + GasConstants.Gkeccak256word * "
+                f"(({u256_nat(64)}.toNat + 31) / 32)",
+            ])
+            mem = f"(twoWordHashMemSlotFirst {owner} {u256_nat(slot)} {mem})"
+            aw = f"(M {aw2} {u256_nat(0)} {u256_nat(64)})"
+            stack[0:0] = [f"(solcMappingSlot {u256_nat(slot)} {owner})", u256_nat(64),
+                          u256_nat(32), spender, u256_nat(0)]
+        elif effect is SequenceEffect.NESTED_MAPPING_OUTER_HASH:
+            inner_slot, _length, _offset, spender, _zero = [stack.pop(0) for _ in range(5)]
+            old_aw = aw
+            aw1 = f"(M {old_aw} {u256_nat(32)} {WORD32})"
+            aw2 = f"(M {aw1} {u256_nat(0)} {WORD32})"
+            costs.extend([
+                f"memExpansionCost {old_aw} {u256_nat(32)} {WORD32}",
+                f"memExpansionCost {aw1} {u256_nat(0)} {WORD32}",
+                f"memExpansionCost {aw2} {u256_nat(0)} {u256_nat(64)}",
+                f"GasConstants.Gkeccak256 + GasConstants.Gkeccak256word * "
+                f"(({u256_nat(64)}.toNat + 31) / 32)",
+            ])
+            mem = f"(twoWordHashMemSlotFirst {spender} {inner_slot} {mem})"
+            aw = f"(M {aw2} {u256_nat(0)} {u256_nat(64)})"
+            stack.insert(0, f"(solcMappingSlot {inner_slot} {spender})")
         else:
             raise AssertionError(f"no nonterminal effect handler for {effect.value}")
         costs.append(pattern.gas_cost)
@@ -520,22 +771,72 @@ def simulate(block: list[Instruction], branch: str | None,
     index = 0
     while index < len(block):
         ins = block[index]
+        stack_snapshots[index] = stack.copy()
+        memory_snapshots[index] = mem
         pattern = match_sequence(block, index) if use_sequence_patterns else None
+        if pattern is not None and pattern.effect is SequenceEffect.NESTED_MAPPING_OUTER_HASH:
+            required = [u256_nat(64), u256_nat(32), u256_nat(0)]
+            if len(stack) < 5 or [stack[1], stack[2], stack[4]] != required:
+                pattern = None
         if pattern is not None:
             stack_before = len(stack)
             before, after = next_r()
             count = len(pattern.instructions)
-            witnesses = ", ".join(
-                [before] + ["by native_decide"] * count + ["by evm_ov"]
-            )
+            if pattern.effect is SequenceEffect.NESTED_MAPPING_INNER_HASH:
+                nested_decodes = ", ".join(["by native_decide"] * 14)
+                witness_terms = [before, f"by exact ⟨{nested_decodes}⟩"]
+            else:
+                witness_terms = [before] + ["by native_decide"] * count
+            if pattern.generic_final_push:
+                witness_terms.insert(-1, "by decide")
+            witnesses = ", ".join(witness_terms + ["by evm_ov"])
             if pattern.terminal:
                 proof.append(f"  exact {pattern.theorem} (by exact ⟨{witnesses}⟩)")
                 terminal = "RDrev __CODE__ g s0"
                 max_stack_prefix = max(max_stack_prefix, stack_before + pattern.peak_growth)
                 break
 
-            apply_pattern_effect(pattern)
-            proof.append(f"  have {after} := {pattern.theorem} (by exact ⟨{witnesses}⟩)")
+            theorem_args = ""
+            matched = block[index:index + count]
+            if pattern.effect is SequenceEffect.LOW_MASK:
+                theorem_args = f" (bits := {u256_nat(matched[2].argument)})"
+            elif pattern.effect in {SequenceEffect.SELECTOR_CONDITION,
+                                   SequenceEffect.SELECTOR_SPLIT_CONDITION}:
+                comparison_arg = ("expected" if pattern.effect is SequenceEffect.SELECTOR_CONDITION
+                                  else "pivot")
+                theorem_args = (
+                    f" ({comparison_arg} := {u256_nat(matched[1].argument)})"
+                    f" (target := {u256_nat(matched[-1].argument)})"
+                    f" (op := .PUSH{matched[-1].width}) (width := {matched[-1].width})"
+                )
+            elif pattern.effect in {SequenceEffect.CALL_SUCCESS_CONDITION,
+                                   SequenceEffect.CALLDATA_SIZE_CONDITION}:
+                theorem_args = (
+                    f" (target := {u256_nat(matched[-1].argument)})"
+                    f" (op := .PUSH{matched[-1].width}) (width := {matched[-1].width})"
+                )
+            elif pattern.effect is SequenceEffect.RETURNDATA_SIZE_CONDITION:
+                theorem_args = f" (target := {u256_nat(matched[-1].argument)})"
+            elif pattern.effect is SequenceEffect.STATIC_ARGS_CONDITION:
+                theorem_args = (
+                    f" (ret := {u256_nat(matched[1].argument)})"
+                    f" (need := {u256_nat(matched[6].argument)})"
+                    f" (target := {u256_nat(matched[10].argument)})"
+                )
+            elif pattern.effect in {SequenceEffect.CHECKED_ADD_CONDITION,
+                                   SequenceEffect.CHECKED_SUB_CONDITION}:
+                theorem_args = f" (target := {u256_nat(matched[-1].argument)})"
+            elif pattern.effect in {SequenceEffect.MAPPING_HASH_KEY_FIRST,
+                                   SequenceEffect.MAPPING_HASH_SLOT_FIRST}:
+                slot_index = 4 if pattern.effect is SequenceEffect.MAPPING_HASH_KEY_FIRST else 0
+                theorem_args = f" (slot := {u256_nat(matched[slot_index].argument)})"
+            elif pattern.effect is SequenceEffect.NESTED_MAPPING_INNER_HASH:
+                theorem_args = f" (slot := {u256_nat(matched[1].argument)})"
+            apply_pattern_effect(pattern, index)
+            proof.append(
+                f"  have {after} := {pattern.theorem}{theorem_args} "
+                f"(by exact ⟨{witnesses}⟩)"
+            )
             max_stack_prefix = max(max_stack_prefix, stack_before + pattern.peak_growth)
             last = block[index + count - 1]
             pc = u256_nat(last.pc + last.size)
@@ -555,13 +856,67 @@ def simulate(block: list[Instruction], branch: str | None,
             assert ins.argument is not None
             value = u256_nat(ins.argument)
             stack.insert(0, value)
+            normalization: str | None = None
+            if ends_with(((0x5B, None), (0x61, None), (0x60, 4), (0x80, None),
+                          (0x36, None), (0x03, None), (0x60, None), (0x81, None),
+                          (0x10, None), (0x15, None), (0x61, None)), index):
+                need = block[index - 4].argument
+                size = "(UInt256.ofNat ee.calldata.size)"
+                stack[1] = f"(solcStaticArgsSufficientWord {size} {u256_nat(need)})"
+                normalization = "solcStaticArgsSufficientWord"
+            elif ends_with(((0x5B, None), (0x80, None), (0x82, None), (0x01, None),
+                            (0x82, None), (0x81, None), (0x10, None), (0x15, None),
+                            (0x61, None)), index):
+                b, a = stack_snapshots[index - 8][:2]
+                stack[1] = f"(solcCheckedAddOkWord {a} {b})"
+                normalization = "solcCheckedAddOkWord"
+            elif ends_with(((0x5B, None), (0x80, None), (0x82, None), (0x03, None),
+                            (0x82, None), (0x81, None), (0x11, None), (0x15, None),
+                            (0x61, None)), index):
+                b, a = stack_snapshots[index - 8][:2]
+                stack[1] = f"(solcCheckedSubOkWord {a} {b})"
+                normalization = "solcCheckedSubOkWord"
+            elif ends_with(((0x80, None), (0x63, None), (0x14, None),
+                          (ANY_PUSH, None)), index):
+                actual = stack[2]
+                expected = block[index - 2].argument
+                stack[1] = f"(solcSelectorMatches {u256_nat(expected)} {actual})"
+                normalization = "solcSelectorMatches"
+            elif ends_with(((0x80, None), (0x63, None), (0x11, None),
+                            (ANY_PUSH, None)), index):
+                actual = stack[2]
+                pivot = block[index - 2].argument
+                stack[1] = f"(solcSelectorBelowPivot {u256_nat(pivot)} {actual})"
+                normalization = "solcSelectorBelowPivot"
+            elif ends_with(((0x15, None), (0x80, None), (0x15, None),
+                            (ANY_PUSH, None)), index):
+                source = stack_snapshots[index - 3][0]
+                stack[1] = f"(solcCallSucceededWord {source})"
+                stack[2] = f"(solcCallFailedWord {source})"
+                normalization = "solcCallSucceededWord, solcCallFailedWord, solcBoolWord"
+            elif ends_with(((0x60, 4), (0x36, None), (0x10, None),
+                            (ANY_PUSH, None)), index):
+                size = "(UInt256.ofNat ee.calldata.size)"
+                stack[1] = f"(solcCalldataTooShortWord {size})"
+                normalization = "solcCalldataTooShortWord"
+            elif ends_with(((0x3D, None), (0x60, 32), (0x81, None), (0x10, None),
+                            (0x15, None), (0x61, None)), index):
+                size = "(UInt256.ofNat rdata.size)"
+                stack[1] = f"(solcReturnWordAvailableWord {size})"
+                normalization = "solcReturnWordAvailableWord"
             if ins.width in {1, 2, 4, 20}:
-                proof.append(f"  have {after} := {before}.push{ins.width} {value} {decode} {ov}")
+                call = f"{before}.push{ins.width} {value} {decode} {ov}"
             else:
-                proof.append(
-                    f"  have {after} := {before}.pushConst {value} "
-                    f"(width := {ins.width}) (op := .PUSH{ins.width}) (by decide) {decode} {ov}"
+                call = (
+                    f"{before}.pushConst {value} (width := {ins.width}) "
+                    f"(op := .PUSH{ins.width}) (by decide) {decode} {ov}"
                 )
+            if normalization is None:
+                proof.append(f"  have {after} := {call}")
+            else:
+                raw_after = f"{after}Raw"
+                proof.append(f"  have {raw_after} := {call}")
+                proof.append(f"  have {after} := by simpa [{normalization}] using {raw_after}")
         elif 0x80 <= op <= 0x8F:
             n = op - 0x7F
             stack.insert(0, stack[n - 1])
@@ -582,9 +937,21 @@ def simulate(block: list[Instruction], branch: str | None,
             if op == 0x03 and ends_with(ADDRESS_MASK_INSTRUCTIONS, index):
                 stack[0] = "solcAddrMask"
                 normalization = "solcAddrMask"
+            elif op == 0x03 and ends_with(
+                    ((0x60, 1), (0x60, 1), (0x60, None), (0x1B, None), (0x03, None)),
+                    index):
+                bits = block[index - 2].argument
+                stack[0] = f"(solcLowMask {u256_nat(bits)})"
+                normalization = "solcLowMask"
             elif op == 0x1B and ends_with(ERROR_SELECTOR_BUILD_INSTRUCTIONS, index):
                 stack[0] = "solcErrorStringSelector"
                 normalization = "solcErrorStringSelector"
+            elif op == 0x1B and ends_with(
+                    ((0x63, 0xFFFFFFFF), (0x16, None), (0x60, 224), (0x1B, None)),
+                    index):
+                source = stack_snapshots[index - 3][0]
+                stack[0] = f"(solcLeftAlignedSelectorWord {source})"
+                normalization = "solcLeftAlignedSelectorWord"
             if normalization is None:
                 proof.append(f"  have {after} := {before}.{ins.name} {decode} {ov}")
             else:
@@ -596,11 +963,35 @@ def simulate(block: list[Instruction], branch: str | None,
         elif op == 0x15:
             a = stack.pop(0)
             stack.insert(0, f"(UInt256.isZero {a})")
-            proof.append(f"  have {after} := {before}.iszero {decode} {ov}")
+            normalization = None
+            if ends_with(((0x15, None), (0x15, None)), index):
+                prefix = "(UInt256.isZero "
+                word = a[len(prefix):-1] if a.startswith(prefix) else a
+                stack[0] = f"(solcBoolWord {word})"
+                normalization = "solcBoolWord"
+            elif ends_with(((0x34, None), (0x80, None), (0x15, None)), index):
+                stack[0] = "(solcCallFailedWord ee.weiValue)"
+                normalization = "solcCallFailedWord"
+            call = f"{before}.iszero {decode} {ov}"
+            if normalization is None:
+                proof.append(f"  have {after} := {call}")
+            else:
+                proof.append(f"  have {after}Raw := {call}")
+                proof.append(f"  have {after} := by simpa [{normalization}] using {after}Raw")
         elif op == 0x19:
             a = stack.pop(0)
-            stack.insert(0, f"(UInt256.lnot {a})")
-            proof.append(f"  have {after} := {before}.not {decode} {ov}")
+            normalization = None
+            if ends_with(((0x60, 0), (0x19, None)), index):
+                stack.insert(0, "solcUintMax")
+                normalization = "solcUintMax"
+            else:
+                stack.insert(0, f"(UInt256.lnot {a})")
+            call = f"{before}.not {decode} {ov}"
+            if normalization is None:
+                proof.append(f"  have {after} := {call}")
+            else:
+                proof.append(f"  have {after}Raw := {call}")
+                proof.append(f"  have {after} := by simpa [{normalization}] using {after}Raw")
         elif op == 0x50:
             stack.pop(0)
             proof.append(f"  have {after} := {before}.pop {decode} {ov}")
@@ -641,7 +1032,65 @@ def simulate(block: list[Instruction], branch: str | None,
                 f"GasConstants.Gkeccak256 + GasConstants.Gkeccak256word * (({b}.toNat + 31) / 32)"
             )
             aw = f"(M {aw} {a} {b})"
-            proof.append(f"  have {after} := RD.keccak256 {before} {decode} {ov}")
+            mapping_effect: SequenceEffect | None = None
+            key_first_ops = ((0x60, 0), (0x90, None), (0x81, None), (0x52, None),
+                             (0x60, None), (0x60, 32), (0x52, None), (0x60, 64),
+                             (0x90, None), (0x20, None))
+            slot_first_ops = ((0x60, None), (0x60, 32), (0x52, None), (0x60, 0),
+                              (0x90, None), (0x81, None), (0x52, None), (0x60, 64),
+                              (0x90, None), (0x20, None))
+            nested_inner_ops = ((0x5B, None), (0x60, None), (0x60, 32), (0x90, None),
+                                (0x81, None), (0x52, None), (0x60, 0), (0x92, None),
+                                (0x83, None), (0x52, None), (0x60, 64), (0x80, None),
+                                (0x84, None), (0x20, None))
+            nested_outer_ops = ((0x90, None), (0x91, None), (0x52, None), (0x90, None),
+                                (0x82, None), (0x52, None), (0x90, None), (0x20, None))
+            if ends_with(key_first_ops, index):
+                mapping_effect = SequenceEffect.MAPPING_HASH_KEY_FIRST
+            elif ends_with(slot_first_ops, index):
+                mapping_effect = SequenceEffect.MAPPING_HASH_SLOT_FIRST
+            elif ends_with(nested_inner_ops, index):
+                mapping_effect = SequenceEffect.NESTED_MAPPING_INNER_HASH
+            elif ends_with(nested_outer_ops, index):
+                candidate = stack_snapshots[index - 7]
+                if len(candidate) >= 5 and [candidate[1], candidate[2], candidate[4]] == [
+                        u256_nat(64), u256_nat(32), u256_nat(0)]:
+                    mapping_effect = SequenceEffect.NESTED_MAPPING_OUTER_HASH
+            if mapping_effect is None:
+                proof.append(f"  have {after} := RD.keccak256 {before} {decode} {ov}")
+            else:
+                start = index - (13 if mapping_effect is SequenceEffect.NESTED_MAPPING_INNER_HASH
+                                 else 7 if mapping_effect is SequenceEffect.NESTED_MAPPING_OUTER_HASH
+                                 else 9)
+                if mapping_effect is SequenceEffect.NESTED_MAPPING_OUTER_HASH:
+                    slot_term = stack_snapshots[start][0]
+                    key = stack_snapshots[start][3]
+                else:
+                    key = (stack_snapshots[start][1]
+                           if mapping_effect is SequenceEffect.NESTED_MAPPING_INNER_HASH
+                           else stack_snapshots[start][0])
+                    slot_index = start + (4 if mapping_effect is SequenceEffect.MAPPING_HASH_KEY_FIRST
+                                          else 1 if mapping_effect is SequenceEffect.NESTED_MAPPING_INNER_HASH
+                                          else 0)
+                    slot = block[slot_index].argument
+                    assert slot is not None
+                    slot_term = u256_nat(slot)
+                raw_mem = mem
+                mem_name = ("twoWordHashMem" if mapping_effect is SequenceEffect.MAPPING_HASH_KEY_FIRST
+                            else "twoWordHashMemSlotFirst")
+                lemma = ("twoWordHashMem_keccak_solcMappingSlot"
+                         if mapping_effect is SequenceEffect.MAPPING_HASH_KEY_FIRST
+                         else "twoWordHashMemSlotFirst_keccak_solcMappingSlot")
+                lemma += "_ofNat"
+                canonical_mem = f"({mem_name} {key} {slot_term} {memory_snapshots[start]})"
+                raw_after = f"{after}Raw"
+                proof.append(f"  have {raw_after} := RD.keccak256 {before} {decode} {ov}")
+                proof.append(
+                    f"  rw [show {raw_mem} = {canonical_mem} from rfl, {lemma}] at {raw_after}"
+                )
+                proof.append(f"  have {after} := {raw_after}")
+                mem = canonical_mem
+                stack[0] = f"(solcMappingSlot {slot_term} {key})"
         elif op in {0x37, 0x39}:
             a, b, c = stack.pop(0), stack.pop(0), stack.pop(0)
             source = "ee.calldata" if op == 0x37 else "__CODE__"

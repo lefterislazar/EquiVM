@@ -11,7 +11,7 @@ reasoning library.
 
 | Category | Theorems | Distinct opcode paths | Direct uses |
 |---|---:|---:|---:|
-| Factored in `Reasoning/` | 98 | 82 | 2667 |
+| Factored in `Reasoning/` | 111 | 94 | 2667 |
 | Generic but benchmark-local | 161 | 65 | 436 |
 
 Of the benchmark-local candidates, 26 carry an explicit `LIBRARY CANDIDATE` or
@@ -28,18 +28,51 @@ at the normalized-path level.
 
 | Benchmark-candidate category | Distinct paths | Theorems | Direct uses |
 |---|---:|---:|---:|
-| Exact path already in `Reasoning/` | 4 | 5 | 12 |
+| Exact path already in `Reasoning/` | 6 | 12 | 19 |
 | Directly composes a `Reasoning/` sequence summary | 26 | 71 | 281 |
-| No reusable multi-opcode summary detected (potentially new) | 35 | 85 | 143 |
+| No reusable multi-opcode summary detected (potentially new) | 33 | 78 | 136 |
 
-Thus 30 of 65 candidate paths
-(76 of 161 theorems) primarily expose reuse or
-refactoring opportunities, while 35 paths (85 theorems) are
+Thus 32 of 65 candidate paths
+(83 of 161 theorems) primarily expose reuse or
+refactoring opportunities, while 33 paths (78 theorems) are
 potential additions to the reusable pattern vocabulary. This does not claim semantic
 independence; that requires comparing the actual preconditions and postconditions.
 
-Inside `Reasoning/` itself, 32 of 98 inventoried theorems
+Inside `Reasoning/` itself, 32 of 111 inventoried theorems
 explicitly compose other named summaries; the remainder present their path directly.
+
+### Registered summariser patterns in DSS bytecode
+
+These are actual within-basic-block bytecode matches, not Lean theorem references.
+Overlapping specializations use the generator's longest-first precedence.
+
+| Pattern | Bytecode occurrences | DSS artifacts |
+|---|---:|---:|
+| `error_revert_finalizer` | 570 | 36 |
+| `static_args_condition` | 386 | 38 |
+| `nested_mapping_inner_hash` | 10 | 6 |
+| `nested_mapping_outer_hash` | 10 | 6 |
+| `mapping_hash_key_first` | 58 | 12 |
+| `mapping_hash_slot_first` | 30 | 14 |
+| `checked_add_condition` | 18 | 18 |
+| `checked_sub_condition` | 20 | 20 |
+| `legacy_return_data_copy_revert` | 234 | 30 |
+| `address_mask` | 1090 | 38 |
+| `low_mask` | 44 | 11 |
+| `error_selector_store` | 594 | 38 |
+| `legacy_selector_load` | 38 | 38 |
+| `legacy_revert0` | 961 | 38 |
+| `free_memory_pointer` | 55 | 38 |
+| `free_memory_pointer_load` | 868 | 38 |
+| `left_aligned_selector` | 56 | 18 |
+| `selector_condition` | 654 | 38 |
+| `selector_split_condition` | 106 | 34 |
+| `call_success_condition` | 482 | 30 |
+| `calldata_size_condition` | 38 | 38 |
+| `returndata_size_condition` | 51 | 16 |
+| `callvalue_condition` | 57 | 38 |
+| `uint_max` | 22 | 12 |
+| `bool_normalize` | 22 | 14 |
 
 ## Method
 
@@ -49,6 +82,7 @@ explicitly compose other named summaries; the remainder present their path direc
 - Opcode paths come from decode contracts, well-formedness predicates, `evm_run`, or RD proof chains.
 - Concrete operands and PCs are shown, but fingerprints wildcard operands while preserving PUSH widths.
 - Uses are direct, comment-free source references. Calls through another summary appear under composition, not as transitive uses.
+- Registered summary patterns are also counted directly in DSS bytecode, independently of source uses.
 - Duplicate local names are resolved through their source file and transitive imports; unresolved cases are labeled.
 
 Regenerate with `python3 scripts/audit_rd_sequences.py --write`; verify freshness with
@@ -76,77 +110,89 @@ the detailed entries below.
 | R009 | [`RD.solcCallSuccessGuardMissing`](../Reasoning/Solc.lean#L6660) | 12 | 1 | 124 |
 | R010 | [`RD.solcExtcodesizeGuardMissing`](../Reasoning/Solc.lean#L6566) | 9 | 1 | 123 |
 | R011 | [`RD.selectorSplitTaken`](../Reasoning/Reach.lean#L2221) | 5 | 3 | 120 |
-| R012 | [`RD.solcErrorStringRevertTail`](../Reasoning/Solc.lean#L5008) | 26 | 1 | 116 |
+| R012 | [`RD.solcErrorStringRevertTail`](../Reasoning/Solc.lean#L5008) | 33 | 1 | 116 |
 | R013 | [`solcGuardPrologueRD`](../Reasoning/Solc.lean#L1421) | 6 | 1 | 82 |
 | R014 | [`RD.solcOneAddressExternalMaskAndJumpMasked`](../Reasoning/Solc.lean#L1881) | 11 | 2 | 70 |
-| R015 | [`RD.solcReturnWordFromMem`](../Reasoning/Solc.lean#L5687) | 12 | 1 | 51 |
+| R015 | [`RD.solcReturnWordFromMem`](../Reasoning/Solc.lean#L5687) | 16 | 1 | 51 |
 | R016 | [`solcGuardCallvalueZero`](../Reasoning/Solc.lean#L7289) | 4 | 1 | 44 |
 | R017 | [`RD.solcCheckedSubSuccess`](../Reasoning/Solc.lean#L4838) | 16 | 1 | 35 |
 | R018 | [`RD.solcGetterThunk`](../Reasoning/Solc.lean#L2973) | 4 | 1 | 25 |
 | R019 | [`RD.solcCheckedAddSuccess`](../Reasoning/Solc.lean#L4880) | 16 | 1 | 24 |
 | R020 | [`RD.solcUint256ReturnWordDecodeOk`](../Reasoning/Solc.lean#L6262) | 15 | 1 | 24 |
 | R021 | [`RD.solcUint256ReturnWordDecodeShortReverts`](../Reasoning/Solc.lean#L6375) | 15 | 1 | 24 |
-| R022 | [`RD.solcWordGetterExternal`](../Reasoning/Solc.lean#L6162) | 20 | 1 | 22 |
+| R022 | [`RD.solcWordGetterExternal`](../Reasoning/Solc.lean#L6162) | 25 | 1 | 22 |
 | R023 | [`RD.selectorArmTaken`](../Reasoning/Reach.lean#L2014) | 5 | 2 | 20 |
 | R024 | [`solcLegacyDispatchReachSelector`](../Reasoning/Solc.lean#L7451) | 19 | 1 | 19 |
-| R025 | [`RD.solcSingleMappingGetter`](../Reasoning/Solc.lean#L4577) | 10 | 1 | 15 |
-| R026 | [`RD.solcAddressGetterExternal`](../Reasoning/Solc.lean#L6132) | 33 | 1 | 14 |
+| R025 | [`RD.solcSingleMappingGetter`](../Reasoning/Solc.lean#L4577) | 14 | 1 | 15 |
+| R026 | [`RD.solcAddressGetterExternal`](../Reasoning/Solc.lean#L6132) | 38 | 1 | 14 |
 | R027 | [`solcCalldataShortRevert`](../Reasoning/Solc.lean#L7328) | 9 | 1 | 11 |
 | R028 | [`RD.solcAddressUint256ExternalMaskAndJumpMasked`](../Reasoning/Solc.lean#L2371) | 16 | 2 | 10 |
 | R029 | [`solcCalldataOk`](../Reasoning/Solc.lean#L7356) | 5 | 1 | 9 |
 | R030 | [`solcGuardCallvalueNonzeroRevert`](../Reasoning/Solc.lean#L7309) | 5 | 1 | 9 |
-| R031 | [`RD.solcReturnBoolFromMem`](../Reasoning/Solc.lean#L6073) | 14 | 1 | 8 |
+| R031 | [`RD.solcReturnBoolFromMem`](../Reasoning/Solc.lean#L6073) | 18 | 1 | 8 |
 | R032 | [`RD.solcTwoAddressExternalMaskAndJumpMasked`](../Reasoning/Solc.lean#L2147) | 18 | 2 | 8 |
 | R033 | [`solcDispatchReachSelector`](../Reasoning/Solc.lean#L7425) | 19 | 1 | 8 |
 | R034 | [`RD.solcAddressAddressUint256ExternalMaskAndJumpMasked`](../Reasoning/Solc.lean#L2566) | 25 | 2 | 7 |
 | R035 | [`solcSelectorLoad`](../Reasoning/Solc.lean#L7380) | 4 | 2 | 7 |
 | R036 | [`RD.solcConstGetter`](../Reasoning/Solc.lean#L3040) | 4 | 1 | 5 |
-| R037 | [`RD.solcNestedMappingInnerHash`](../Reasoning/Solc.lean#L4613) | 11 | 1 | 5 |
-| R038 | [`RD.solcNestedMappingLoadAndJump`](../Reasoning/Solc.lean#L4690) | 2 | 1 | 5 |
-| R039 | [`RD.solcNestedMappingOuterHash`](../Reasoning/Solc.lean#L4653) | 5 | 1 | 5 |
-| R040 | [`RD.solcReturnAddressFromMem`](../Reasoning/Solc.lean#L5830) | 19 | 1 | 5 |
+| R037 | [`RD.solcNestedMappingInnerHash`](../Reasoning/Solc.lean#L4613) | 14 | 1 | 5 |
+| R038 | [`RD.solcNestedMappingLoadAndJump`](../Reasoning/Solc.lean#L4690) | 3 | 1 | 5 |
+| R039 | [`RD.solcNestedMappingOuterHash`](../Reasoning/Solc.lean#L4653) | 8 | 1 | 5 |
+| R040 | [`RD.solcReturnAddressFromMem`](../Reasoning/Solc.lean#L5830) | 23 | 1 | 5 |
 | R041 | [`RD.solcExtcodesizeGuardOk`](../Reasoning/Solc.lean#L6487) | 8 | 1 | 4 |
 | R042 | [`RD.solcCallerTransferThunk`](../Reasoning/Solc.lean#L1511) | 7 | 1 | 3 |
 | R043 | [`RD.solcNestedMappingCallerStoreMem`](../Reasoning/Solc.lean#L3845) | 23 | 1 | 3 |
-| R044 | [`RD.solcReturnUint8FromMem`](../Reasoning/Solc.lean#L5958) | 15 | 1 | 3 |
-| R045 | [`RD.solcWordConstGetterExternal`](../Reasoning/Solc.lean#L6183) | 20 | 1 | 3 |
+| R044 | [`RD.solcReturnUint8FromMem`](../Reasoning/Solc.lean#L5958) | 19 | 1 | 3 |
+| R045 | [`RD.solcWordConstGetterExternal`](../Reasoning/Solc.lean#L6183) | 24 | 1 | 3 |
 | R046 | [`solcLegacySelectorLoad`](../Reasoning/Solc.lean#L7398) | 4 | 2 | 3 |
 | R047 | [`RD.returndatacopyFull`](../Reasoning/Reach.lean#L712) | 4 | 1 | 2 |
 | R048 | [`RD.selectorArmWidthNotTakenAuto`](../Reasoning/Reach.lean#L2182) | 5 | 1 | 2 |
-| R049 | [`RD.solcAddressSlotGetter`](../Reasoning/Solc.lean#L2992) | 10 | 1 | 2 |
-| R050 | [`RD.solcCheckedAddStringRevert`](../Reasoning/Solc.lean#L5197) | 36 | 1 | 2 |
-| R051 | [`RD.solcMaskedTransferLog3AndJump`](../Reasoning/Solc.lean#L5461) | 20 | 1 | 2 |
+| R049 | [`RD.solcAddressSlotGetter`](../Reasoning/Solc.lean#L2992) | 11 | 1 | 2 |
+| R050 | [`RD.solcCheckedAddStringRevert`](../Reasoning/Solc.lean#L5197) | 43 | 1 | 2 |
+| R051 | [`RD.solcMaskedTransferLog3AndJump`](../Reasoning/Solc.lean#L5461) | 22 | 1 | 2 |
 | R052 | [`RD.solcNestedMappingCallerLoad`](../Reasoning/Solc.lean#L4033) | 23 | 1 | 2 |
 | R053 | [`RD.solcPreparedSingleMappingLoadToRoutineMem`](../Reasoning/Solc.lean#L4408) | 10 | 1 | 2 |
 | R054 | [`RD.solcSingleMappingLoadToRoutineMem`](../Reasoning/Solc.lean#L3127) | 21 | 1 | 2 |
 | R055 | [`RD.solcSingleMappingStoreCreditMem`](../Reasoning/Solc.lean#L3434) | 23 | 1 | 2 |
 | R056 | [`RD.solcSingleMappingStoreDebitMem`](../Reasoning/Solc.lean#L3275) | 20 | 1 | 2 |
-| R057 | [`RD.solcUint8ConstGetterExternal`](../Reasoning/Solc.lean#L6206) | 23 | 1 | 2 |
-| R058 | [`RD.solcWordSlotGetter`](../Reasoning/Solc.lean#L3021) | 4 | 1 | 2 |
+| R057 | [`RD.solcUint8ConstGetterExternal`](../Reasoning/Solc.lean#L6206) | 27 | 1 | 2 |
+| R058 | [`RD.solcWordSlotGetter`](../Reasoning/Solc.lean#L3021) | 5 | 1 | 2 |
 | R059 | [`RD.selectorArmWidthTakenAuto`](../Reasoning/Reach.lean#L2162) | 5 | 1 | 1 |
-| R060 | [`RD.solcCheckedSubStringRevert`](../Reasoning/Solc.lean#L5148) | 36 | 1 | 1 |
+| R060 | [`RD.solcCheckedSubStringRevert`](../Reasoning/Solc.lean#L5148) | 43 | 1 | 1 |
 | R061 | [`RD.solcDiscard2ReturnTrue`](../Reasoning/Solc.lean#L5361) | 9 | 1 | 1 |
 | R062 | [`RD.solcDiscard4ReturnTrue`](../Reasoning/Solc.lean#L5382) | 9 | 1 | 1 |
 | R063 | [`RD.solcInlinedDecodeAddrOk`](../Reasoning/Solc.lean#L7089) | 19 | 1 | 1 |
 | R064 | [`RD.solcInlinedDecodeAddrRevert`](../Reasoning/Solc.lean#L7150) | 17 | 1 | 1 |
 | R065 | [`RD.solcInternalCallSetup3`](../Reasoning/Solc.lean#L1549) | 6 | 1 | 1 |
-| R066 | [`RD.solcLockEnterLockedStringRevert`](../Reasoning/Solc.lean#L5105) | 32 | 1 | 1 |
-| R067 | [`RD.solcLockEnterOk`](../Reasoning/Solc.lean#L4735) | 9 | 1 | 1 |
+| R066 | [`RD.solcLockEnterLockedStringRevert`](../Reasoning/Solc.lean#L5105) | 40 | 1 | 1 |
+| R067 | [`RD.solcLockEnterOk`](../Reasoning/Solc.lean#L4735) | 11 | 1 | 1 |
 | R068 | [`RD.solcNestedMappingCallerReloadToRoutineMem`](../Reasoning/Solc.lean#L4276) | 28 | 1 | 1 |
 | R069 | [`RD.solcNestedMappingStoreInnerHash`](../Reasoning/Solc.lean#L3573) | 19 | 1 | 1 |
 | R070 | [`RD.solcNestedMappingStoreOuterSstore`](../Reasoning/Solc.lean#L3688) | 12 | 1 | 1 |
-| R071 | [`RD.solcPlainLog3AndJump`](../Reasoning/Solc.lean#L5577) | 15 | 1 | 1 |
+| R071 | [`RD.solcPlainLog3AndJump`](../Reasoning/Solc.lean#L5577) | 17 | 1 | 1 |
 | R072 | [`RD.solcPreparedSingleMappingLoadCheckedAddMem`](../Reasoning/Solc.lean#L5283) | 26 | 1 | 1 |
 | R073 | [`RD.solcSingleMappingLoadCheckedSubMem`](../Reasoning/Solc.lean#L5250) | 37 | 1 | 1 |
 | R074 | [`RD.solcUintMaxEqBranchFalse`](../Reasoning/Solc.lean#L4172) | 4 | 1 | 1 |
 | R075 | [`RD.solcUintMaxEqBranchTrue`](../Reasoning/Solc.lean#L4135) | 5 | 1 | 1 |
-| R076 | [`RD.solcSummaryAddressMask`](../Reasoning/SummaryPatterns.lean#L60) | 5 | 1 | 0 |
-| R077 | [`RD.solcSummaryErrorRevertFinalizer`](../Reasoning/SummaryPatterns.lean#L160) | 14 | 1 | 0 |
-| R078 | [`RD.solcSummaryErrorSelectorStore`](../Reasoning/SummaryPatterns.lean#L108) | 5 | 1 | 0 |
-| R079 | [`RD.solcSummaryFreeMemoryPointer`](../Reasoning/SummaryPatterns.lean#L33) | 3 | 1 | 0 |
-| R080 | [`RD.solcSummaryFreeMemoryPointerLoad`](../Reasoning/SummaryPatterns.lean#L83) | 3 | 1 | 0 |
-| R081 | [`RD.solcSummaryLegacyReturnDataCopyRevert`](../Reasoning/SummaryPatterns.lean#L254) | 7 | 1 | 0 |
-| R082 | [`RD.solcSummaryReturnDataCopyRevert`](../Reasoning/SummaryPatterns.lean#L228) | 7 | 1 | 0 |
+| R076 | [`RD.solcSummaryAddressMask`](../Reasoning/SummaryPatterns.lean#L166) | 5 | 2 | 0 |
+| R077 | [`RD.solcSummaryBoolNormalize`](../Reasoning/SummaryPatterns.lean#L496) | 2 | 1 | 0 |
+| R078 | [`RD.solcSummaryCallSuccessCondition`](../Reasoning/SummaryPatterns.lean#L576) | 4 | 1 | 0 |
+| R079 | [`RD.solcSummaryCalldataSizeCondition`](../Reasoning/SummaryPatterns.lean#L624) | 4 | 1 | 0 |
+| R080 | [`RD.solcSummaryCallvalueCondition`](../Reasoning/SummaryPatterns.lean#L600) | 3 | 1 | 0 |
+| R081 | [`RD.solcSummaryCheckedAddCondition`](../Reasoning/SummaryPatterns.lean#L739) | 9 | 1 | 0 |
+| R082 | [`RD.solcSummaryCheckedSubCondition`](../Reasoning/SummaryPatterns.lean#L758) | 9 | 1 | 0 |
+| R083 | [`RD.solcSummaryErrorRevertFinalizer`](../Reasoning/SummaryPatterns.lean#L266) | 14 | 1 | 0 |
+| R084 | [`RD.solcSummaryErrorSelectorStore`](../Reasoning/SummaryPatterns.lean#L214) | 5 | 1 | 0 |
+| R085 | [`RD.solcSummaryFreeMemoryPointer`](../Reasoning/SummaryPatterns.lean#L139) | 3 | 1 | 0 |
+| R086 | [`RD.solcSummaryFreeMemoryPointerLoad`](../Reasoning/SummaryPatterns.lean#L189) | 3 | 1 | 0 |
+| R087 | [`RD.solcSummaryLeftAlignedSelector`](../Reasoning/SummaryPatterns.lean#L476) | 4 | 1 | 0 |
+| R088 | [`RD.solcSummaryLegacyReturnDataCopyRevert`](../Reasoning/SummaryPatterns.lean#L360) | 7 | 1 | 0 |
+| R089 | [`RD.solcSummaryReturnDataCopyRevert`](../Reasoning/SummaryPatterns.lean#L334) | 7 | 1 | 0 |
+| R090 | [`RD.solcSummaryReturnDataSizeCondition`](../Reasoning/SummaryPatterns.lean#L654) | 6 | 1 | 0 |
+| R091 | [`RD.solcSummarySelectorCondition`](../Reasoning/SummaryPatterns.lean#L520) | 4 | 1 | 0 |
+| R092 | [`RD.solcSummarySelectorSplitCondition`](../Reasoning/SummaryPatterns.lean#L548) | 4 | 1 | 0 |
+| R093 | [`RD.solcSummaryStaticArgsCondition`](../Reasoning/SummaryPatterns.lean#L696) | 11 | 1 | 0 |
+| R094 | [`RD.solcSummaryUintMax`](../Reasoning/SummaryPatterns.lean#L455) | 2 | 1 | 0 |
 
 ### Generic benchmark-local paths
 
@@ -169,20 +215,20 @@ the detailed entries below.
 | C015 | [`RD.vatSignedSubOk`](../Benchmarks/Dss/Vat/Common.lean#L1126) | 51 | 1 | 6 |
 | C016 | [`daiJoinExitToVatMoveExtcodesizeGuard`](../Benchmarks/Dss/DaiJoin/Exit.lean#L821) | 55 | 3 | 6 |
 | C017 | [`flapperDealX_ticNonzero_toTicLtStart`](../Benchmarks/Dss/Flapper/Deal.lean#L2381) | 5 | 2 | 6 |
-| C018 | [`stairstepPriceFinishReturn`](../Benchmarks/Dss/ExponentialDecrease/Price.lean#L572) | 19 | 2 | 6 |
+| C018 | [`stairstepPriceFinishReturn`](../Benchmarks/Dss/ExponentialDecrease/Price.lean#L572) | 23 | 2 | 6 |
 | C019 | [`stairstepPriceRpowReturnToRmul`](../Benchmarks/Dss/ExponentialDecrease/Price.lean#L306) | 2 | 2 | 6 |
 | C020 | [`RD.dogFileIlkClipDecodeToRoutine`](../Benchmarks/Dss/Dog/FileIlkClip.lean#L1465) | 15 | 4 | 5 |
 | C021 | [`RD.solcNoArgsExternalEntry`](../Benchmarks/Dss/Dog/Common.lean#L705) | 4 | 2 | 5 |
-| C022 | [`RD.cureLoadStillLiveRevert`](../Benchmarks/Dss/Cure/LoadTrace.lean#L12) | 32 | 4 | 4 |
+| C022 | [`RD.cureLoadStillLiveRevert`](../Benchmarks/Dss/Cure/LoadTrace.lean#L12) | 39 | 4 | 4 |
 | C023 | [`endCageX_storePrefix`](../Benchmarks/Dss/End/Cage.lean#L726) | 5 | 2 | 4 |
-| C024 | [`potFileDsrX_liveRevert`](../Benchmarks/Dss/Pot/FileDsr.lean#L905) | 33 | 4 | 4 |
+| C024 | [`potFileDsrX_liveRevert`](../Benchmarks/Dss/Pot/FileDsr.lean#L905) | 40 | 4 | 4 |
 | C025 | [`RD.catClawSubReverts`](../Benchmarks/Dss/Cat/Claw.lean#L79) | 13 | 2 | 3 |
 | C026 | [`RD.catStoreLiveZero`](../Benchmarks/Dss/Cat/Storage.lean#L482) | 3 | 3 | 3 |
 | C027 | [`RD.solcCheckedSubEmptyRevert`](../Benchmarks/Dss/Cat/BiteRevertBranch.lean#L2105) | 3 | 1 | 3 |
 | C028 | [`RD.vatSignedMulOk`](../Benchmarks/Dss/Vat/Common.lean#L972) | 44 | 1 | 3 |
 | C029 | [`endSkipX_suck1CallSucceeded`](../Benchmarks/Dss/End/Skip.lean#L4943) | 8 | 3 | 3 |
 | C030 | [`flapperCageX_moveCallSuccess`](../Benchmarks/Dss/Flapper/Cage.lean#L704) | 14 | 3 | 3 |
-| C031 | [`solcAddressConstGetterExternal`](../Benchmarks/Dss/Clipper/Common.lean#L1746) | 27 | 1 | 3 |
+| C031 | [`solcAddressConstGetterExternal`](../Benchmarks/Dss/Clipper/Common.lean#L1746) | 31 | 1 | 3 |
 | C032 | [`solcOneAddressExternalShort`](../Benchmarks/Dss/Clipper/Common.lean#L1723) | 15 | 1 | 3 |
 | C033 | [`RD.cureLoadLiveZeroOk`](../Benchmarks/Dss/Cure/LoadTrace.lean#L55) | 4 | 2 | 2 |
 | C034 | [`RD.dogBarkStoreDirt`](../Benchmarks/Dss/Dog/Bark.lean#L22263) | 2 | 2 | 2 |
@@ -197,11 +243,11 @@ the detailed entries below.
 | C043 | [`daiJoinMulRoutine_revert`](../Benchmarks/Dss/DaiJoin/Mul.lean#L433) | 27 | 1 | 2 |
 | C044 | [`daiJoinMulRoutine_success`](../Benchmarks/Dss/DaiJoin/Mul.lean#L317) | 30 | 1 | 2 |
 | C045 | [`flapperDealX_endLtReadyToMove`](../Benchmarks/Dss/Flapper/Deal.lean#L2733) | 59 | 2 | 2 |
-| C046 | [`flapperDealX_notFinished`](../Benchmarks/Dss/Flapper/Deal.lean#L2599) | 85 | 2 | 2 |
+| C046 | [`flapperDealX_notFinished`](../Benchmarks/Dss/Flapper/Deal.lean#L2599) | 92 | 2 | 2 |
 | C047 | [`flapperDealX_ticLtReadyToMove`](../Benchmarks/Dss/Flapper/Deal.lean#L2692) | 42 | 2 | 2 |
-| C048 | [`flapperDealX_ticZero`](../Benchmarks/Dss/Flapper/Deal.lean#L2322) | 50 | 2 | 2 |
+| C048 | [`flapperDealX_ticZero`](../Benchmarks/Dss/Flapper/Deal.lean#L2322) | 57 | 2 | 2 |
 | C049 | [`flapperKickX_kicksOk`](../Benchmarks/Dss/Flapper/Kick.lean#L2186) | 4 | 2 | 2 |
-| C050 | [`flapperKickX_kicksOverflow`](../Benchmarks/Dss/Flapper/Kick.lean#L2217) | 34 | 2 | 2 |
+| C050 | [`flapperKickX_kicksOverflow`](../Benchmarks/Dss/Flapper/Kick.lean#L2217) | 41 | 2 | 2 |
 | C051 | [`flipperCtorArgsCodecopyReach`](../Benchmarks/Dss/Flipper/Constructor.lean#L1294) | 4 | 2 | 2 |
 | C052 | [`flipperCtorArgsFreePtrReach`](../Benchmarks/Dss/Flipper/Constructor.lean#L1326) | 5 | 2 | 2 |
 | C053 | [`flipperCtorArgsGuardReach`](../Benchmarks/Dss/Flipper/Constructor.lean#L1358) | 5 | 2 | 2 |
@@ -216,7 +262,7 @@ the detailed entries below.
 | C062 | [`solcGuardCallvalueNonzeroRevertLegacy`](../Benchmarks/Dss/Cure/Common.lean#L337) | 5 | 1 | 1 |
 | C063 | [`solcOneAddressExternalLenOk`](../Benchmarks/Dss/Clipper/Common.lean#L1682) | 12 | 1 | 1 |
 | C064 | [`solcOneAddressExternalMaskAndJumpMasked`](../Benchmarks/Dss/Clipper/Common.lean#L1702) | 11 | 1 | 1 |
-| C065 | [`weth9NestedMappingGetter`](../Benchmarks/WETH9/Routines.lean#L81) | 18 | 1 | 1 |
+| C065 | [`weth9NestedMappingGetter`](../Benchmarks/WETH9/Routines.lean#L81) | 25 | 1 | 1 |
 
 ## Factored reasoning sequences
 
@@ -250,7 +296,7 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 | Theorem | Direct uses | Directory breakdown | Result |
 |---|---:|---|---|
 | [`RD.solcPush1Dup1Revert0`](../Reasoning/Solc.lean#L6246) | 199 | Benchmarks 188, Examples 8, Reasoning 3 | RDrev code g s0 |
-| [`RD.solcSummaryLegacyRevert0`](../Reasoning/SummaryPatterns.lean#L207) | 0 | none | RDrev code g s0 |
+| [`RD.solcSummaryLegacyRevert0`](../Reasoning/SummaryPatterns.lean#L313) | 0 | none | RDrev code g s0 |
 
 ### R003 — `RD.solcExternalStaticArgsLenOk`
 
@@ -310,7 +356,7 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 | Theorem | Direct uses | Directory breakdown | Result |
 |---|---:|---|---|
 | [`RD.revertStub`](../Reasoning/Solc.lean#L6232) | 135 | Examples 131, Reasoning 4 | RDrev code g s0 |
-| [`RD.solcSummaryRevert0`](../Reasoning/SummaryPatterns.lean#L191) | 0 | none | RDrev code g s0 |
+| [`RD.solcSummaryRevert0`](../Reasoning/SummaryPatterns.lean#L297) | 0 | none | RDrev code g s0 |
 
 ### R007 — `RD.selectorSplitNotTaken`
 
@@ -389,11 +435,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R012 — `RD.solcErrorStringRevertTail`
 
-`PUSH1[⟨64⟩] → DUP1 → PUSH1[⟨229⟩] → SHL → DUP2 → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → SWAP1 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1`
+`PUSH1[⟨64⟩] → DUP1 → MLOAD → PUSH1[⟨229⟩] → SHL → DUP2 → MSTORE → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → MSTORE → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → MSTORE → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → MSTORE → SWAP1 → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1 → REVERT`
 
-- **Length:** 26 opcodes
-- **Normalized fingerprint:** `PUSH1[*] · DUP1 · PUSH1[*] · SHL · DUP2 · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · SWAP1 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** stack/control normalization
+- **Length:** 33 opcodes
+- **Normalized fingerprint:** `PUSH1[*] · DUP1 · MLOAD · PUSH1[*] · SHL · DUP2 · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · MSTORE · SWAP1 · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · REVERT`
+- **Effect:** memory read, memory write, failure halt
 - **Aggregate direct uses:** 116
 - **Extraction:** evm_run proof
 
@@ -432,11 +478,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R015 — `RD.solcReturnWordFromMem`
 
-`JUMPDEST → PUSH1[⟨64⟩] → DUP1 → SWAP2 → DUP3 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1`
+`JUMPDEST → PUSH1[⟨64⟩] → DUP1 → MLOAD → SWAP2 → DUP3 → MSTORE → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1 → RETURN`
 
-- **Length:** 12 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · DUP1 · SWAP2 · DUP3 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** stack/control normalization
+- **Length:** 16 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · DUP1 · MLOAD · SWAP2 · DUP3 · MSTORE · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · RETURN`
+- **Effect:** memory read, memory write, success halt
 - **Aggregate direct uses:** 51
 - **Extraction:** evm_run proof
 
@@ -531,11 +577,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R022 — `RD.solcWordGetterExternal`
 
-`JUMPDEST → PUSH2[returnPc] → PUSH2[routine] → JUMP → JUMPDEST → PUSH1[slot] → DUP2 → JUMP → JUMPDEST → PUSH1[⟨64⟩] → DUP1 → SWAP2 → DUP3 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1`
+`JUMPDEST → PUSH2[returnPc] → PUSH2[routine] → JUMP → JUMPDEST → PUSH1[slot] → SLOAD → DUP2 → JUMP → JUMPDEST → PUSH1[⟨64⟩] → DUP1 → MLOAD → SWAP2 → DUP3 → MSTORE → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1 → RETURN`
 
-- **Length:** 20 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH2[*] · PUSH2[*] · JUMP · JUMPDEST · PUSH1[*] · DUP2 · JUMP · JUMPDEST · PUSH1[*] · DUP1 · SWAP2 · DUP3 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** control transfer
+- **Length:** 25 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH2[*] · PUSH2[*] · JUMP · JUMPDEST · PUSH1[*] · SLOAD · DUP2 · JUMP · JUMPDEST · PUSH1[*] · DUP1 · MLOAD · SWAP2 · DUP3 · MSTORE · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · RETURN`
+- **Effect:** memory read, memory write, storage read, success halt, control transfer
 - **Aggregate direct uses:** 22
 - **Extraction:** expanded component summaries
 - **Composition:** `RD.solcGetterThunk`, `RD.solcWordSlotGetter`, `RD.solcReturnWordFromMem`
@@ -576,11 +622,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R025 — `RD.solcSingleMappingGetter`
 
-`JUMPDEST → PUSH1[baseSlot] → PUSH1[⟨32⟩] → PUSH1[⟨0⟩] → SWAP1 → DUP2 → PUSH1[⟨64⟩] → SWAP1 → DUP2 → JUMP`
+`JUMPDEST → PUSH1[baseSlot] → PUSH1[⟨32⟩] → MSTORE → PUSH1[⟨0⟩] → SWAP1 → DUP2 → MSTORE → PUSH1[⟨64⟩] → SWAP1 → KECCAK256 → SLOAD → DUP2 → JUMP`
 
-- **Length:** 10 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · PUSH1[*] · PUSH1[*] · SWAP1 · DUP2 · PUSH1[*] · SWAP1 · DUP2 · JUMP`
-- **Effect:** control transfer
+- **Length:** 14 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · PUSH1[*] · MSTORE · PUSH1[*] · SWAP1 · DUP2 · MSTORE · PUSH1[*] · SWAP1 · KECCAK256 · SLOAD · DUP2 · JUMP`
+- **Effect:** memory write, hashing, storage read, control transfer
 - **Aggregate direct uses:** 15
 - **Extraction:** RD proof chain
 
@@ -590,11 +636,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R026 — `RD.solcAddressGetterExternal`
 
-`JUMPDEST → PUSH2[returnPc] → PUSH2[routine] → JUMP → JUMPDEST → PUSH1[slot] → PUSH1[⟨1⟩] → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SUB → AND → DUP2 → JUMP → JUMPDEST → PUSH1[⟨64⟩] → DUP1 → PUSH1[⟨1⟩] → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SUB → SWAP1 → SWAP3 → AND → DUP3 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1`
+`JUMPDEST → PUSH2[returnPc] → PUSH2[routine] → JUMP → JUMPDEST → PUSH1[slot] → SLOAD → PUSH1[⟨1⟩] → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SUB → AND → DUP2 → JUMP → JUMPDEST → PUSH1[⟨64⟩] → DUP1 → MLOAD → PUSH1[⟨1⟩] → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SUB → SWAP1 → SWAP3 → AND → DUP3 → MSTORE → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1 → RETURN`
 
-- **Length:** 33 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH2[*] · PUSH2[*] · JUMP · JUMPDEST · PUSH1[*] · PUSH1[*] · PUSH1[*] · PUSH1[*] · SHL · SUB · AND · DUP2 · JUMP · JUMPDEST · PUSH1[*] · DUP1 · PUSH1[*] · PUSH1[*] · PUSH1[*] · SHL · SUB · SWAP1 · SWAP3 · AND · DUP3 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** control transfer, address canonicality
+- **Length:** 38 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH2[*] · PUSH2[*] · JUMP · JUMPDEST · PUSH1[*] · SLOAD · PUSH1[*] · PUSH1[*] · PUSH1[*] · SHL · SUB · AND · DUP2 · JUMP · JUMPDEST · PUSH1[*] · DUP1 · MLOAD · PUSH1[*] · PUSH1[*] · PUSH1[*] · SHL · SUB · SWAP1 · SWAP3 · AND · DUP3 · MSTORE · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · RETURN`
+- **Effect:** memory read, memory write, storage read, success halt, control transfer, address canonicality
 - **Aggregate direct uses:** 14
 - **Extraction:** expanded component summaries
 - **Composition:** `RD.solcGetterThunk`, `RD.solcAddressSlotGetter`, `RD.solcReturnAddressFromMem`
@@ -664,11 +710,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R031 — `RD.solcReturnBoolFromMem`
 
-`JUMPDEST → PUSH1[⟨64⟩] → DUP1 → SWAP2 → ISZERO → ISZERO → DUP3 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1`
+`JUMPDEST → PUSH1[⟨64⟩] → DUP1 → MLOAD → SWAP2 → ISZERO → ISZERO → DUP3 → MSTORE → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1 → RETURN`
 
-- **Length:** 14 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · DUP1 · SWAP2 · ISZERO · ISZERO · DUP3 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** stack/control normalization
+- **Length:** 18 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · DUP1 · MLOAD · SWAP2 · ISZERO · ISZERO · DUP3 · MSTORE · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · RETURN`
+- **Effect:** memory read, memory write, success halt
 - **Aggregate direct uses:** 8
 - **Extraction:** evm_run proof
 
@@ -734,7 +780,7 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 | Theorem | Direct uses | Directory breakdown | Result |
 |---|---:|---|---|
 | [`solcSelectorLoad`](../Reasoning/Solc.lean#L7380) | 7 | Examples 6, Reasoning 1 | ∃ k C, RD code ee g s0 (loadPc + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes 0 32)) ⟨224⟩ :: rest) mem aw rdata acc k C |
-| [`RD.solcSummarySelectorLoad`](../Reasoning/SummaryPatterns.lean#L277) | 0 | none | RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) (solcSelectorWord ee :: rest) mem aw rdata acc (k + 4) (C + 11) |
+| [`RD.solcSummarySelectorLoad`](../Reasoning/SummaryPatterns.lean#L383) | 0 | none | RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) (solcSelectorWord ee :: rest) mem aw rdata acc (k + 4) (C + 11) |
 
 ### R036 — `RD.solcConstGetter`
 
@@ -752,11 +798,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R037 — `RD.solcNestedMappingInnerHash`
 
-`JUMPDEST → PUSH1[baseSlot] → PUSH1[⟨32⟩] → SWAP1 → DUP2 → PUSH1[⟨0⟩] → SWAP3 → DUP4 → PUSH1[⟨64⟩] → DUP1 → DUP5`
+`JUMPDEST → PUSH1[baseSlot] → PUSH1[⟨32⟩] → SWAP1 → DUP2 → MSTORE → PUSH1[⟨0⟩] → SWAP3 → DUP4 → MSTORE → PUSH1[⟨64⟩] → DUP1 → DUP5 → KECCAK256`
 
-- **Length:** 11 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · PUSH1[*] · SWAP1 · DUP2 · PUSH1[*] · SWAP3 · DUP4 · PUSH1[*] · DUP1 · DUP5`
-- **Effect:** stack/control normalization
+- **Length:** 14 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · PUSH1[*] · SWAP1 · DUP2 · MSTORE · PUSH1[*] · SWAP3 · DUP4 · MSTORE · PUSH1[*] · DUP1 · DUP5 · KECCAK256`
+- **Effect:** memory write, hashing
 - **Aggregate direct uses:** 5
 - **Extraction:** RD proof chain
 
@@ -766,11 +812,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R038 — `RD.solcNestedMappingLoadAndJump`
 
-`DUP2 → JUMP`
+`SLOAD → DUP2 → JUMP`
 
-- **Length:** 2 opcodes
-- **Normalized fingerprint:** `DUP2 · JUMP`
-- **Effect:** control transfer
+- **Length:** 3 opcodes
+- **Normalized fingerprint:** `SLOAD · DUP2 · JUMP`
+- **Effect:** storage read, control transfer
 - **Aggregate direct uses:** 5
 - **Extraction:** RD proof chain
 
@@ -780,11 +826,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R039 — `RD.solcNestedMappingOuterHash`
 
-`SWAP1 → SWAP2 → SWAP1 → DUP3 → SWAP1`
+`SWAP1 → SWAP2 → MSTORE → SWAP1 → DUP3 → MSTORE → SWAP1 → KECCAK256`
 
-- **Length:** 5 opcodes
-- **Normalized fingerprint:** `SWAP1 · SWAP2 · SWAP1 · DUP3 · SWAP1`
-- **Effect:** stack/control normalization
+- **Length:** 8 opcodes
+- **Normalized fingerprint:** `SWAP1 · SWAP2 · MSTORE · SWAP1 · DUP3 · MSTORE · SWAP1 · KECCAK256`
+- **Effect:** memory write, hashing
 - **Aggregate direct uses:** 5
 - **Extraction:** RD proof chain
 
@@ -794,11 +840,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R040 — `RD.solcReturnAddressFromMem`
 
-`JUMPDEST → PUSH1[⟨64⟩] → DUP1 → PUSH1[⟨1⟩] → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SUB → SWAP1 → SWAP3 → AND → DUP3 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1`
+`JUMPDEST → PUSH1[⟨64⟩] → DUP1 → MLOAD → PUSH1[⟨1⟩] → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SUB → SWAP1 → SWAP3 → AND → DUP3 → MSTORE → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1 → RETURN`
 
-- **Length:** 19 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · DUP1 · PUSH1[*] · PUSH1[*] · PUSH1[*] · SHL · SUB · SWAP1 · SWAP3 · AND · DUP3 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** address canonicality
+- **Length:** 23 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · DUP1 · MLOAD · PUSH1[*] · PUSH1[*] · PUSH1[*] · SHL · SUB · SWAP1 · SWAP3 · AND · DUP3 · MSTORE · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · RETURN`
+- **Effect:** memory read, memory write, success halt, address canonicality
 - **Aggregate direct uses:** 5
 - **Extraction:** evm_run proof
 
@@ -850,11 +896,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R044 — `RD.solcReturnUint8FromMem`
 
-`JUMPDEST → PUSH1[⟨64⟩] → DUP1 → PUSH1[⟨255⟩] → SWAP1 → SWAP3 → AND → DUP3 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1`
+`JUMPDEST → PUSH1[⟨64⟩] → DUP1 → MLOAD → PUSH1[⟨255⟩] → SWAP1 → SWAP3 → AND → DUP3 → MSTORE → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1 → RETURN`
 
-- **Length:** 15 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · DUP1 · PUSH1[*] · SWAP1 · SWAP3 · AND · DUP3 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** stack/control normalization
+- **Length:** 19 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · DUP1 · MLOAD · PUSH1[*] · SWAP1 · SWAP3 · AND · DUP3 · MSTORE · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · RETURN`
+- **Effect:** memory read, memory write, success halt
 - **Aggregate direct uses:** 3
 - **Extraction:** evm_run proof
 
@@ -864,11 +910,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R045 — `RD.solcWordConstGetterExternal`
 
-`JUMPDEST → PUSH2[returnPc] → PUSH2[routine] → JUMP → JUMPDEST → PUSH{width}[val] → DUP2 → JUMP → JUMPDEST → PUSH1[⟨64⟩] → DUP1 → SWAP2 → DUP3 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1`
+`JUMPDEST → PUSH2[returnPc] → PUSH2[routine] → JUMP → JUMPDEST → PUSH{width}[val] → DUP2 → JUMP → JUMPDEST → PUSH1[⟨64⟩] → DUP1 → MLOAD → SWAP2 → DUP3 → MSTORE → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1 → RETURN`
 
-- **Length:** 20 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH2[*] · PUSH2[*] · JUMP · JUMPDEST · PUSH{width}[*] · DUP2 · JUMP · JUMPDEST · PUSH1[*] · DUP1 · SWAP2 · DUP3 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** control transfer
+- **Length:** 24 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH2[*] · PUSH2[*] · JUMP · JUMPDEST · PUSH{width}[*] · DUP2 · JUMP · JUMPDEST · PUSH1[*] · DUP1 · MLOAD · SWAP2 · DUP3 · MSTORE · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · RETURN`
+- **Effect:** memory read, memory write, success halt, control transfer
 - **Aggregate direct uses:** 3
 - **Extraction:** expanded component summaries
 - **Composition:** `RD.solcGetterThunk`, `RD.solcConstGetter`, `RD.solcReturnWordFromMem`
@@ -890,7 +936,7 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 | Theorem | Direct uses | Directory breakdown | Result |
 |---|---:|---|---|
 | [`solcLegacySelectorLoad`](../Reasoning/Solc.lean#L7398) | 3 | Benchmarks 2, Reasoning 1 | ∃ k C, RD code ee g s0 (loadPc + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) (UInt256.shiftRight (uInt256OfByteArray (ee.calldata.readBytes 0 32)) ⟨224⟩ :: rest) mem aw rdata acc k C |
-| [`RD.solcSummaryLegacySelectorLoad`](../Reasoning/SummaryPatterns.lean#L300) | 0 | none | RD code ee g s0 (pc + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) (solcSelectorWord ee :: rest) mem aw rdata acc (k + 4) (C + 12) |
+| [`RD.solcSummaryLegacySelectorLoad`](../Reasoning/SummaryPatterns.lean#L406) | 0 | none | RD code ee g s0 (pc + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) (solcSelectorWord ee :: rest) mem aw rdata acc (k + 4) (C + 12) |
 
 ### R047 — `RD.returndatacopyFull`
 
@@ -922,11 +968,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R049 — `RD.solcAddressSlotGetter`
 
-`JUMPDEST → PUSH1[slot] → PUSH1[⟨1⟩] → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SUB → AND → DUP2 → JUMP`
+`JUMPDEST → PUSH1[slot] → SLOAD → PUSH1[⟨1⟩] → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SUB → AND → DUP2 → JUMP`
 
-- **Length:** 10 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · PUSH1[*] · PUSH1[*] · PUSH1[*] · SHL · SUB · AND · DUP2 · JUMP`
-- **Effect:** control transfer, address canonicality
+- **Length:** 11 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · SLOAD · PUSH1[*] · PUSH1[*] · PUSH1[*] · SHL · SUB · AND · DUP2 · JUMP`
+- **Effect:** storage read, control transfer, address canonicality
 - **Aggregate direct uses:** 2
 - **Extraction:** RD proof chain
 
@@ -936,11 +982,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R050 — `RD.solcCheckedAddStringRevert`
 
-`JUMPDEST → DUP1 → DUP3 → ADD → DUP3 → DUP2 → LT → ISZERO → PUSH2[okPc] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → PUSH1[⟨229⟩] → SHL → DUP2 → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → SWAP1 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1`
+`JUMPDEST → DUP1 → DUP3 → ADD → DUP3 → DUP2 → LT → ISZERO → PUSH2[okPc] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → MLOAD → PUSH1[⟨229⟩] → SHL → DUP2 → MSTORE → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → MSTORE → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → MSTORE → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → MSTORE → SWAP1 → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1 → REVERT`
 
-- **Length:** 36 opcodes
-- **Normalized fingerprint:** `JUMPDEST · DUP1 · DUP3 · ADD · DUP3 · DUP2 · LT · ISZERO · PUSH2[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · PUSH1[*] · SHL · DUP2 · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · SWAP1 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** branch
+- **Length:** 43 opcodes
+- **Normalized fingerprint:** `JUMPDEST · DUP1 · DUP3 · ADD · DUP3 · DUP2 · LT · ISZERO · PUSH2[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · MLOAD · PUSH1[*] · SHL · DUP2 · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · MSTORE · SWAP1 · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · REVERT`
+- **Effect:** memory read, memory write, failure halt, branch
 - **Aggregate direct uses:** 2
 - **Extraction:** expanded component summaries
 - **Composition:** `RD.solcErrorStringRevertTail`
@@ -951,11 +997,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R051 — `RD.solcMaskedTransferLog3AndJump`
 
-`DUP1 → DUP6 → DUP2 → SWAP1 → SWAP2 → SWAP4 → SWAP3 → DUP8 → AND → SWAP3 → SWAP3 → SWAP2 → DUP3 → SWAP1 → SUB → ADD → SWAP1 → POP → POP → POP`
+`DUP1 → MLOAD → DUP6 → DUP2 → SWAP1 → MLOAD → SWAP2 → SWAP4 → SWAP3 → DUP8 → AND → SWAP3 → SWAP3 → SWAP2 → DUP3 → SWAP1 → SUB → ADD → SWAP1 → POP → POP → POP`
 
-- **Length:** 20 opcodes
-- **Normalized fingerprint:** `DUP1 · DUP6 · DUP2 · SWAP1 · SWAP2 · SWAP4 · SWAP3 · DUP8 · AND · SWAP3 · SWAP3 · SWAP2 · DUP3 · SWAP1 · SUB · ADD · SWAP1 · POP · POP · POP`
-- **Effect:** address canonicality
+- **Length:** 22 opcodes
+- **Normalized fingerprint:** `DUP1 · MLOAD · DUP6 · DUP2 · SWAP1 · MLOAD · SWAP2 · SWAP4 · SWAP3 · DUP8 · AND · SWAP3 · SWAP3 · SWAP2 · DUP3 · SWAP1 · SUB · ADD · SWAP1 · POP · POP · POP`
+- **Effect:** memory read, address canonicality
 - **Aggregate direct uses:** 2
 - **Extraction:** evm_run proof
 
@@ -1035,11 +1081,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R057 — `RD.solcUint8ConstGetterExternal`
 
-`JUMPDEST → PUSH2[returnPc] → PUSH2[routine] → JUMP → JUMPDEST → PUSH{width}[val] → DUP2 → JUMP → JUMPDEST → PUSH1[⟨64⟩] → DUP1 → PUSH1[⟨255⟩] → SWAP1 → SWAP3 → AND → DUP3 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1`
+`JUMPDEST → PUSH2[returnPc] → PUSH2[routine] → JUMP → JUMPDEST → PUSH{width}[val] → DUP2 → JUMP → JUMPDEST → PUSH1[⟨64⟩] → DUP1 → MLOAD → PUSH1[⟨255⟩] → SWAP1 → SWAP3 → AND → DUP3 → MSTORE → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1 → RETURN`
 
-- **Length:** 23 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH2[*] · PUSH2[*] · JUMP · JUMPDEST · PUSH{width}[*] · DUP2 · JUMP · JUMPDEST · PUSH1[*] · DUP1 · PUSH1[*] · SWAP1 · SWAP3 · AND · DUP3 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** control transfer
+- **Length:** 27 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH2[*] · PUSH2[*] · JUMP · JUMPDEST · PUSH{width}[*] · DUP2 · JUMP · JUMPDEST · PUSH1[*] · DUP1 · MLOAD · PUSH1[*] · SWAP1 · SWAP3 · AND · DUP3 · MSTORE · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · RETURN`
+- **Effect:** memory read, memory write, success halt, control transfer
 - **Aggregate direct uses:** 2
 - **Extraction:** expanded component summaries
 - **Composition:** `RD.solcGetterThunk`, `RD.solcConstGetter`, `RD.solcReturnUint8FromMem`
@@ -1050,11 +1096,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R058 — `RD.solcWordSlotGetter`
 
-`JUMPDEST → PUSH1[slot] → DUP2 → JUMP`
+`JUMPDEST → PUSH1[slot] → SLOAD → DUP2 → JUMP`
 
-- **Length:** 4 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · DUP2 · JUMP`
-- **Effect:** control transfer
+- **Length:** 5 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · SLOAD · DUP2 · JUMP`
+- **Effect:** storage read, control transfer
 - **Aggregate direct uses:** 2
 - **Extraction:** RD proof chain
 
@@ -1078,11 +1124,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R060 — `RD.solcCheckedSubStringRevert`
 
-`JUMPDEST → DUP1 → DUP3 → SUB → DUP3 → DUP2 → GT → ISZERO → PUSH2[okPc] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → PUSH1[⟨229⟩] → SHL → DUP2 → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → SWAP1 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1`
+`JUMPDEST → DUP1 → DUP3 → SUB → DUP3 → DUP2 → GT → ISZERO → PUSH2[okPc] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → MLOAD → PUSH1[⟨229⟩] → SHL → DUP2 → MSTORE → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → MSTORE → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → MSTORE → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → MSTORE → SWAP1 → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1 → REVERT`
 
-- **Length:** 36 opcodes
-- **Normalized fingerprint:** `JUMPDEST · DUP1 · DUP3 · SUB · DUP3 · DUP2 · GT · ISZERO · PUSH2[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · PUSH1[*] · SHL · DUP2 · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · SWAP1 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** branch
+- **Length:** 43 opcodes
+- **Normalized fingerprint:** `JUMPDEST · DUP1 · DUP3 · SUB · DUP3 · DUP2 · GT · ISZERO · PUSH2[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · MLOAD · PUSH1[*] · SHL · DUP2 · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · MSTORE · SWAP1 · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · REVERT`
+- **Effect:** memory read, memory write, failure halt, branch
 - **Aggregate direct uses:** 1
 - **Extraction:** expanded component summaries
 - **Composition:** `RD.solcErrorStringRevertTail`
@@ -1164,11 +1210,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R066 — `RD.solcLockEnterLockedStringRevert`
 
-`JUMPDEST → PUSH1[slot] → PUSH1[unlocked] → EQ → PUSH2[okPc] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → PUSH1[⟨229⟩] → SHL → DUP2 → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → SWAP1 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1`
+`JUMPDEST → PUSH1[slot] → SLOAD → PUSH1[unlocked] → EQ → PUSH2[okPc] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → MLOAD → PUSH1[⟨229⟩] → SHL → DUP2 → MSTORE → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → MSTORE → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → MSTORE → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → MSTORE → SWAP1 → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1 → REVERT`
 
-- **Length:** 32 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · PUSH1[*] · EQ · PUSH2[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · PUSH1[*] · SHL · DUP2 · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · SWAP1 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** branch
+- **Length:** 40 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · SLOAD · PUSH1[*] · EQ · PUSH2[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · MLOAD · PUSH1[*] · SHL · DUP2 · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · MSTORE · SWAP1 · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · REVERT`
+- **Effect:** memory read, memory write, storage read, failure halt, branch
 - **Aggregate direct uses:** 1
 - **Extraction:** expanded component summaries
 - **Composition:** `RD.solcErrorStringRevertTail`
@@ -1179,11 +1225,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R067 — `RD.solcLockEnterOk`
 
-`JUMPDEST → PUSH1[slot] → PUSH1[unlocked] → EQ → PUSH2[okPc] → JUMPI[taken] → JUMPDEST → PUSH1[locked] → PUSH1[slot]`
+`JUMPDEST → PUSH1[slot] → SLOAD → PUSH1[unlocked] → EQ → PUSH2[okPc] → JUMPI[taken] → JUMPDEST → PUSH1[locked] → PUSH1[slot] → SSTORE`
 
-- **Length:** 9 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · PUSH1[*] · EQ · PUSH2[*] · JUMPI[taken] · JUMPDEST · PUSH1[*] · PUSH1[*]`
-- **Effect:** branch
+- **Length:** 11 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · SLOAD · PUSH1[*] · EQ · PUSH2[*] · JUMPI[taken] · JUMPDEST · PUSH1[*] · PUSH1[*] · SSTORE`
+- **Effect:** storage read, storage write, branch
 - **Aggregate direct uses:** 1
 - **Extraction:** RD proof chain
 
@@ -1235,11 +1281,11 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 ### R071 — `RD.solcPlainLog3AndJump`
 
-`DUP2 → DUP6 → DUP2 → SWAP2 → SWAP3 → DUP2 → SWAP1 → SUB → SWAP1 → SWAP2 → ADD → SWAP1 → POP → POP → POP`
+`DUP2 → MLOAD → DUP6 → DUP2 → SWAP2 → MLOAD → SWAP3 → DUP2 → SWAP1 → SUB → SWAP1 → SWAP2 → ADD → SWAP1 → POP → POP → POP`
 
-- **Length:** 15 opcodes
-- **Normalized fingerprint:** `DUP2 · DUP6 · DUP2 · SWAP2 · SWAP3 · DUP2 · SWAP1 · SUB · SWAP1 · SWAP2 · ADD · SWAP1 · POP · POP · POP`
-- **Effect:** stack/control normalization
+- **Length:** 17 opcodes
+- **Normalized fingerprint:** `DUP2 · MLOAD · DUP6 · DUP2 · SWAP2 · MLOAD · SWAP3 · DUP2 · SWAP1 · SUB · SWAP1 · SWAP2 · ADD · SWAP1 · POP · POP · POP`
+- **Effect:** memory read
 - **Aggregate direct uses:** 1
 - **Extraction:** evm_run proof
 
@@ -1317,9 +1363,94 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 | Theorem | Direct uses | Directory breakdown | Result |
 |---|---:|---|---|
-| [`RD.solcSummaryAddressMask`](../Reasoning/SummaryPatterns.lean#L60) | 0 | none | RD code ee g s0 (pc + UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) (solcAddrMask :: stk) mem aw rdata acc (k + 5) (C + 15) |
+| [`RD.solcSummaryAddressMask`](../Reasoning/SummaryPatterns.lean#L166) | 0 | none | RD code ee g s0 (pc + UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) (solcAddrMask :: stk) mem aw rdata acc (k + 5) (C + 15) |
+| [`RD.solcSummaryLowMask`](../Reasoning/SummaryPatterns.lean#L433) | 0 | none | RD code ee g s0 (pc + UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) (solcLowMask bits :: stk) mem aw rdata acc (k + 5) (C + 15) |
 
-### R077 — `RD.solcSummaryErrorRevertFinalizer`
+### R077 — `RD.solcSummaryBoolNormalize`
+
+`ISZERO → ISZERO`
+
+- **Length:** 2 opcodes
+- **Normalized fingerprint:** `ISZERO · ISZERO`
+- **Effect:** stack/control normalization
+- **Aggregate direct uses:** 0
+- **Extraction:** RD proof chain
+
+| Theorem | Direct uses | Directory breakdown | Result |
+|---|---:|---|---|
+| [`RD.solcSummaryBoolNormalize`](../Reasoning/SummaryPatterns.lean#L496) | 0 | none | RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩) (solcBoolWord word :: stk) mem aw rdata acc (k + 2) (C + 6) |
+
+### R078 — `RD.solcSummaryCallSuccessCondition`
+
+`ISZERO → DUP1 → ISZERO → PUSH{width}[target]`
+
+- **Length:** 4 opcodes
+- **Normalized fingerprint:** `ISZERO · DUP1 · ISZERO · PUSH{width}[*]`
+- **Effect:** stack/control normalization
+- **Aggregate direct uses:** 0
+- **Extraction:** RD proof chain
+
+| Theorem | Direct uses | Directory breakdown | Result |
+|---|---:|---|---|
+| [`RD.solcSummaryCallSuccessCondition`](../Reasoning/SummaryPatterns.lean#L576) | 0 | none | RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat width.succ) (target :: solcCallSucceededWord status :: solcCallFailedWord status :: stk) mem aw rdata acc (k + 4) (C + 12) |
+
+### R079 — `RD.solcSummaryCalldataSizeCondition`
+
+`PUSH1[⟨4⟩] → CALLDATASIZE → LT → PUSH{width}[target]`
+
+- **Length:** 4 opcodes
+- **Normalized fingerprint:** `PUSH1[*] · CALLDATASIZE · LT · PUSH{width}[*]`
+- **Effect:** calldata
+- **Aggregate direct uses:** 0
+- **Extraction:** RD proof chain
+
+| Theorem | Direct uses | Directory breakdown | Result |
+|---|---:|---|---|
+| [`RD.solcSummaryCalldataSizeCondition`](../Reasoning/SummaryPatterns.lean#L624) | 0 | none | RD code ee g s0 (pc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat width.succ) (target :: solcCalldataTooShortWord (UInt256.ofNat ee.calldata.size) :: stk) mem aw rdata acc (k + 4) (C + 11) |
+
+### R080 — `RD.solcSummaryCallvalueCondition`
+
+`CALLVALUE → DUP1 → ISZERO`
+
+- **Length:** 3 opcodes
+- **Normalized fingerprint:** `CALLVALUE · DUP1 · ISZERO`
+- **Effect:** stack/control normalization
+- **Aggregate direct uses:** 0
+- **Extraction:** RD proof chain
+
+| Theorem | Direct uses | Directory breakdown | Result |
+|---|---:|---|---|
+| [`RD.solcSummaryCallvalueCondition`](../Reasoning/SummaryPatterns.lean#L600) | 0 | none | RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) (solcCallFailedWord ee.weiValue :: ee.weiValue :: stk) mem aw rdata acc (k + 3) (C + 8) |
+
+### R081 — `RD.solcSummaryCheckedAddCondition`
+
+`JUMPDEST → DUP1 → DUP3 → ADD → DUP3 → DUP2 → LT → ISZERO → PUSH2[target]`
+
+- **Length:** 9 opcodes
+- **Normalized fingerprint:** `JUMPDEST · DUP1 · DUP3 · ADD · DUP3 · DUP2 · LT · ISZERO · PUSH2[*]`
+- **Effect:** stack/control normalization
+- **Aggregate direct uses:** 0
+- **Extraction:** RD proof chain
+
+| Theorem | Direct uses | Directory breakdown | Result |
+|---|---:|---|---|
+| [`RD.solcSummaryCheckedAddCondition`](../Reasoning/SummaryPatterns.lean#L739) | 0 | none | RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3) (target :: solcCheckedAddOkWord a b :: (a + b) :: b :: a :: stk) mem aw rdata acc (k + 9) (C + 25) |
+
+### R082 — `RD.solcSummaryCheckedSubCondition`
+
+`JUMPDEST → DUP1 → DUP3 → SUB → DUP3 → DUP2 → GT → ISZERO → PUSH2[target]`
+
+- **Length:** 9 opcodes
+- **Normalized fingerprint:** `JUMPDEST · DUP1 · DUP3 · SUB · DUP3 · DUP2 · GT · ISZERO · PUSH2[*]`
+- **Effect:** stack/control normalization
+- **Aggregate direct uses:** 0
+- **Extraction:** RD proof chain
+
+| Theorem | Direct uses | Directory breakdown | Result |
+|---|---:|---|---|
+| [`RD.solcSummaryCheckedSubCondition`](../Reasoning/SummaryPatterns.lean#L758) | 0 | none | RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3) (target :: solcCheckedSubOkWord a b :: UInt256.sub a b :: b :: a :: stk) mem aw rdata acc (k + 9) (C + 25) |
+
+### R083 — `RD.solcSummaryErrorRevertFinalizer`
 
 `PUSH1[(UInt256.ofNat 68)] → DUP3 → ADD → MSTORE → SWAP1 → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[(UInt256.ofNat 100)] → ADD → SWAP1 → REVERT`
 
@@ -1331,9 +1462,9 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 | Theorem | Direct uses | Directory breakdown | Result |
 |---|---:|---|---|
-| [`RD.solcSummaryErrorRevertFinalizer`](../Reasoning/SummaryPatterns.lean#L160) | 0 | none | RDrev code g s0 |
+| [`RD.solcSummaryErrorRevertFinalizer`](../Reasoning/SummaryPatterns.lean#L266) | 0 | none | RDrev code g s0 |
 
-### R078 — `RD.solcSummaryErrorSelectorStore`
+### R084 — `RD.solcSummaryErrorSelectorStore`
 
 `PUSH{width}[(UInt256.ofNat 4594637)] → PUSH1[(UInt256.ofNat 229)] → SHL → DUP2 → MSTORE`
 
@@ -1345,9 +1476,9 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 | Theorem | Direct uses | Directory breakdown | Result |
 |---|---:|---|---|
-| [`RD.solcSummaryErrorSelectorStore`](../Reasoning/SummaryPatterns.lean#L108) | 0 | none | RD code ee g s0 (pc + UInt256.ofNat 4 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) (base :: stk) (solcErrorStringSelector.toByteArray.write 0 mem base.toNat 32) (M aw base (⟨32⟩ : UInt256)) rdata acc (k + 5) (C + (15 + memExpansionCost aw base (⟨32⟩ : UInt256))) |
+| [`RD.solcSummaryErrorSelectorStore`](../Reasoning/SummaryPatterns.lean#L214) | 0 | none | RD code ee g s0 (pc + UInt256.ofNat 4 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) (base :: stk) (solcErrorStringSelector.toByteArray.write 0 mem base.toNat 32) (M aw base (⟨32⟩ : UInt256)) rdata acc (k + 5) (C + (15 + memExpansionCost aw base (⟨32⟩ : UInt256))) |
 
-### R079 — `RD.solcSummaryFreeMemoryPointer`
+### R085 — `RD.solcSummaryFreeMemoryPointer`
 
 `PUSH1[(UInt256.ofNat 128)] → PUSH1[(UInt256.ofNat 64)] → MSTORE`
 
@@ -1359,9 +1490,9 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 | Theorem | Direct uses | Directory breakdown | Result |
 |---|---:|---|---|
-| [`RD.solcSummaryFreeMemoryPointer`](../Reasoning/SummaryPatterns.lean#L33) | 0 | none | RD code ee g s0 (pc + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩) stk ((UInt256.ofNat 128).toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32) (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata acc (k + 3) (C + (9 + memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256))) |
+| [`RD.solcSummaryFreeMemoryPointer`](../Reasoning/SummaryPatterns.lean#L139) | 0 | none | RD code ee g s0 (pc + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩) stk ((UInt256.ofNat 128).toByteArray.write 0 mem (UInt256.ofNat 64).toNat 32) (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata acc (k + 3) (C + (9 + memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256))) |
 
-### R080 — `RD.solcSummaryFreeMemoryPointerLoad`
+### R086 — `RD.solcSummaryFreeMemoryPointerLoad`
 
 `PUSH1[(UInt256.ofNat 64)] → DUP1 → MLOAD`
 
@@ -1373,9 +1504,23 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 | Theorem | Direct uses | Directory breakdown | Result |
 |---|---:|---|---|
-| [`RD.solcSummaryFreeMemoryPointerLoad`](../Reasoning/SummaryPatterns.lean#L83) | 0 | none | RD code ee g s0 (pc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) (memLoad (UInt256.ofNat 64) aw mem :: UInt256.ofNat 64 :: stk) mem (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata acc (k + 3) (C + (9 + memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256))) |
+| [`RD.solcSummaryFreeMemoryPointerLoad`](../Reasoning/SummaryPatterns.lean#L189) | 0 | none | RD code ee g s0 (pc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) (memLoad (UInt256.ofNat 64) aw mem :: UInt256.ofNat 64 :: stk) mem (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata acc (k + 3) (C + (9 + memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256))) |
 
-### R081 — `RD.solcSummaryLegacyReturnDataCopyRevert`
+### R087 — `RD.solcSummaryLeftAlignedSelector`
+
+`PUSH4[⟨4294967295⟩] → AND → PUSH1[⟨224⟩] → SHL`
+
+- **Length:** 4 opcodes
+- **Normalized fingerprint:** `PUSH4[*] · AND · PUSH1[*] · SHL`
+- **Effect:** stack/control normalization
+- **Aggregate direct uses:** 0
+- **Extraction:** RD proof chain
+
+| Theorem | Direct uses | Directory breakdown | Result |
+|---|---:|---|---|
+| [`RD.solcSummaryLeftAlignedSelector`](../Reasoning/SummaryPatterns.lean#L476) | 0 | none | RD code ee g s0 (pc + UInt256.ofNat 5 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) (solcLeftAlignedSelectorWord selector :: stk) mem aw rdata acc (k + 4) (C + 12) |
+
+### R088 — `RD.solcSummaryLegacyReturnDataCopyRevert`
 
 `RETURNDATASIZE → PUSH1[⟨0⟩] → DUP1 → RETURNDATACOPY → RETURNDATASIZE → PUSH1[⟨0⟩] → REVERT`
 
@@ -1387,9 +1532,9 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 | Theorem | Direct uses | Directory breakdown | Result |
 |---|---:|---|---|
-| [`RD.solcSummaryLegacyReturnDataCopyRevert`](../Reasoning/SummaryPatterns.lean#L254) | 0 | none | RDrev code g s0 |
+| [`RD.solcSummaryLegacyReturnDataCopyRevert`](../Reasoning/SummaryPatterns.lean#L360) | 0 | none | RDrev code g s0 |
 
-### R082 — `RD.solcSummaryReturnDataCopyRevert`
+### R089 — `RD.solcSummaryReturnDataCopyRevert`
 
 `RETURNDATASIZE → PUSH0 → PUSH0 → RETURNDATACOPY → RETURNDATASIZE → PUSH0 → REVERT`
 
@@ -1402,7 +1547,77 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 | Theorem | Direct uses | Directory breakdown | Result |
 |---|---:|---|---|
-| [`RD.solcSummaryReturnDataCopyRevert`](../Reasoning/SummaryPatterns.lean#L228) | 0 | none | RDrev code g s0 |
+| [`RD.solcSummaryReturnDataCopyRevert`](../Reasoning/SummaryPatterns.lean#L334) | 0 | none | RDrev code g s0 |
+
+### R090 — `RD.solcSummaryReturnDataSizeCondition`
+
+`RETURNDATASIZE → PUSH1[⟨32⟩] → DUP2 → LT → ISZERO → PUSH2[target]`
+
+- **Length:** 6 opcodes
+- **Normalized fingerprint:** `RETURNDATASIZE · PUSH1[*] · DUP2 · LT · ISZERO · PUSH2[*]`
+- **Effect:** stack/control normalization
+- **Aggregate direct uses:** 0
+- **Extraction:** RD proof chain
+
+| Theorem | Direct uses | Directory breakdown | Result |
+|---|---:|---|---|
+| [`RD.solcSummaryReturnDataSizeCondition`](../Reasoning/SummaryPatterns.lean#L654) | 0 | none | RD code ee g s0 (pc + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3) (target :: solcReturnWordAvailableWord (UInt256.ofNat rdata.size) :: UInt256.ofNat rdata.size :: stk) mem aw rdata acc (k + 6) (C + 17) |
+
+### R091 — `RD.solcSummarySelectorCondition`
+
+`DUP1 → PUSH4[expected] → EQ → PUSH{width}[target]`
+
+- **Length:** 4 opcodes
+- **Normalized fingerprint:** `DUP1 · PUSH4[*] · EQ · PUSH{width}[*]`
+- **Effect:** stack/control normalization
+- **Aggregate direct uses:** 0
+- **Extraction:** RD proof chain
+
+| Theorem | Direct uses | Directory breakdown | Result |
+|---|---:|---|---|
+| [`RD.solcSummarySelectorCondition`](../Reasoning/SummaryPatterns.lean#L520) | 0 | none | RD code ee g s0 (pc + ⟨1⟩ + UInt256.ofNat 5 + ⟨1⟩ + UInt256.ofNat width.succ) (target :: solcSelectorMatches expected actual :: actual :: stk) mem aw rdata acc (k + 4) (C + 12) |
+
+### R092 — `RD.solcSummarySelectorSplitCondition`
+
+`DUP1 → PUSH4[pivot] → GT → PUSH{width}[target]`
+
+- **Length:** 4 opcodes
+- **Normalized fingerprint:** `DUP1 · PUSH4[*] · GT · PUSH{width}[*]`
+- **Effect:** stack/control normalization
+- **Aggregate direct uses:** 0
+- **Extraction:** RD proof chain
+
+| Theorem | Direct uses | Directory breakdown | Result |
+|---|---:|---|---|
+| [`RD.solcSummarySelectorSplitCondition`](../Reasoning/SummaryPatterns.lean#L548) | 0 | none | RD code ee g s0 (pc + ⟨1⟩ + UInt256.ofNat 5 + ⟨1⟩ + UInt256.ofNat width.succ) (target :: solcSelectorBelowPivot pivot actual :: actual :: stk) mem aw rdata acc (k + 4) (C + 12) |
+
+### R093 — `RD.solcSummaryStaticArgsCondition`
+
+`JUMPDEST → PUSH2[ret] → PUSH1[⟨4⟩] → DUP1 → CALLDATASIZE → SUB → PUSH1[need] → DUP2 → LT → ISZERO → PUSH2[target]`
+
+- **Length:** 11 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH2[*] · PUSH1[*] · DUP1 · CALLDATASIZE · SUB · PUSH1[*] · DUP2 · LT · ISZERO · PUSH2[*]`
+- **Effect:** calldata
+- **Aggregate direct uses:** 0
+- **Extraction:** RD proof chain
+
+| Theorem | Direct uses | Directory breakdown | Result |
+|---|---:|---|---|
+| [`RD.solcSummaryStaticArgsCondition`](../Reasoning/SummaryPatterns.lean#L696) | 0 | none | RD code ee g s0 (pc + ⟨1⟩ + UInt256.ofNat 3 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3) (target :: solcStaticArgsSufficientWord (UInt256.ofNat ee.calldata.size) need :: UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ret :: stk) mem aw rda… |
+
+### R094 — `RD.solcSummaryUintMax`
+
+`PUSH1[⟨0⟩] → NOT`
+
+- **Length:** 2 opcodes
+- **Normalized fingerprint:** `PUSH1[*] · NOT`
+- **Effect:** stack/control normalization
+- **Aggregate direct uses:** 0
+- **Extraction:** RD proof chain
+
+| Theorem | Direct uses | Directory breakdown | Result |
+|---|---:|---|---|
+| [`RD.solcSummaryUintMax`](../Reasoning/SummaryPatterns.lean#L455) | 0 | none | RD code ee g s0 (pc + UInt256.ofNat 2 + ⟨1⟩) (solcUintMax :: stk) mem aw rdata acc (k + 2) (C + 6) |
 
 ## Generic benchmark-local candidates
 
@@ -1705,8 +1920,8 @@ They remain in descending aggregate-use order, matching the ranking above.
 | [`RD.vowFlapKickPublicReturn`](../Benchmarks/Dss/Vow/FlapKick.lean#L571) | 1 | Benchmarks 1 | RDret vowBytecode (Sat256.ofUInt256 g) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) acc (UInt256.toByteArray id) |
 | [`RD.vowFlopKickPublicReturn`](../Benchmarks/Dss/Vow/FlopAsh.lean#L1489) | 1 | Benchmarks 1 | RDret vowBytecode (Sat256.ofUInt256 g) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) acc (UInt256.toByteArray id) |
 - **Candidate evidence:** explicit marker; repeated across `Benchmarks/Dss/Dog`, `Benchmarks/Dss/Flapper`, `Benchmarks/Dss/Flipper`, `Benchmarks/Dss/Flopper`, `Benchmarks/Dss/Vow`
-- **Structural novelty:** no reusable multi-opcode `Reasoning/` summary detected.
-- **Recommendation:** promote one parameterized version to `Reasoning/Solc.lean`.
+- **Structural novelty:** exact normalized path already exists in `Reasoning/`.
+- **Recommendation:** replace or derive from `RD.solcReturnWordFromMem`.
 
 ### C015 — `RD.vatSignedSubOk`
 
@@ -1764,11 +1979,11 @@ They remain in descending aggregate-use order, matching the ranking above.
 
 ### C018 — `stairstepPriceFinishReturn`
 
-`JUMPDEST → SWAP4 → SWAP3 → POP → POP → POP → JUMP → JUMPDEST → PUSH1[⟨64⟩] → DUP1 → SWAP2 → DUP3 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1`
+`JUMPDEST → SWAP4 → SWAP3 → POP → POP → POP → JUMP → JUMPDEST → PUSH1[⟨64⟩] → DUP1 → MLOAD → SWAP2 → DUP3 → MSTORE → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1 → RETURN`
 
-- **Length:** 19 opcodes
-- **Normalized fingerprint:** `JUMPDEST · SWAP4 · SWAP3 · POP · POP · POP · JUMP · JUMPDEST · PUSH1[*] · DUP1 · SWAP2 · DUP3 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** control transfer
+- **Length:** 23 opcodes
+- **Normalized fingerprint:** `JUMPDEST · SWAP4 · SWAP3 · POP · POP · POP · JUMP · JUMPDEST · PUSH1[*] · DUP1 · MLOAD · SWAP2 · DUP3 · MSTORE · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · RETURN`
+- **Effect:** memory read, memory write, success halt, control transfer
 - **Aggregate direct uses:** 6 plus 2 unresolved duplicate-name references
 - **Extraction:** expanded component summaries
 - **Composition:** `RD.solcReturnWordFromMem`
@@ -1839,11 +2054,11 @@ They remain in descending aggregate-use order, matching the ranking above.
 
 ### C022 — `RD.cureLoadStillLiveRevert`
 
-`JUMPDEST → PUSH1[⟨1⟩] → SLOAD → ISZERO → PUSH2[⟨1419⟩] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → PUSH1[⟨229⟩] → SHL → DUP2 → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → SWAP1 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1`
+`JUMPDEST → PUSH1[⟨1⟩] → SLOAD → ISZERO → PUSH2[⟨1419⟩] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → MLOAD → PUSH1[⟨229⟩] → SHL → DUP2 → MSTORE → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → MSTORE → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → MSTORE → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → MSTORE → SWAP1 → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1 → REVERT`
 
-- **Length:** 32 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · SLOAD · ISZERO · PUSH2[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · PUSH1[*] · SHL · DUP2 · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · SWAP1 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** storage read, branch
+- **Length:** 39 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · SLOAD · ISZERO · PUSH2[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · MLOAD · PUSH1[*] · SHL · DUP2 · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · MSTORE · SWAP1 · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · REVERT`
+- **Effect:** memory read, memory write, storage read, failure halt, branch
 - **Aggregate direct uses:** 4
 - **Extraction:** expanded component summaries
 - **Composition:** `RD.solcErrorStringRevertTail`
@@ -1878,11 +2093,11 @@ They remain in descending aggregate-use order, matching the ranking above.
 
 ### C024 — `potFileDsrX_liveRevert`
 
-`JUMPDEST → PUSH1[⟨8⟩] → SLOAD → PUSH1[⟨1⟩] → EQ → PUSH{width}[(⟨1149⟩ : UInt256)] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → PUSH1[⟨229⟩] → SHL → DUP2 → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → SWAP1 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1`
+`JUMPDEST → PUSH1[⟨8⟩] → SLOAD → PUSH1[⟨1⟩] → EQ → PUSH{width}[(⟨1149⟩ : UInt256)] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → MLOAD → PUSH1[⟨229⟩] → SHL → DUP2 → MSTORE → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → MSTORE → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → MSTORE → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → MSTORE → SWAP1 → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1 → REVERT`
 
-- **Length:** 33 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · SLOAD · PUSH1[*] · EQ · PUSH{width}[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · PUSH1[*] · SHL · DUP2 · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · SWAP1 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** storage read, branch
+- **Length:** 40 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · SLOAD · PUSH1[*] · EQ · PUSH{width}[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · MLOAD · PUSH1[*] · SHL · DUP2 · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · MSTORE · SWAP1 · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · REVERT`
+- **Effect:** memory read, memory write, storage read, failure halt, branch
 - **Aggregate direct uses:** 4
 - **Extraction:** expanded component summaries
 - **Composition:** `RD.solcErrorStringRevertTail`
@@ -2012,11 +2227,11 @@ They remain in descending aggregate-use order, matching the ranking above.
 
 ### C031 — `solcAddressConstGetterExternal`
 
-`JUMPDEST → PUSH2[returnPc] → PUSH2[routine] → JUMP → JUMPDEST → PUSH{width}[val] → DUP2 → JUMP → JUMPDEST → PUSH1[⟨64⟩] → DUP1 → PUSH1[⟨1⟩] → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SUB → SWAP1 → SWAP3 → AND → DUP3 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1`
+`JUMPDEST → PUSH2[returnPc] → PUSH2[routine] → JUMP → JUMPDEST → PUSH{width}[val] → DUP2 → JUMP → JUMPDEST → PUSH1[⟨64⟩] → DUP1 → MLOAD → PUSH1[⟨1⟩] → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SUB → SWAP1 → SWAP3 → AND → DUP3 → MSTORE → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨32⟩] → ADD → SWAP1 → RETURN`
 
-- **Length:** 27 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH2[*] · PUSH2[*] · JUMP · JUMPDEST · PUSH{width}[*] · DUP2 · JUMP · JUMPDEST · PUSH1[*] · DUP1 · PUSH1[*] · PUSH1[*] · PUSH1[*] · SHL · SUB · SWAP1 · SWAP3 · AND · DUP3 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** control transfer, address canonicality
+- **Length:** 31 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH2[*] · PUSH2[*] · JUMP · JUMPDEST · PUSH{width}[*] · DUP2 · JUMP · JUMPDEST · PUSH1[*] · DUP1 · MLOAD · PUSH1[*] · PUSH1[*] · PUSH1[*] · SHL · SUB · SWAP1 · SWAP3 · AND · DUP3 · MSTORE · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · RETURN`
+- **Effect:** memory read, memory write, success halt, control transfer, address canonicality
 - **Aggregate direct uses:** 3
 - **Extraction:** expanded component summaries
 - **Composition:** `RD.solcGetterThunk`, `RD.solcConstGetter`, `RD.solcReturnAddressFromMem`
@@ -2285,11 +2500,11 @@ They remain in descending aggregate-use order, matching the ranking above.
 
 ### C046 — `flapperDealX_notFinished`
 
-`JUMPDEST → PUSH1[⟨0⟩] → DUP2 → DUP2 → PUSH1[⟨1⟩] → PUSH1[⟨32⟩] → PUSH1[⟨64⟩] → SWAP1 → PUSH1[⟨2⟩] → ADD → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SWAP1 → DIV → ISZERO → DUP1 → ISZERO → SWAP1 → PUSH2[⟨3529⟩] → PUSH1[⟨0⟩] → DUP2 → DUP2 → PUSH1[⟨1⟩] → PUSH1[⟨32⟩] → PUSH1[⟨64⟩] → SWAP1 → PUSH1[⟨2⟩] → ADD → TIMESTAMP → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SWAP1 → SWAP2 → DIV → DUP1 → PUSH2[⟨3529⟩] → JUMPI[fallthrough] → POP → PUSH1[⟨0⟩] → DUP2 → DUP2 → PUSH1[⟨1⟩] → PUSH1[⟨32⟩] → PUSH1[⟨64⟩] → SWAP1 → PUSH1[⟨2⟩] → ADD → TIMESTAMP → PUSH1[⟨1⟩] → PUSH1[⟨208⟩] → SHL → SWAP1 → SWAP2 → DIV → JUMPDEST → PUSH2[⟨3601⟩] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → PUSH1[⟨229⟩] → SHL → DUP2 → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → SWAP1 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1`
+`JUMPDEST → PUSH1[⟨0⟩] → DUP2 → DUP2 → PUSH1[⟨1⟩] → PUSH1[⟨32⟩] → PUSH1[⟨64⟩] → SWAP1 → PUSH1[⟨2⟩] → ADD → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SWAP1 → DIV → ISZERO → DUP1 → ISZERO → SWAP1 → PUSH2[⟨3529⟩] → PUSH1[⟨0⟩] → DUP2 → DUP2 → PUSH1[⟨1⟩] → PUSH1[⟨32⟩] → PUSH1[⟨64⟩] → SWAP1 → PUSH1[⟨2⟩] → ADD → TIMESTAMP → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SWAP1 → SWAP2 → DIV → DUP1 → PUSH2[⟨3529⟩] → JUMPI[fallthrough] → POP → PUSH1[⟨0⟩] → DUP2 → DUP2 → PUSH1[⟨1⟩] → PUSH1[⟨32⟩] → PUSH1[⟨64⟩] → SWAP1 → PUSH1[⟨2⟩] → ADD → TIMESTAMP → PUSH1[⟨1⟩] → PUSH1[⟨208⟩] → SHL → SWAP1 → SWAP2 → DIV → JUMPDEST → PUSH2[⟨3601⟩] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → MLOAD → PUSH1[⟨229⟩] → SHL → DUP2 → MSTORE → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → MSTORE → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → MSTORE → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → MSTORE → SWAP1 → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1 → REVERT`
 
-- **Length:** 85 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · DUP2 · DUP2 · PUSH1[*] · PUSH1[*] · PUSH1[*] · SWAP1 · PUSH1[*] · ADD · PUSH1[*] · PUSH1[*] · SHL · SWAP1 · DIV · ISZERO · DUP1 · ISZERO · SWAP1 · PUSH2[*] · PUSH1[*] · DUP2 · DUP2 · PUSH1[*] · PUSH1[*] · PUSH1[*] · SWAP1 · PUSH1[*] · ADD · TIMESTAMP · PUSH1[*] · PUSH1[*] · SHL · SWAP1 · SWAP2 · DIV · DUP1 · PUSH2[*] · JUMPI[fallthrough] · POP · PUSH1[*] · DUP2 · DUP2 · PUSH1[*] · PUSH1[*] · PUSH1[*] · SWAP1 · PUSH1[*] · ADD · TIMESTAMP · PUSH1[*] · PUSH1[*] · SHL · SWAP1 · SWAP2 · DIV · JUMPDEST · PUSH2[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · PUSH1[*] · SHL · DUP2 · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · SWAP1 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** branch
+- **Length:** 92 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · DUP2 · DUP2 · PUSH1[*] · PUSH1[*] · PUSH1[*] · SWAP1 · PUSH1[*] · ADD · PUSH1[*] · PUSH1[*] · SHL · SWAP1 · DIV · ISZERO · DUP1 · ISZERO · SWAP1 · PUSH2[*] · PUSH1[*] · DUP2 · DUP2 · PUSH1[*] · PUSH1[*] · PUSH1[*] · SWAP1 · PUSH1[*] · ADD · TIMESTAMP · PUSH1[*] · PUSH1[*] · SHL · SWAP1 · SWAP2 · DIV · DUP1 · PUSH2[*] · JUMPI[fallthrough] · POP · PUSH1[*] · DUP2 · DUP2 · PUSH1[*] · PUSH1[*] · PUSH1[*] · SWAP1 · PUSH1[*] · ADD · TIMESTAMP · PUSH1[*] · PUSH1[*] · SHL · SWAP1 · SWAP2 · DIV · JUMPDEST · PUSH2[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · MLOAD · PUSH1[*] · SHL · DUP2 · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · MSTORE · SWAP1 · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · REVERT`
+- **Effect:** memory read, memory write, failure halt, branch
 - **Aggregate direct uses:** 2
 - **Extraction:** expanded component summaries
 - **Composition:** `flapperDealX_toTicGuard`, `flapperDealX_ticNonzero_toTicLtStart`, `flapperDealX_toTicLtGuard`, `flapperDealX_toEndLtGuard`, `RD.solcErrorStringRevertTail`
@@ -2323,11 +2538,11 @@ They remain in descending aggregate-use order, matching the ranking above.
 
 ### C048 — `flapperDealX_ticZero`
 
-`JUMPDEST → PUSH1[⟨0⟩] → DUP2 → DUP2 → PUSH1[⟨1⟩] → PUSH1[⟨32⟩] → PUSH1[⟨64⟩] → SWAP1 → PUSH1[⟨2⟩] → ADD → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SWAP1 → DIV → ISZERO → DUP1 → ISZERO → SWAP1 → PUSH2[⟨3529⟩] → JUMPI[taken] → JUMPDEST → PUSH2[⟨3601⟩] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → PUSH1[⟨229⟩] → SHL → DUP2 → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → SWAP1 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1`
+`JUMPDEST → PUSH1[⟨0⟩] → DUP2 → DUP2 → PUSH1[⟨1⟩] → PUSH1[⟨32⟩] → PUSH1[⟨64⟩] → SWAP1 → PUSH1[⟨2⟩] → ADD → PUSH1[⟨1⟩] → PUSH1[⟨160⟩] → SHL → SWAP1 → DIV → ISZERO → DUP1 → ISZERO → SWAP1 → PUSH2[⟨3529⟩] → JUMPI[taken] → JUMPDEST → PUSH2[⟨3601⟩] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → MLOAD → PUSH1[⟨229⟩] → SHL → DUP2 → MSTORE → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → MSTORE → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → MSTORE → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → MSTORE → SWAP1 → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1 → REVERT`
 
-- **Length:** 50 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · DUP2 · DUP2 · PUSH1[*] · PUSH1[*] · PUSH1[*] · SWAP1 · PUSH1[*] · ADD · PUSH1[*] · PUSH1[*] · SHL · SWAP1 · DIV · ISZERO · DUP1 · ISZERO · SWAP1 · PUSH2[*] · JUMPI[taken] · JUMPDEST · PUSH2[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · PUSH1[*] · SHL · DUP2 · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · SWAP1 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** branch
+- **Length:** 57 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · DUP2 · DUP2 · PUSH1[*] · PUSH1[*] · PUSH1[*] · SWAP1 · PUSH1[*] · ADD · PUSH1[*] · PUSH1[*] · SHL · SWAP1 · DIV · ISZERO · DUP1 · ISZERO · SWAP1 · PUSH2[*] · JUMPI[taken] · JUMPDEST · PUSH2[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · MLOAD · PUSH1[*] · SHL · DUP2 · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · MSTORE · SWAP1 · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · REVERT`
+- **Effect:** memory read, memory write, failure halt, branch
 - **Aggregate direct uses:** 2
 - **Extraction:** expanded component summaries
 - **Composition:** `flapperDealX_toTicGuard`, `RD.solcErrorStringRevertTail`
@@ -2360,11 +2575,11 @@ They remain in descending aggregate-use order, matching the ranking above.
 
 ### C050 — `flapperKickX_kicksOverflow`
 
-`JUMPDEST → PUSH1[⟨0⟩] → NOT → PUSH1[⟨6⟩] → SLOAD → LT → PUSH{width}[(⟨4143⟩ : UInt256)] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → PUSH1[⟨229⟩] → SHL → DUP2 → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → SWAP1 → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1`
+`JUMPDEST → PUSH1[⟨0⟩] → NOT → PUSH1[⟨6⟩] → SLOAD → LT → PUSH{width}[(⟨4143⟩ : UInt256)] → JUMPI[fallthrough] → PUSH1[⟨64⟩] → DUP1 → MLOAD → PUSH1[⟨229⟩] → SHL → DUP2 → MSTORE → PUSH1[⟨32⟩] → PUSH1[⟨4⟩] → DUP3 → ADD → MSTORE → PUSH1[len] → PUSH1[⟨36⟩] → DUP3 → ADD → MSTORE → PUSH1[shift] → SHL → PUSH1[⟨68⟩] → DUP3 → ADD → MSTORE → SWAP1 → MLOAD → SWAP1 → DUP2 → SWAP1 → SUB → PUSH1[⟨100⟩] → ADD → SWAP1 → REVERT`
 
-- **Length:** 34 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · NOT · PUSH1[*] · SLOAD · LT · PUSH{width}[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · PUSH1[*] · SHL · DUP2 · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · PUSH1[*] · DUP3 · ADD · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · SWAP1 · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1`
-- **Effect:** storage read, branch
+- **Length:** 41 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · NOT · PUSH1[*] · SLOAD · LT · PUSH{width}[*] · JUMPI[fallthrough] · PUSH1[*] · DUP1 · MLOAD · PUSH1[*] · SHL · DUP2 · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · PUSH1[*] · DUP3 · ADD · MSTORE · PUSH1[*] · SHL · PUSH1[*] · DUP3 · ADD · MSTORE · SWAP1 · MLOAD · SWAP1 · DUP2 · SWAP1 · SUB · PUSH1[*] · ADD · SWAP1 · REVERT`
+- **Effect:** memory read, memory write, storage read, failure halt, branch
 - **Aggregate direct uses:** 2
 - **Extraction:** expanded component summaries
 - **Composition:** `RD.solcErrorStringRevertTail`
@@ -2515,8 +2730,8 @@ They remain in descending aggregate-use order, matching the ranking above.
 |---|---:|---|---|
 | [`clipperReturnComputedMaskFromMem`](../Benchmarks/Dss/Clipper/Common.lean#L1402) | 1 | Benchmarks 1 | RDret code g s0 acc (UInt256.toByteArray (UInt256.land val (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) bits) ⟨1⟩))) |
 - **Candidate evidence:** explicit marker
-- **Structural novelty:** no reusable multi-opcode `Reasoning/` summary detected.
-- **Recommendation:** generalize and promote after validating a second compiler instance.
+- **Structural novelty:** exact normalized path already exists in `Reasoning/`.
+- **Recommendation:** replace or derive from `RD.solcReturnAddressFromMem`.
 
 ### C059 — `clipperReturnMaskedFromMem`
 
@@ -2626,11 +2841,11 @@ They remain in descending aggregate-use order, matching the ranking above.
 
 ### C065 — `weth9NestedMappingGetter`
 
-`JUMPDEST → PUSH1[baseSlot] → PUSH1[⟨32⟩] → SWAP1 → DUP2 → PUSH1[⟨0⟩] → SWAP3 → DUP4 → PUSH1[⟨64⟩] → DUP1 → DUP5 → SWAP1 → SWAP2 → SWAP1 → DUP3 → SWAP1 → DUP2 → JUMP`
+`JUMPDEST → PUSH1[baseSlot] → PUSH1[⟨32⟩] → SWAP1 → DUP2 → MSTORE → PUSH1[⟨0⟩] → SWAP3 → DUP4 → MSTORE → PUSH1[⟨64⟩] → DUP1 → DUP5 → KECCAK256 → SWAP1 → SWAP2 → MSTORE → SWAP1 → DUP3 → MSTORE → SWAP1 → KECCAK256 → SLOAD → DUP2 → JUMP`
 
-- **Length:** 18 opcodes
-- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · PUSH1[*] · SWAP1 · DUP2 · PUSH1[*] · SWAP3 · DUP4 · PUSH1[*] · DUP1 · DUP5 · SWAP1 · SWAP2 · SWAP1 · DUP3 · SWAP1 · DUP2 · JUMP`
-- **Effect:** control transfer
+- **Length:** 25 opcodes
+- **Normalized fingerprint:** `JUMPDEST · PUSH1[*] · PUSH1[*] · SWAP1 · DUP2 · MSTORE · PUSH1[*] · SWAP3 · DUP4 · MSTORE · PUSH1[*] · DUP1 · DUP5 · KECCAK256 · SWAP1 · SWAP2 · MSTORE · SWAP1 · DUP3 · MSTORE · SWAP1 · KECCAK256 · SLOAD · DUP2 · JUMP`
+- **Effect:** memory write, hashing, storage read, control transfer
 - **Aggregate direct uses:** 1
 - **Extraction:** expanded component summaries
 - **Composition:** `RD.solcNestedMappingInnerHash`, `RD.solcNestedMappingOuterHash`, `RD.solcNestedMappingLoadAndJump`
