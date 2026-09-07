@@ -1,5 +1,6 @@
 import Reasoning.SolmBody
 import Reasoning.Storage
+import Reasoning.Reach
 
 import Ethereum.Theory.StaticStorage
 import Ethereum.Theory.StorageExtensionality
@@ -22,19 +23,6 @@ in memory = the ABI encoding) — exactly as the dispatcher consumes a per-contr
 open Solm ABI Ethereum Ethereum.EVM
 
 namespace Reasoning.Theory
-
-/-- The 160-bit address round-trip the EVM `CALL` opcode performs on `msg.sender`:
-    `ofUInt256 (ofNat addr) = addr`. -/
-theorem accountAddress_roundtrip (a : AccountAddress) :
-    AccountAddress.ofUInt256 (UInt256.ofNat a.val) = a := by
-  have hsize : AccountAddress.size < UInt256.size := by decide
-  have hlt : a.val < AccountAddress.size := a.isLt
-  have hv : ((UInt256.ofNat a.val).val : ℕ) = a.val := by
-    show ((Fin.ofNat _ a.val) : Fin UInt256.size).val = a.val
-    simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt (lt_trans hlt hsize)
-  apply Fin.ext
-  simp only [AccountAddress.ofUInt256, Fin.ofNat, hv]
-  rw [Nat.mod_eq_of_lt hlt, Nat.mod_eq_of_lt hlt]
 
 /-- `wordOfInt 0 = ⟨0⟩` — the zero value word a value-free `CALL` forwards. -/
 theorem wordOfInt_zero : EVM.wordOfInt 0 = (⟨0⟩ : UInt256) := by decide
@@ -330,6 +318,42 @@ theorem typedCallViaEVM_accountMapEquiv {cfg : Config} {evm_evm evm_solm evm'_ev
         rw [← accountMapExtensionalEq_balanceOf h_ext_eq evm_evm.executionEnv.codeOwner]
         exact hvalue
     · simpa [hevm'] using hAccounts
+
+/-- Delegate calls preserve their flag and bytes across equivalent account maps.
+The caller, storage owner, inherited value and permission remain those of the source
+execution environment; only the target supplies the executed code. -/
+theorem delegateCallViaEVM_accountMapEquiv {evm_evm evm_solm evm'_evm : EVM.State}
+    {tgt : EVM.Address} {calldata out : ByteArray} {z : Bool}
+    (hcall : delegateCallViaEVM evm_evm tgt calldata (z, evm'_evm, out))
+    (hAccounts : accountMapEquiv evm_evm.accountMap evm_solm.accountMap)
+    (hOriginalAccounts : evm_evm.σ₀ = evm_solm.σ₀)
+    (hCreated : evm_solm.createdAccounts = evm_evm.createdAccounts)
+    (hGenesis : evm_solm.genesisBlockHeader = evm_evm.genesisBlockHeader)
+    (hBlocks : evm_solm.blocks = evm_evm.blocks)
+    (hEnv : evm_solm.executionEnv = evm_evm.executionEnv) :
+    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
+      delegateCallViaEVM evm_solm tgt calldata
+        (z, { evm_solm with
+          accountMap := σ'_solm
+          substate := A'_solm
+          createdAccounts := evm'_evm.createdAccounts }, out) ∧
+      accountMapEquiv evm'_evm.accountMap σ'_solm := by
+  cases hcall with
+  | callMade hTheta hevm' hdepth =>
+      obtain ⟨callGas, A_in, hTheta⟩ := hTheta
+      obtain ⟨σS, gS, AS, hThetaS, hσ⟩ :=
+        Theta_transport_accountMapEquiv (tgt := tgt) hAccounts hOriginalAccounts
+          hCreated hGenesis hBlocks hTheta
+      refine ⟨σS, AS, ?_, by simpa only [hevm'] using hσ⟩
+      refine delegateCallViaEVM.callMade (g' := gS) ⟨callGas, A_in, ?_⟩ rfl ?_
+      · simpa only [hEnv, hevm'] using hThetaS
+      · simpa only [hEnv] using hdepth
+  | callNotMade hsubstate hevm' hdepth =>
+      refine ⟨evm_solm.accountMap, (evm_solm.addAccessedAccount tgt).substate, ?_,
+        by simpa only [hevm'] using hAccounts⟩
+      apply delegateCallViaEVM.callNotMade rfl
+      · simp only [hevm', hCreated]
+      · simpa only [hEnv] using hdepth
 
 /-- A `Θ` witness for a call, followed by account-map transport.
 
