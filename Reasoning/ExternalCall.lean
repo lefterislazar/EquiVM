@@ -90,6 +90,32 @@ theorem typedCallViaEVM_executionEnv_eq {cfg : Config} {evm evm' : EVM.State}
       subst hevm'
       rfl
 
+/-- Lift the gas-derived return-data bound through the source call bridge. This
+also covers failed attempts, whose output is empty. -/
+theorem callViaEVM_returnData_size_lt_2pow138 {evm evm' : EVM.State}
+    {target : EVM.Address} {value : ℤ} {calldata out : ByteArray} {z perm : Bool}
+    (hcall : callViaEVM evm target value calldata (z, evm', out) perm)
+    (hsize : calldata.size ≤ Ethereum.EVM.maxReturnDataSizeByGas) :
+    out.size < 2 ^ 138 := by
+  cases hcall with
+  | callMade _ hTheta _ _ _ =>
+      obtain ⟨callGas, A_in, hTheta⟩ := hTheta
+      exact Reasoning.Reach.Theta_returnData_size_lt_2pow138_of_eq
+        _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hTheta hsize
+  | callNotMade => decide
+
+/-- A typed call inherits the return-data bound from its encoded calldata.
+The hypothesis is about the ABI encoding, so clients do not unfold call attempts. -/
+theorem typedCallViaEVM_returnData_size_lt_2pow138 {cfg : Config} {evm evm' : EVM.State}
+    {target : EVM.Address} {name : Ident} {value : ℤ} {args : List Value}
+    {z perm : Bool} {out : ByteArray}
+    (hcall : typedCallViaEVM cfg evm target name value args (z, evm', out) perm)
+    (hsize : ∀ calldata, cfg.externalABI.encode? name args = some calldata →
+      calldata.size ≤ Ethereum.EVM.maxReturnDataSizeByGas) :
+    out.size < 2 ^ 138 := by
+  obtain ⟨calldata, hencode, hraw⟩ := hcall
+  exact callViaEVM_returnData_size_lt_2pow138 hraw (hsize calldata hencode)
+
 theorem callViaEVM_static_accountStorageStateEq {evm evm' : EVM.State}
     {target : EVM.Address} {value : ℤ} {calldata : ByteArray}
     {z : Bool} {out : ByteArray}

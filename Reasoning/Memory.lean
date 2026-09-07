@@ -273,8 +273,8 @@ theorem empty_readWithPadding_word_zero :
 
 /-- **MSTORE write.**  Storing a 32-byte word `v` at offset `off ≥ mem.size` appends it past a
     zero gap: `mem ++ zeroes (off - mem.size) ++ v.toByteArray`.  (Generic, contract-agnostic.) -/
-theorem toByteArray_write_eq (v : UInt256) (mem : ByteArray) (off : ℕ)
-    (hoff : mem.size ≤ off) (_hb : off - mem.size < USize.size) :
+theorem toByteArray_write_eq_unbounded (v : UInt256) (mem : ByteArray) (off : ℕ)
+    (hoff : mem.size ≤ off) :
     (UInt256.toByteArray v).write 0 mem off 32
       = mem ++ ffi.ByteArray.zeroes (off - mem.size) ++ UInt256.toByteArray v := by
   have hsz : (UInt256.toByteArray v).data.size = 32 := UInt256.toByteArrayWithSizeProof v |>.2
@@ -300,6 +300,13 @@ theorem toByteArray_write_eq (v : UInt256) (mem : ByteArray) (off : ℕ)
       Array.extract_eq_self_of_le (show v.toByteArray.data.size ≤ 0 + (32 + 0) from by rw [hsz]),
       Array.extract_eq_empty_of_le (by rw [hDsz]; omega),
       Array.append_empty]
+
+/-- Compatibility form with the former host-size precondition. -/
+theorem toByteArray_write_eq (v : UInt256) (mem : ByteArray) (off : ℕ)
+    (hoff : mem.size ≤ off) (_hb : off - mem.size < USize.size) :
+    (UInt256.toByteArray v).write 0 mem off 32
+      = mem ++ ffi.ByteArray.zeroes (off - mem.size) ++ UInt256.toByteArray v :=
+  toByteArray_write_eq_unbounded v mem off hoff
 
 /-- **Partial-overwrite write.**  Storing a 32-byte slice of `src` (its first word) at offset
     `destAddr ≤ base.size` splits `base` into `base[0..destAddr] ++ src[0..32] ++ base[destAddr+32..]`
@@ -338,6 +345,23 @@ theorem toByteArray_write_size_ge_off_add32 (b : UInt256) (mem : ByteArray) (off
     norm_num
   · have hge : mem.size ≤ off := by omega
     rw [toByteArray_write_eq _ _ off hge hgap]
+    rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
+      toByteArray_size]
+    omega
+
+/-- The word-write fact without a host-size restriction on the zero gap. -/
+theorem toByteArray_write_size_ge_off_add32_unbounded (b : UInt256) (mem : ByteArray) (off : ℕ)
+ :
+    off + 32 ≤ ((UInt256.toByteArray b).write 0 mem off 32).size := by
+  by_cases hle : off ≤ mem.size
+  · rw [write32_eq _ _ off (by rw [toByteArray_size]) hle]
+    rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+      ByteArray.size_extract]
+    rw [toByteArray_size]
+    rw [Nat.min_eq_left hle]
+    norm_num
+  · have hge : mem.size ≤ off := by omega
+    rw [toByteArray_write_eq_unbounded _ _ off hge]
     rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
       toByteArray_size]
     omega
@@ -961,6 +985,33 @@ theorem toByteArray_write_read_back_of_gap (b : UInt256) (mem : ByteArray) (off 
       rw [show 32 = (UInt256.toByteArray b).size by rw [toByteArray_size]]
       exact byteArray_extract_self _]
 
+/-- The word-write fact without a host-size restriction on the zero gap. -/
+theorem toByteArray_write_read_back_of_gap_unbounded (b : UInt256) (mem : ByteArray) (off : ℕ)
+ :
+    ((UInt256.toByteArray b).write 0 mem off 32).readWithPadding off 32 =
+      UInt256.toByteArray b := by
+  by_cases hle : off ≤ mem.size
+  · rw [write32_read_back _ _ off (by rw [toByteArray_size]) hle]
+    rw [show 32 = (UInt256.toByteArray b).size by rw [toByteArray_size]]
+    exact byteArray_extract_self _
+  · have hge : mem.size ≤ off := by omega
+    rw [toByteArray_write_eq_unbounded _ _ off hge]
+    rw [readWithPadding_eq_extract _ off (by
+      rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
+        toByteArray_size]
+      omega)]
+    rw [extract_append_right_window
+      (mem ++ ffi.ByteArray.zeroes (off - mem.size))
+      (UInt256.toByteArray b) off (off + 32) (by
+        rw [ByteArray.size_append, ByteArray_zeroes_size]
+        omega)]
+    rw [ByteArray.size_append, ByteArray_zeroes_size]
+    rw [show off - (mem.size + (off - mem.size)) = 0 by omega,
+      show off + 32 - (mem.size + (off - mem.size)) = 32 by omega]
+    rw [show (UInt256.toByteArray b).extract 0 32 = UInt256.toByteArray b from by
+      rw [show 32 = (UInt256.toByteArray b).size by rw [toByteArray_size]]
+      exact byteArray_extract_self _]
+
 /-- Reading below a 32-byte word write, allowing the write to extend memory by a zero gap. -/
 theorem toByteArray_write_read_below_of_gap
     (b : UInt256) (mem : ByteArray) (off read : ℕ)
@@ -972,6 +1023,27 @@ theorem toByteArray_write_read_below_of_gap
   · exact write32_read_below _ _ off read (by rw [toByteArray_size]) hle hbelow
   · have hge : mem.size ≤ off := by omega
     rw [toByteArray_write_eq _ _ off hge hgap]
+    rw [readWithPadding_eq_extract _ read (by
+      rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
+        toByteArray_size]
+      omega)]
+    rw [extract_append_left _ _ _ _ (by
+      rw [ByteArray.size_append, ByteArray_zeroes_size]
+      omega)]
+    rw [extract_append_left _ _ _ _ hread]
+    exact (readWithPadding_eq_extract _ read hread).symm
+
+/-- The word-write fact without a host-size restriction on the zero gap. -/
+theorem toByteArray_write_read_below_of_gap_unbounded
+    (b : UInt256) (mem : ByteArray) (off read : ℕ)
+    (hread : read + 32 ≤ mem.size) (hbelow : read + 32 ≤ off)
+ :
+    ((UInt256.toByteArray b).write 0 mem off 32).readWithPadding read 32 =
+      mem.readWithPadding read 32 := by
+  by_cases hle : off ≤ mem.size
+  · exact write32_read_below _ _ off read (by rw [toByteArray_size]) hle hbelow
+  · have hge : mem.size ≤ off := by omega
+    rw [toByteArray_write_eq_unbounded _ _ off hge]
     rw [readWithPadding_eq_extract _ read (by
       rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
         toByteArray_size]
@@ -1034,6 +1106,44 @@ theorem toByteArray_write_read_window_of_gap
       show min (0 + (start + len)) 32 = start + len by omega]
   · have hge : mem.size ≤ off := by omega
     rw [toByteArray_write_eq _ _ off hge hgap]
+    have hprefix :
+        (mem ++ ffi.ByteArray.zeroes (off - mem.size)).size = off := by
+      rw [ByteArray.size_append, ByteArray_zeroes_size]
+      omega
+    rw [readWithPadding_eq_extract' _ (off + start) len hpos hlen64 (by
+      rw [ByteArray.size_append, hprefix, toByteArray_size]
+      omega)]
+    rw [extract_append_right_window _ _ _ _ (by rw [hprefix]; omega), hprefix]
+    rw [show off + start - off = start by omega,
+      show off + start + len - off = start + len by omega]
+
+/-- The word-write fact without a host-size restriction on the zero gap. -/
+theorem toByteArray_write_read_window_of_gap_unbounded
+    (b : UInt256) (mem : ByteArray) (off start len : Nat)
+    (hwithin : start + len ≤ 32) (hpos : 0 < len) (hlen64 : len < 2 ^ 64)
+ :
+    ((UInt256.toByteArray b).write 0 mem off 32).readWithPadding (off + start) len =
+      (UInt256.toByteArray b).extract start (start + len) := by
+  by_cases hle : off ≤ mem.size
+  · have hprefix : (mem.extract 0 off).size = off := by
+      rw [ByteArray.size_extract]
+      omega
+    have hword : ((UInt256.toByteArray b).extract 0 32).size = 32 := by
+      rw [ByteArray.size_extract, toByteArray_size]
+      omega
+    rw [write32_eq _ _ off (by rw [toByteArray_size]) hle]
+    rw [readWithPadding_eq_extract' _ (off + start) len hpos hlen64 (by
+      rw [ByteArray.size_append, ByteArray.size_append, hprefix, hword]
+      omega)]
+    rw [extract_append_left _ _ _ _ (by rw [ByteArray.size_append, hprefix, hword]; omega)]
+    rw [extract_append_right_window _ _ _ _ (by rw [hprefix]; omega), hprefix]
+    rw [show off + start - off = start by omega,
+      show off + start + len - off = start + len by omega]
+    rw [extract_extract_BA]
+    rw [show 0 + start = start by omega,
+      show min (0 + (start + len)) 32 = start + len by omega]
+  · have hge : mem.size ≤ off := by omega
+    rw [toByteArray_write_eq_unbounded _ _ off hge]
     have hprefix :
         (mem ++ ffi.ByteArray.zeroes (off - mem.size)).size = off := by
       rw [ByteArray.size_append, ByteArray_zeroes_size]

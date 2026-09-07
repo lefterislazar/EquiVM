@@ -52,6 +52,39 @@ def theorem_headers(units: list[str]) -> list[str]:
 
 
 class SequencePatternTests(unittest.TestCase):
+    def test_gas_and_call_family_are_execution_split_boundaries(self) -> None:
+        block = instructions("60005a6001f16002f26003f46004fa6005")
+        pieces = rd.supported_segments(block)
+        self.assertEqual(
+            [[0x60], 0x5A, [0x60], 0xF1, [0x60], 0xF2,
+             [0x60], 0xF4, [0x60], 0xFA, [0x60]],
+            [piece.opcode if isinstance(piece, rd.Instruction)
+             else [ins.opcode for ins in piece] for piece in pieces],
+        )
+
+    def test_gas_split_is_not_unsupported(self) -> None:
+        units = rd.generate_units(bytes.fromhex("305a600100"), "gas", "code",
+                                  fail_on_unsupported=True, keep_metadata=True)
+        output = "\n".join(units)
+        self.assertIn("Execution split boundary at pc 1: gas", output)
+        self.assertIn("theorem gas_block_0", output)
+        self.assertIn("theorem gas_block_2", output)
+        self.assertNotIn("RD.gas", output)
+        self.assertEqual(2, len(theorem_headers(units)))
+
+    def test_call_family_instructions_are_outside_adjacent_summaries(self) -> None:
+        code = bytes.fromhex("6000f16001f26002f46003fa600400")
+        units = rd.generate_units(code, "calls", "code", keep_metadata=True)
+        output = "\n".join(units)
+        self.assertEqual(
+            [0, 3, 6, 9, 12],
+            [int(header.split("theorem calls_block_", 1)[1].split()[0])
+             for header in theorem_headers(units)],
+        )
+        for pc, name in ((2, "call"), (5, "callcode"),
+                         (8, "delegatecall"), (11, "staticcall")):
+            self.assertIn(f"boundary at pc {pc}: {name}", output)
+
     def test_all_six_patterns_match(self) -> None:
         for expected, code in CASES.items():
             with self.subTest(expected):

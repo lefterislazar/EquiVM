@@ -29,6 +29,8 @@ from bytecode_io import parse_bytecode_text, read_bytecode
 
 
 TERMINATORS = {0x00, 0x56, 0x57, 0xF3, 0xFD, 0xFE, 0xFF}
+CALL_FAMILY_OPCODES = {0xF1, 0xF2, 0xF4, 0xFA}
+EXECUTION_SPLIT_OPCODES = CALL_FAMILY_OPCODES | {0x5A}
 MAX_SUMMARY_INSTRUCTIONS = 64
 
 
@@ -305,7 +307,8 @@ NAMES = {
     0x50: "pop", 0x51: "mload", 0x52: "mstore", 0x54: "sload",
     0x55: "sstore", 0x56: "jump", 0x57: "jumpi", 0x5A: "gas",
     0x5B: "jumpdest", 0x5F: "push0", 0xA1: "log1", 0xA2: "log2", 0xA3: "log3",
-    0xA4: "log4", 0xF1: "call", 0xF3: "return", 0xFA: "staticcall",
+    0xA4: "log4", 0xF1: "call", 0xF2: "callcode", 0xF3: "return",
+    0xF4: "delegatecall", 0xFA: "staticcall",
     0xFD: "revert", 0xFE: "invalid", 0xFF: "selfdestruct",
 }
 
@@ -459,11 +462,11 @@ def instruction_is_supported(ins: Instruction) -> bool:
 
 
 def supported_segments(block: list[Instruction]) -> list[list[Instruction] | Instruction]:
-    """Split a basic block into supported runs and unsupported singleton boundaries."""
+    """Split a basic block into supported runs and singleton execution boundaries."""
     result: list[list[Instruction] | Instruction] = []
     current: list[Instruction] = []
     for ins in block:
-        if instruction_is_supported(ins):
+        if instruction_is_supported(ins) and ins.opcode not in EXECUTION_SPLIT_OPCODES:
             current.append(ins)
         else:
             if current:
@@ -1300,16 +1303,26 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
     return "\n".join(lines)
 
 
-def unsupported_boundary_comment(ins: Instruction, code_size: int) -> str:
+def execution_boundary_comment(ins: Instruction, code_size: int) -> str:
     successor = ins.pc + ins.size
     resume = (
         f" Summaries resume at pc {successor} from a fresh symbolic RD state."
         if successor < code_size and ins.opcode not in TERMINATORS else ""
     )
+    if instruction_is_supported(ins):
+        return (
+            f"/- Execution split boundary at pc {ins.pc}: {ins.name} "
+            f"(0x{ins.opcode:02x}). No RD transition is asserted.{resume} -/"
+        )
     return (
         f"/- Unsupported instruction boundary at pc {ins.pc}: {ins.name} "
         f"(0x{ins.opcode:02x}). No RD transition is asserted.{resume} -/"
     )
+
+
+def unsupported_boundary_comment(ins: Instruction, code_size: int) -> str:
+    """Backward-compatible name for rendering an instruction boundary."""
+    return execution_boundary_comment(ins, code_size)
 
 
 def generate_units(code: bytes, prefix: str, code_term: str,
@@ -1335,7 +1348,7 @@ def generate_units(code: bytes, prefix: str, code_term: str,
             block, max_summary_instructions, use_sequence_patterns
         ):
             if isinstance(piece, Instruction):
-                units.append(unsupported_boundary_comment(piece, len(analyzed_code)))
+                units.append(execution_boundary_comment(piece, len(analyzed_code)))
                 continue
             branches: list[str | None] = (
                 ["taken", "fallthrough"] if piece[-1].opcode == 0x57 else [None]
