@@ -14,6 +14,9 @@ permission variants, plus internal calls through a body-refinement summary.
 `PairedCall` packages the concrete RD/source witnesses shared by CALL, STATICCALL and
 DELEGATECALL. Obtain it with `callPaired`, `staticCallPaired`, `rawCallPaired`,
 `rawStaticCallPaired`, or `delegateCallPaired`, then apply the appropriate statement rule.
+`TypedCallSite` extends that boundary through compiler-specific status and ABI-decoder
+code. `BlockRefinesFrom.externalCallSite` consumes the resulting semantic certificate
+without depending on the surrounding opcode sequence.
 `BlockProgress` rules consume concrete boundary evidence. Their `BlockRefinesFrom`
 counterparts derive the boundary from incoming RD and the starting relation, and
 use local refinements for the successful continuation or selected handler.
@@ -254,6 +257,56 @@ def PairedCall (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' ∧
     call (z, evm', out) ∧ CallStateRel s0 ee world' evm' ∧ out.size < UInt256.size
 
+/-- A complete semantic call site, abstracting over the bytecode used to prepare the
+call and process its result. A failed call or failed typed decoder reaches EVM revert.
+A successful decoder reaches an arbitrary cursor satisfying `post`; that relation is
+where a compiler-specific trace records its stack, memory, and continuation PC.
+
+Unlike `PairedCall`, this notion describes the whole compiler call site rather than
+the single CALL-family opcode. The exact opcode is still checked when constructing
+the underlying `PairedCall`. -/
+def TypedCallSite (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
+    (call : (Bool × State × ByteArray) → Prop)
+    (decodeResult : ByteArray → Option (List Value))
+    (post : List Value → ByteArray → CallWorld → Cursor → Prop) : Prop :=
+  ∃ z out evm' world',
+    call (z, evm', out) ∧ CallStateRel s0 ee world' evm' ∧ out.size < UInt256.size ∧
+    match z with
+    | false => RDrev code g s0
+    | true =>
+        match decodeResult out with
+        | none => RDrev code g s0
+        | some values => ∃ cur k C,
+            RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C ∧
+            post values out world' cur
+
+/-- Finish a semantic typed call site from the exact paired CALL-family boundary and
+compiler-specific RD traces for its status check and return decoder. This is the main
+bridge used by generated-summary clients: `hpair` may include arbitrary setup code,
+while `hsuccess` and `hfailure` may include arbitrary result-processing code. -/
+theorem TypedCallSite.ofPaired {code ee g s0 call decodeResult post after}
+    (hpair : PairedCall code ee g s0 call after)
+    (hsuccess : ∀ out evm' world' k C,
+      let cur := after true out world'
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C →
+      call (true, evm', out) → CallStateRel s0 ee world' evm' →
+      out.size < UInt256.size →
+      match decodeResult out with
+      | none => RDrev code g s0
+      | some values => ∃ cur' k' C',
+          RD code ee g s0 cur'.pc cur'.stack cur'.mem cur'.aw cur'.rdata cur'.world k' C' ∧
+          post values out world' cur')
+    (hfailure : ∀ out world' k C,
+      let cur := after false out world'
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C →
+      RDrev code g s0) :
+    TypedCallSite code ee g s0 call decodeResult post := by
+  obtain ⟨z, out, evm', world', k, C, rd, hcall, hrel, hsize⟩ := hpair
+  refine ⟨z, out, evm', world', hcall, hrel, hsize, ?_⟩
+  cases z with
+  | false => exact hfailure out world' k C rd
+  | true => exact hsuccess out evm' world' k C rd hcall hrel hsize
+
 private theorem staticCallExact {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {k C : ℕ} {gasArg target inOffset inSize outOffset outSize : UInt256}
@@ -480,6 +533,48 @@ theorem BlockProgress.externalCallOfPaired {code ee g s0 evm cfg frame}
           exact BlockProgress.cons (ExecStmt.externalCallSuccess hreceiver heth hargs hcall hdecode)
             (by simpa only [hdecode] using hnext)
 
+/-- Refine a typed external call from a semantic whole-call-site certificate.
+The certificate hides argument preparation, the exact CALL-family instruction, the
+status check, returndata copying, and ABI decoding. On successful decoding the tail
+starts at the certificate's actual cursor with both its compiler-specific `post`
+fact and call-state agreement available in the starting relation. -/
+theorem BlockProgress.externalCallOfSite {code ee g s0 evm cfg frame}
+    {receiver eth : Expr} {args : List Expr} {argVals : List Value} {tgt : EVM.Address}
+    {name retVar : Ident} {value : ℤ} {stmts : List Stmt} {Q : ExitRel} {perm : Bool}
+    {post : List Value → ByteArray → CallWorld → Cursor → Prop}
+    (hsite : TypedCallSite code ee g s0
+      (fun result => typedCallViaEVM cfg evm (EVM.address tgt) name value argVals result perm)
+      (cfg.externalABI.decode? name) post)
+    (hreceiver : evalExpr? cfg frame evm receiver = .ok (.address tgt))
+    (heth : evalExpr? cfg frame evm eth = .ok (.int value))
+    (hargs : evalExprs? cfg frame evm args = .ok argVals)
+    (hRevert : Q .reverted .reverted)
+    (hcontinue : ∀ values out evm' world' cur k C,
+      BlockRefinesFrom code ee g s0 cfg cur k C
+        { frame with locals := frame.locals.insert retVar (collapseReturns values) }
+        evm' (fun c _ e => post values out world' c ∧ CallStateRel s0 ee world' e)
+        stmts Q) :
+    BlockProgress code ee g s0 cfg frame evm
+      (.externalCall receiver name eth args retVar perm :: stmts) Q := by
+  obtain ⟨z, out, evm', world', hcall, hrel, hsize, hfinish⟩ := hsite
+  cases z with
+  | false =>
+      exact ⟨.reverted, .reverted,
+        ExecBlock.consRevert (ExecStmt.externalCallFailure hreceiver heth hargs hcall),
+        hfinish, hRevert⟩
+  | true =>
+      cases hdecode : cfg.externalABI.decode? name out with
+      | none =>
+          exact ⟨.reverted, .reverted,
+            ExecBlock.consRevert
+              (ExecStmt.externalCallReturnDecodeRevert hreceiver heth hargs hcall hdecode),
+            (by simpa only [hdecode] using hfinish), hRevert⟩
+      | some values =>
+          obtain ⟨cur, k, C, rd, hpost⟩ := by simpa only [hdecode] using hfinish
+          exact BlockProgress.cons
+            (ExecStmt.externalCallSuccess hreceiver heth hargs hcall hdecode)
+            (hcontinue values out evm' world' cur k C rd ⟨hpost, hrel⟩)
+
 
 /-- Low-level CALL/STATICCALL binds both raw results and continues even when `z = false`.
 Use `rawCallPaired` or `rawStaticCallPaired` for the boundary premise. -/
@@ -687,6 +782,36 @@ theorem BlockRefinesFrom.externalCallOfPaired {code ee g s0 evm cfg frame}
     | some values =>
         simp only [hd] at hnext
         exact hnext rd' hr
+
+/- Note: need to investigate if it improves proof size -/
+/-- Fixed-start refinement through an abstract complete typed call site. The premise
+may use generated RD summaries to cross any compiler-specific setup and decoder code;
+the rule itself depends only on the shared call and the decoded continuation relation. -/
+theorem BlockRefinesFrom.externalCallSite {code ee g s0 evm cfg frame}
+    {entry : Cursor} {k C : ℕ} {P : StateRel}
+    {receiver eth : Expr} {args : List Expr} {argVals : List Value} {tgt : EVM.Address}
+    {name retVar : Ident} {value : ℤ} {stmts : List Stmt} {Q : ExitRel} {perm : Bool}
+    {post : List Value → ByteArray → CallWorld → Cursor → Prop}
+    (hsite :
+      RD code ee g s0 entry.pc entry.stack entry.mem entry.aw entry.rdata entry.world k C →
+      P entry frame evm →
+      TypedCallSite code ee g s0
+        (fun result => typedCallViaEVM cfg evm (EVM.address tgt) name value argVals result perm)
+        (cfg.externalABI.decode? name) post)
+    (hreceiver : P entry frame evm → evalExpr? cfg frame evm receiver = .ok (.address tgt))
+    (heth : P entry frame evm → evalExpr? cfg frame evm eth = .ok (.int value))
+    (hargs : P entry frame evm → evalExprs? cfg frame evm args = .ok argVals)
+    (hRevert : Q .reverted .reverted)
+    (hcontinue : ∀ values out evm' world' cur k' C',
+      BlockRefinesFrom code ee g s0 cfg cur k' C'
+        { frame with locals := frame.locals.insert retVar (collapseReturns values) }
+        evm' (fun c _ e => post values out world' c ∧ CallStateRel s0 ee world' e)
+        stmts Q) :
+    BlockRefinesFrom code ee g s0 cfg entry k C frame evm P
+      (.externalCall receiver name eth args retVar perm :: stmts) Q := by
+  intro rd hP
+  exact BlockProgress.externalCallOfSite (hsite rd hP)
+    (hreceiver hP) (heth hP) (hargs hP) hRevert hcontinue
 
 /-- Fixed-start low-level CALL/STATICCALL refinement. The continuation receives
 world agreement through its starting relation and runs for either raw flag. -/
