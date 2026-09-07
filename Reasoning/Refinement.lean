@@ -147,6 +147,34 @@ theorem BlockProgress.cons {code ee g s0 cfg frame evm frame' evm' stmt stmts Q}
   rcases hrest with ⟨r, ep, hblock, hreach, hQ⟩
   exact ⟨r, ep, ExecBlock.consNormal hstmt hblock, hreach, hQ⟩
 
+/-- Bind a word exposed by an RD summary to a source `gasleft()` declaration,
+without stepping the EVM again. The summary may already have moved the word off
+the stack. Solm permits any gas word; its agreement with the bytecode belongs in
+the continuation's postcondition. Preserve the entry relation at the original
+source frame, since inserting the local need not preserve an arbitrary `P`. -/
+theorem BlockRefinesFrom.letGasOfRD {code ee g s0 cfg cur k C frame evm P name stmts Q}
+    (gas : UInt256)
+    (hnext : BlockRefinesFrom code ee g s0 cfg cur k C
+      { frame with locals := frame.locals.insert name (.int (Int.ofNat gas.toNat)) }
+      evm (fun c _ e => P c frame e) stmts Q) :
+    BlockRefinesFrom code ee g s0 cfg cur k C frame evm P (.letGas name :: stmts) Q := by
+  intro rd hp
+  exact BlockProgress.cons (ExecStmt.letGas gas) (hnext rd hp)
+
+/-- Pair EVM GAS with a source `gasleft()` declaration. The continuation receives
+the same word on the EVM stack and in the source local, with counters advanced by
+one step and two gas. The entry relation is retained at the original cursor and
+frame. Out-of-gas remains inside RD, without a gas case split in the continuation. -/
+theorem BlockRefinesFrom.letGas {code ee g s0 cfg cur k C frame evm P name stmts Q}
+    (hdec : decode code cur.pc = some (.GAS, .none)) (hov : cur.stack.length + 1 ≤ 1024)
+    (hnext : ∀ gas, BlockRefinesFrom code ee g s0 cfg (gasCursor cur gas) (k + 1) (C + 2)
+      { frame with locals := frame.locals.insert name (.int (Int.ofNat gas.toNat)) }
+      evm (fun _ _ e => P cur frame e) stmts Q) :
+    BlockRefinesFrom code ee g s0 cfg cur k C frame evm P (.letGas name :: stmts) Q := by
+  apply BlockRefinesFrom.gas hdec hov
+  intro gas
+  exact BlockRefinesFrom.letGasOfRD gas (hnext gas)
+
 /-- Attach a normally completing source prefix to paired suffix progression.
 The suffix's RD evidence already includes the bytecode prefix, anchored at `s0`. -/
 theorem BlockProgress.prepend {code ee g s0 cfg frame evm frame' evm' front tail Q}
