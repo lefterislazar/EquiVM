@@ -359,7 +359,7 @@ theorem RD.solcSummaryReturnDataCopyRevert
     (hwf : solcSummaryReturnDataCopyRevertWf code ee g s0 pc stk mem aw rdata acc k C) :
     RDrev code g s0 := by
   rcases hwf with ⟨h, hd0, hd1, hd2, hd3, hd4, hd5, hd6, hov⟩
-  obtain ⟨mem', aw', k', C', r4⟩ := RD.returndatacopyFull h hd0 hd1 hd2 hd3 hov
+  have r4 := RD.returndatacopyFull h hd0 hd1 hd2 hd3 hov
   exact r4.returndatasize hd4 (by omega)
     |>.push0 hd5 (by simp only [List.length_cons]; omega)
     |>.rev hd6 (by omega)
@@ -385,10 +385,7 @@ theorem RD.solcSummaryLegacyReturnDataCopyRevert
     (hwf : solcSummaryLegacyReturnDataCopyRevertWf code ee g s0 pc stk mem aw rdata acc k C) :
     RDrev code g s0 := by
   rcases hwf with ⟨h, hd0, hd1, hd2, hd3, hd4, hd5, hd6, hov⟩
-  have r1 := h.returndatasize hd0 (by omega)
-  have r2 := r1.push1 ⟨0⟩ hd1 (by simp only [List.length_cons]; omega)
-  have r3 := r2.dup1 hd2 (by simp only [List.length_cons]; omega)
-  have r4 := RD.returndatacopy r3 hd3 (solcSummaryReturnDataCopyGuard rdata) (by omega)
+  have r4 := RD.returndatacopyFullPush1Dup1 h hd0 hd1 hd2 hd3 hov
   exact r4.returndatasize hd4 (by omega)
     |>.push1 ⟨0⟩ hd5 (by simp only [List.length_cons]; omega)
     |>.rev hd6 (by omega)

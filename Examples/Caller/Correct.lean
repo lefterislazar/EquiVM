@@ -757,7 +757,7 @@ theorem callerX_postRevert {cA gh bl σ σ₀ A I} {g : Sat256}
       (UInt256.isZero ⟨0⟩ :: rest) mem aw rdata acc _ _ :=
     evm_run rd with [iszero, dup1, iszero, push2 ⟨158⟩, jumpiNT (by decide)]
   -- 151 RETURNDATASIZE; 152 PUSH0; 153 PUSH0; 154 RETURNDATACOPY
-  obtain ⟨mem2, aw2, k2, C2, rd155⟩ :=
+  have rd155 :=
     RD.returndatacopyFull rd151 (by decide) (by decide) (by decide) (by decide)
       (by simp only [List.length_cons]; omega)
   -- 155 RETURNDATASIZE; 156 PUSH0; 157 REVERT

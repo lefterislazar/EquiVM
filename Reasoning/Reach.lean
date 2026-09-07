@@ -704,91 +704,6 @@ theorem RD.rawReturndatacopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
       · exact hee
       · exact hworld
 
-/-- The four-opcode idiom `RETURNDATASIZE; PUSH0; PUSH0; RETURNDATACOPY` — copy the *entire* return
-    data to `mem[0]`.  Done as one combinator so the `RETURNDATACOPY` length argument stays tied to
-    `|returnData|` (the size just pushed), discharging its `b + c ≤ |returnData|` guard internally
-    (`0 + |rd| % 2²⁵⁶ ≤ |rd|`).  Resulting memory / active-words / counters are existential — the
-    revert tail that follows ignores them. -/
-theorem RD.returndatacopyFull {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
-    (hd0 : decode code pc = some (.RETURNDATASIZE, .none))
-    (hd1 : decode code (pc + ⟨1⟩) = some (.PUSH0, .none))
-    (hd2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.PUSH0, .none))
-    (hd3 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.RETURNDATACOPY, .none))
-    (hov : stk.length + 3 ≤ 1024) :
-    ∃ mem' aw' k' C', RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) stk mem' aw' rdata acc k' C' := by
-  unfold RD at h
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
-  · exact ⟨mem, aw, k, C, by unfold RD; exact Or.inl hoog⟩
-  · -- s1 = RETURNDATASIZE s
-    set c := UInt256.ofNat s.machineState.returnData.size with hc
-    have st1 := returndatasize_xstep hcode hpc hd0 hstk (by omega)
-    by_cases g1 : g.toNat < C + 2
-    · exact ⟨mem, aw, k, C, by unfold RD; exact Or.inl (hX.trans (stepOOG hgas st1 hk hC (by omega)))⟩
-    set s1 := stReturndatasize s with hs1
-    have hX1 := hX.trans (stepContinue hgas st1 hk (by omega))
-    have hc1 : s1.executionEnv.code = code := hcode
-    have hp1 : s1.machineState.pc = pc + ⟨1⟩ := by simp only [hs1, stReturndatasize]; rw [hpc]
-    have hk1 : s1.machineState.stack = c :: stk := by simp only [hs1, stReturndatasize, ← hc]; rw [hstk]
-    have hgas1 : s1.machineState.gasAvailable = g.subNat (C + 2) := by
-      simp only [hs1, stReturndatasize]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
-    -- s2 = PUSH0 s1
-    have st2 := push0_xstep hc1 hp1 hd1 hk1 (by simp only [List.length_cons]; omega)
-    by_cases g2 : g.toNat < (C + 2) + 2
-    · exact ⟨mem, aw, k + 1, C + 2, by unfold RD; exact Or.inl (hX1.trans (stepOOG hgas1 st2 (by omega) (by omega) (by omega)))⟩
-    set s2 := stPush0 s1 with hs2
-    have hX2 := hX1.trans (stepContinue hgas1 st2 (by omega) (by omega))
-    have hc2 : s2.executionEnv.code = code := hc1
-    have hp2 : s2.machineState.pc = pc + ⟨1⟩ + ⟨1⟩ := by simp only [hs2, stPush0]; rw [hp1]
-    have hk2 : s2.machineState.stack = ⟨0⟩ :: c :: stk := by simp only [hs2, stPush0]; rw [hk1]
-    have hgas2 : s2.machineState.gasAvailable = g.subNat ((C + 2) + 2) := by
-      simp only [hs2, stPush0]; rw [hgas1, Sat256.subNat_sub_add_of_sub_sub]
-    -- s3 = PUSH0 s2
-    have st3 := push0_xstep hc2 hp2 hd2 hk2 (by simp only [List.length_cons]; omega)
-    by_cases g3 : g.toNat < ((C + 2) + 2) + 2
-    · exact ⟨mem, aw, k + 2, (C + 2) + 2, by unfold RD; exact Or.inl (hX2.trans (stepOOG hgas2 st3 (by omega) (by omega) (by omega)))⟩
-    set s3 := stPush0 s2 with hs3
-    have hX3 := hX2.trans (stepContinue hgas2 st3 (by omega) (by omega))
-    have hc3 : s3.executionEnv.code = code := hc2
-    have hp3 : s3.machineState.pc = pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ := by simp only [hs3, stPush0]; rw [hp2]
-    have hk3 : s3.machineState.stack = ⟨0⟩ :: ⟨0⟩ :: c :: stk := by simp only [hs3, stPush0]; rw [hk2]
-    have hgas3 : s3.machineState.gasAvailable = g.subNat (((C + 2) + 2) + 2) := by
-      simp only [hs3, stPush0]; rw [hgas2, Sat256.subNat_sub_add_of_sub_sub]
-    have hrd3 : s3.machineState.returnData = s.machineState.returnData := by
-      simp only [hs3, hs2, hs1, stPush0, stReturndatasize]
-    -- s4 = RETURNDATACOPY s3, copying all of returnData to mem[0]
-    have hcle : c.toNat ≤ s.machineState.returnData.size := by
-      rw [hc]; exact Nat.mod_le _ _
-    have hguard : ¬ (⟨0⟩ : UInt256).toNat + c.toNat > s3.machineState.returnData.size := by
-      rw [hrd3, show (⟨0⟩ : UInt256).toNat = 0 from rfl]; omega
-    have st4 := returndatacopy_xstep hc3 hp3 hd3 hk3 hguard (by omega)
-    rw [collapse_two_stage] at st4
-    -- generalise the two symbolic gas components so the arithmetic is purely linear
-    set memc := memoryExpansionCost s3 .RETURNDATACOPY with hmemc
-    set cpc := GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32) with hcpc
-    by_cases g4 : g.toNat < (((C + 2) + 2) + 2) + (memc + cpc)
-    · exact ⟨mem, aw, k + 3, ((C + 2) + 2) + 2, by unfold RD; exact Or.inl (hX3.trans (stepOOG hgas3 st4 (by omega) (by omega) (by omega)))⟩
-    set s4 := stReturndatacopy s3 ⟨0⟩ ⟨0⟩ c stk with hs4
-    refine ⟨s4.machineState.memory, s4.machineState.activeWords, k + 4,
-      (((C + 2) + 2) + 2) + (memc + cpc), ?_⟩
-    unfold RD
-    refine Or.inr ⟨s4, hX3.trans (stepContinue hgas3 st4 (by omega) (by omega)),
-      ?_, ?_, ?_, ?_, by omega, by omega, rfl, rfl, ?_, ?_, ?_, ?_⟩
-    · simp only [hs4, stReturndatacopy]; exact hc3
-    · simp only [hs4, stReturndatacopy]; rw [hp3]
-    · simp only [hs4, stReturndatacopy]
-    · simp only [hs4, stReturndatacopy, ← hmemc, ← hcpc]
-      rw [hgas3, Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
-    · simp only [hs4, stReturndatacopy]; rw [hrd3]; exact hrdata
-    · simp only [hs4, stReturndatacopy]; exact hacc
-    · simp only [hs4, stReturndatacopy]; exact hee
-    · refine ⟨?_, ?_, ?_⟩
-      · simp only [hs4, stReturndatacopy, hs3, hs2, hs1, stPush0, stReturndatasize]; exact hworld.1
-      · simp only [hs4, stReturndatacopy, hs3, hs2, hs1, stPush0, stReturndatasize]; exact hworld.2.1
-      · simp only [hs4, stReturndatacopy, hs3, hs2, hs1, stPush0, stReturndatasize]; exact hworld.2.2
-
 /-- `DUP1` goes through `stDup1`, not `stSwap`, so it is its own combinator. -/
 theorem RD.dup1 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -3895,6 +3810,284 @@ theorem RD.returndatacopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
   · rfl
   · rfl
   · exact hov
+
+private theorem returnDataCopyFullGuard (rdata : ByteArray) :
+    (⟨0⟩ : UInt256).toNat + (UInt256.ofNat rdata.size).toNat ≤ rdata.size := by
+  rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl]
+  set c := UInt256.ofNat rdata.size with hc
+  have hcle : c.toNat ≤ rdata.size := by
+    rw [hc]
+    exact Nat.mod_le _ _
+  simpa only [Nat.zero_add, hc] using hcle
+
+/-- The four-opcode idiom `RETURNDATASIZE; PUSH0; PUSH0; RETURNDATACOPY` copies the
+    return data length modulo `UInt256.size` to `mem[0]`, with concrete output terms. -/
+theorem RD.returndatacopyFull {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hd0 : decode code pc = some (.RETURNDATASIZE, .none))
+    (hd1 : decode code (pc + ⟨1⟩) = some (.PUSH0, .none))
+    (hd2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.PUSH0, .none))
+    (hd3 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.RETURNDATACOPY, .none))
+    (hov : stk.length + 3 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) stk
+      (rdata.write 0 mem 0 (UInt256.ofNat rdata.size).toNat)
+      (M aw ⟨0⟩ (UInt256.ofNat rdata.size)) rdata acc
+      (k + 4)
+      (C + 6 + (memExpansionCost aw ⟨0⟩ (UInt256.ofNat rdata.size)
+        + (GasConstants.Gverylow + GasConstants.Gcopy *
+          (((UInt256.ofNat rdata.size).toNat + 31) / 32)))) := by
+  have r1 := h.returndatasize hd0 (by omega)
+  have r2 := r1.push0 hd1 (by simp only [List.length_cons]; omega)
+  have r3 := r2.push0 hd2 (by simp only [List.length_cons]; omega)
+  have r4 := r3.returndatacopy hd3 (returnDataCopyFullGuard rdata) (by omega)
+  exact r4.normalizeCounters (by omega) (by omega)
+
+/-- `RETURNDATASIZE; PUSH0; DUP1; RETURNDATACOPY`, with the return-data copy bounds
+    discharged by the zero/size stack shape. -/
+theorem RD.returndatacopyFullPush0Dup1 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hd0 : decode code pc = some (.RETURNDATASIZE, .none))
+    (hd1 : decode code (pc + ⟨1⟩) = some (.PUSH0, .none))
+    (hd2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.DUP1, .none))
+    (hd3 : decode code (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.RETURNDATACOPY, .none))
+    (hov : stk.length + 3 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) stk
+      (rdata.write 0 mem 0 (UInt256.ofNat rdata.size).toNat)
+      (M aw ⟨0⟩ (UInt256.ofNat rdata.size)) rdata acc
+      (k + 4)
+      (C + 7 + (memExpansionCost aw ⟨0⟩ (UInt256.ofNat rdata.size)
+        + (GasConstants.Gverylow + GasConstants.Gcopy *
+          (((UInt256.ofNat rdata.size).toNat + 31) / 32)))) := by
+  have r1 := h.returndatasize hd0 (by omega)
+  have r2 := r1.push0 hd1 (by simp only [List.length_cons]; omega)
+  have r3 := r2.dup1 hd2 (by simp only [List.length_cons]; omega)
+  have r4 := r3.returndatacopy hd3 (returnDataCopyFullGuard rdata) (by omega)
+  exact r4.normalizeCounters (by omega) (by omega)
+
+/-- `RETURNDATASIZE; PUSH0; PUSH1 0; RETURNDATACOPY`, with the return-data copy bounds
+    discharged by the zero/size stack shape. -/
+theorem RD.returndatacopyFullPush0Push1 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hd0 : decode code pc = some (.RETURNDATASIZE, .none))
+    (hd1 : decode code (pc + ⟨1⟩) = some (.PUSH0, .none))
+    (hd2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.Push .PUSH1, some (⟨0⟩, 1)))
+    (hd3 : decode code (pc + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) =
+      some (.RETURNDATACOPY, .none))
+    (hov : stk.length + 3 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) stk
+      (rdata.write 0 mem 0 (UInt256.ofNat rdata.size).toNat)
+      (M aw ⟨0⟩ (UInt256.ofNat rdata.size)) rdata acc
+      (k + 4)
+      (C + 7 + (memExpansionCost aw ⟨0⟩ (UInt256.ofNat rdata.size)
+        + (GasConstants.Gverylow + GasConstants.Gcopy *
+          (((UInt256.ofNat rdata.size).toNat + 31) / 32)))) := by
+  have r1 := h.returndatasize hd0 (by omega)
+  have r2 := r1.push0 hd1 (by simp only [List.length_cons]; omega)
+  have r3 := r2.push1 ⟨0⟩ hd2 (by simp only [List.length_cons]; omega)
+  have r4 := r3.returndatacopy hd3 (returnDataCopyFullGuard rdata) (by omega)
+  exact r4.normalizeCounters (by omega) (by omega)
+
+/-- `RETURNDATASIZE; PUSH0; PUSH{width} 0; RETURNDATACOPY`, with the return-data copy
+    bounds discharged by the zero/size stack shape. -/
+theorem RD.returndatacopyFullPush0PushConst {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
+    {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C width : ℕ}
+    {op : Operation.POp}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hd0 : decode code pc = some (.RETURNDATASIZE, .none))
+    (hd1 : decode code (pc + ⟨1⟩) = some (.PUSH0, .none))
+    (hop : op ≠ .PUSH0)
+    (hd2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.Push op, some (⟨0⟩, width)))
+    (hd3 : decode code (pc + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat width.succ) =
+      some (.RETURNDATACOPY, .none))
+    (hov : stk.length + 3 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat width.succ + ⟨1⟩) stk
+      (rdata.write 0 mem 0 (UInt256.ofNat rdata.size).toNat)
+      (M aw ⟨0⟩ (UInt256.ofNat rdata.size)) rdata acc
+      (k + 4)
+      (C + 7 + (memExpansionCost aw ⟨0⟩ (UInt256.ofNat rdata.size)
+        + (GasConstants.Gverylow + GasConstants.Gcopy *
+          (((UInt256.ofNat rdata.size).toNat + 31) / 32)))) := by
+  have r1 := h.returndatasize hd0 (by omega)
+  have r2 := r1.push0 hd1 (by simp only [List.length_cons]; omega)
+  have r3 := r2.pushConst ⟨0⟩ (width := width) (op := op) hop hd2
+    (by simp only [List.length_cons]; omega)
+  have r4 := r3.returndatacopy hd3 (returnDataCopyFullGuard rdata) (by omega)
+  exact r4.normalizeCounters (by omega) (by omega)
+
+/-- `RETURNDATASIZE; PUSH1 0; PUSH0; RETURNDATACOPY`, with the return-data copy bounds
+    discharged by the zero/size stack shape. -/
+theorem RD.returndatacopyFullPush1Push0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hd0 : decode code pc = some (.RETURNDATASIZE, .none))
+    (hd1 : decode code (pc + ⟨1⟩) = some (.Push .PUSH1, some (⟨0⟩, 1)))
+    (hd2 : decode code (pc + ⟨1⟩ + UInt256.ofNat 2) = some (.PUSH0, .none))
+    (hd3 : decode code (pc + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) =
+      some (.RETURNDATACOPY, .none))
+    (hov : stk.length + 3 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) stk
+      (rdata.write 0 mem 0 (UInt256.ofNat rdata.size).toNat)
+      (M aw ⟨0⟩ (UInt256.ofNat rdata.size)) rdata acc
+      (k + 4)
+      (C + 7 + (memExpansionCost aw ⟨0⟩ (UInt256.ofNat rdata.size)
+        + (GasConstants.Gverylow + GasConstants.Gcopy *
+          (((UInt256.ofNat rdata.size).toNat + 31) / 32)))) := by
+  have r1 := h.returndatasize hd0 (by omega)
+  have r2 := r1.push1 ⟨0⟩ hd1 (by simp only [List.length_cons]; omega)
+  have r3 := r2.push0 hd2 (by simp only [List.length_cons]; omega)
+  have r4 := r3.returndatacopy hd3 (returnDataCopyFullGuard rdata) (by omega)
+  exact r4.normalizeCounters (by omega) (by omega)
+
+/-- `RETURNDATASIZE; PUSH{width} 0; PUSH0; RETURNDATACOPY`, with the return-data copy
+    bounds discharged by the zero/size stack shape. -/
+theorem RD.returndatacopyFullPushConstPush0 {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
+    {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C width : ℕ}
+    {op : Operation.POp}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hd0 : decode code pc = some (.RETURNDATASIZE, .none))
+    (hop : op ≠ .PUSH0)
+    (hd1 : decode code (pc + ⟨1⟩) = some (.Push op, some (⟨0⟩, width)))
+    (hd2 : decode code (pc + ⟨1⟩ + UInt256.ofNat width.succ) = some (.PUSH0, .none))
+    (hd3 : decode code (pc + ⟨1⟩ + UInt256.ofNat width.succ + ⟨1⟩) =
+      some (.RETURNDATACOPY, .none))
+    (hov : stk.length + 3 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩ + UInt256.ofNat width.succ + ⟨1⟩ + ⟨1⟩) stk
+      (rdata.write 0 mem 0 (UInt256.ofNat rdata.size).toNat)
+      (M aw ⟨0⟩ (UInt256.ofNat rdata.size)) rdata acc
+      (k + 4)
+      (C + 7 + (memExpansionCost aw ⟨0⟩ (UInt256.ofNat rdata.size)
+        + (GasConstants.Gverylow + GasConstants.Gcopy *
+          (((UInt256.ofNat rdata.size).toNat + 31) / 32)))) := by
+  have r1 := h.returndatasize hd0 (by omega)
+  have r2 := r1.pushConst ⟨0⟩ (width := width) (op := op) hop hd1
+    (by simp only [List.length_cons]; omega)
+  have r3 := r2.push0 hd2 (by simp only [List.length_cons]; omega)
+  have r4 := r3.returndatacopy hd3 (returnDataCopyFullGuard rdata) (by omega)
+  exact r4.normalizeCounters (by omega) (by omega)
+
+/-- `RETURNDATASIZE; PUSH1 0; DUP1; RETURNDATACOPY`, with the return-data copy bounds
+    discharged by the zero/size stack shape. -/
+theorem RD.returndatacopyFullPush1Dup1 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hd0 : decode code pc = some (.RETURNDATASIZE, .none))
+    (hd1 : decode code (pc + ⟨1⟩) = some (.Push .PUSH1, some (⟨0⟩, 1)))
+    (hd2 : decode code (pc + ⟨1⟩ + UInt256.ofNat 2) = some (.DUP1, .none))
+    (hd3 : decode code (pc + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) =
+      some (.RETURNDATACOPY, .none))
+    (hov : stk.length + 3 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) stk
+      (rdata.write 0 mem 0 (UInt256.ofNat rdata.size).toNat)
+      (M aw ⟨0⟩ (UInt256.ofNat rdata.size)) rdata acc
+      (k + 4)
+      (C + 8 + (memExpansionCost aw ⟨0⟩ (UInt256.ofNat rdata.size)
+        + (GasConstants.Gverylow + GasConstants.Gcopy *
+          (((UInt256.ofNat rdata.size).toNat + 31) / 32)))) := by
+  have r1 := h.returndatasize hd0 (by omega)
+  have r2 := r1.push1 ⟨0⟩ hd1 (by simp only [List.length_cons]; omega)
+  have r3 := r2.dup1 hd2 (by simp only [List.length_cons]; omega)
+  have r4 := r3.returndatacopy hd3 (returnDataCopyFullGuard rdata) (by omega)
+  exact r4.normalizeCounters (by omega) (by omega)
+
+/-- `RETURNDATASIZE; PUSH{width} 0; DUP1; RETURNDATACOPY`, with the return-data copy
+    bounds discharged by the zero/size stack shape. -/
+theorem RD.returndatacopyFullPushConstDup1 {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
+    {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C width : ℕ}
+    {op : Operation.POp}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hd0 : decode code pc = some (.RETURNDATASIZE, .none))
+    (hop : op ≠ .PUSH0)
+    (hd1 : decode code (pc + ⟨1⟩) = some (.Push op, some (⟨0⟩, width)))
+    (hd2 : decode code (pc + ⟨1⟩ + UInt256.ofNat width.succ) = some (.DUP1, .none))
+    (hd3 : decode code (pc + ⟨1⟩ + UInt256.ofNat width.succ + ⟨1⟩) =
+      some (.RETURNDATACOPY, .none))
+    (hov : stk.length + 3 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩ + UInt256.ofNat width.succ + ⟨1⟩ + ⟨1⟩) stk
+      (rdata.write 0 mem 0 (UInt256.ofNat rdata.size).toNat)
+      (M aw ⟨0⟩ (UInt256.ofNat rdata.size)) rdata acc
+      (k + 4)
+      (C + 8 + (memExpansionCost aw ⟨0⟩ (UInt256.ofNat rdata.size)
+        + (GasConstants.Gverylow + GasConstants.Gcopy *
+          (((UInt256.ofNat rdata.size).toNat + 31) / 32)))) := by
+  have r1 := h.returndatasize hd0 (by omega)
+  have r2 := r1.pushConst ⟨0⟩ (width := width) (op := op) hop hd1
+    (by simp only [List.length_cons]; omega)
+  have r3 := r2.dup1 hd2 (by simp only [List.length_cons]; omega)
+  have r4 := r3.returndatacopy hd3 (returnDataCopyFullGuard rdata) (by omega)
+  exact r4.normalizeCounters (by omega) (by omega)
+
+/-- `RETURNDATASIZE; PUSH1 0; PUSH1 0; RETURNDATACOPY`, with the return-data copy bounds
+    discharged by the zero/size stack shape. -/
+theorem RD.returndatacopyFullPush1Push1 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hd0 : decode code pc = some (.RETURNDATASIZE, .none))
+    (hd1 : decode code (pc + ⟨1⟩) = some (.Push .PUSH1, some (⟨0⟩, 1)))
+    (hd2 : decode code (pc + ⟨1⟩ + UInt256.ofNat 2) =
+      some (.Push .PUSH1, some (⟨0⟩, 1)))
+    (hd3 : decode code (pc + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2) =
+      some (.RETURNDATACOPY, .none))
+    (hov : stk.length + 3 ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩) stk
+      (rdata.write 0 mem 0 (UInt256.ofNat rdata.size).toNat)
+      (M aw ⟨0⟩ (UInt256.ofNat rdata.size)) rdata acc
+      (k + 4)
+      (C + 8 + (memExpansionCost aw ⟨0⟩ (UInt256.ofNat rdata.size)
+        + (GasConstants.Gverylow + GasConstants.Gcopy *
+          (((UInt256.ofNat rdata.size).toNat + 31) / 32)))) := by
+  have r1 := h.returndatasize hd0 (by omega)
+  have r2 := r1.push1 ⟨0⟩ hd1 (by simp only [List.length_cons]; omega)
+  have r3 := r2.push1 ⟨0⟩ hd2 (by simp only [List.length_cons]; omega)
+  have r4 := r3.returndatacopy hd3 (returnDataCopyFullGuard rdata) (by omega)
+  exact r4.normalizeCounters (by omega) (by omega)
+
+/-- `RETURNDATASIZE; PUSH{width₀} 0; PUSH{width₁} 0; RETURNDATACOPY`, with the
+    return-data copy bounds discharged by the zero/size stack shape. -/
+theorem RD.returndatacopyFullPushConstPushConst {code : ByteArray} {ee : ExecutionEnv}
+    {g : Sat256} {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
+    {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C width0 width1 : ℕ}
+    {op0 op1 : Operation.POp}
+    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
+    (hd0 : decode code pc = some (.RETURNDATASIZE, .none))
+    (hop0 : op0 ≠ .PUSH0)
+    (hd1 : decode code (pc + ⟨1⟩) = some (.Push op0, some (⟨0⟩, width0)))
+    (hop1 : op1 ≠ .PUSH0)
+    (hd2 : decode code (pc + ⟨1⟩ + UInt256.ofNat width0.succ) =
+      some (.Push op1, some (⟨0⟩, width1)))
+    (hd3 : decode code (pc + ⟨1⟩ + UInt256.ofNat width0.succ +
+        UInt256.ofNat width1.succ) = some (.RETURNDATACOPY, .none))
+    (hov : stk.length + 3 ≤ 1024) :
+    RD code ee g s0
+      (pc + ⟨1⟩ + UInt256.ofNat width0.succ + UInt256.ofNat width1.succ + ⟨1⟩) stk
+      (rdata.write 0 mem 0 (UInt256.ofNat rdata.size).toNat)
+      (M aw ⟨0⟩ (UInt256.ofNat rdata.size)) rdata acc
+      (k + 4)
+      (C + 8 + (memExpansionCost aw ⟨0⟩ (UInt256.ofNat rdata.size)
+        + (GasConstants.Gverylow + GasConstants.Gcopy *
+          (((UInt256.ofNat rdata.size).toNat + 31) / 32)))) := by
+  have r1 := h.returndatasize hd0 (by omega)
+  have r2 := r1.pushConst ⟨0⟩ (width := width0) (op := op0) hop0 hd1
+    (by simp only [List.length_cons]; omega)
+  have r3 := r2.pushConst ⟨0⟩ (width := width1) (op := op1) hop1 hd2
+    (by simp only [List.length_cons]; omega)
+  have r4 := r3.returndatacopy hd3 (returnDataCopyFullGuard rdata) (by omega)
+  exact r4.normalizeCounters (by omega) (by omega)
 
 /-- `MLOAD`: the loaded word, active words, and memory-expansion cost are all retained
     symbolically instead of being named and justified by separate hypotheses. -/

@@ -90,6 +90,21 @@ class SequencePattern:
         return self.effect is SequenceEffect.REVERT
 
 
+@dataclass(frozen=True)
+class ReturnDataCopyFullPattern:
+    """A mandatory four-opcode return-data copy summary.
+
+    These are intentionally separate from ``SEQUENCE_PATTERNS``: they eliminate
+    the ``RETURNDATACOPY`` source-bounds guard and should be used even when the
+    optional Solidity sequence registry is disabled.
+    """
+
+    theorem: str
+    gas_cost: int
+    theorem_args: str = ""
+    hop_positions: tuple[int, ...] = ()
+
+
 # Keep this explicitly longest-first.  That makes the copy-and-revert idioms win
 # over their revert suffixes and gives additions to the registry a visible order.
 ANY_PUSH = -1
@@ -293,6 +308,69 @@ def match_sequence(run: list[Instruction], start: int) -> SequencePattern | None
     return None
 
 
+def push_const_zero(ins: Instruction) -> bool:
+    return 0x60 <= ins.opcode <= 0x7F and ins.argument == 0
+
+
+def push_op(ins: Instruction) -> str:
+    return f".PUSH{ins.width}"
+
+
+def match_return_data_copy_full(
+    run: list[Instruction], start: int,
+) -> ReturnDataCopyFullPattern | None:
+    """Match all ``RD.returndatacopyFull*`` four-opcode variants at ``start``."""
+    if start < 0 or start + 4 > len(run):
+        return None
+    first, second, third, fourth = run[start:start + 4]
+    if first.opcode != 0x3D or fourth.opcode != 0x3E:
+        return None
+
+    if second.opcode == 0x5F and third.opcode == 0x5F:
+        return ReturnDataCopyFullPattern("RD.returndatacopyFull", 6)
+    if second.opcode == 0x5F and third.opcode == 0x80:
+        return ReturnDataCopyFullPattern("RD.returndatacopyFullPush0Dup1", 7)
+    if second.opcode == 0x5F and push_const_zero(third):
+        if third.width == 1:
+            return ReturnDataCopyFullPattern("RD.returndatacopyFullPush0Push1", 7)
+        return ReturnDataCopyFullPattern(
+            "RD.returndatacopyFullPush0PushConst",
+            7,
+            f" (width := {third.width}) (op := {push_op(third)})",
+            (2,),
+        )
+
+    if push_const_zero(second) and third.opcode == 0x5F:
+        if second.width == 1:
+            return ReturnDataCopyFullPattern("RD.returndatacopyFullPush1Push0", 7)
+        return ReturnDataCopyFullPattern(
+            "RD.returndatacopyFullPushConstPush0",
+            7,
+            f" (width := {second.width}) (op := {push_op(second)})",
+            (1,),
+        )
+    if push_const_zero(second) and third.opcode == 0x80:
+        if second.width == 1:
+            return ReturnDataCopyFullPattern("RD.returndatacopyFullPush1Dup1", 8)
+        return ReturnDataCopyFullPattern(
+            "RD.returndatacopyFullPushConstDup1",
+            8,
+            f" (width := {second.width}) (op := {push_op(second)})",
+            (1,),
+        )
+    if push_const_zero(second) and push_const_zero(third):
+        if second.width == 1 and third.width == 1:
+            return ReturnDataCopyFullPattern("RD.returndatacopyFullPush1Push1", 8)
+        return ReturnDataCopyFullPattern(
+            "RD.returndatacopyFullPushConstPushConst",
+            8,
+            f" (width0 := {second.width}) (width1 := {third.width}) "
+            f"(op0 := {push_op(second)}) (op1 := {push_op(third)})",
+            (1, 2),
+        )
+    return None
+
+
 NAMES = {
     0x00: "stop", 0x01: "add", 0x02: "mul", 0x03: "sub", 0x04: "div", 0x06: "mod",
     0x0A: "exp", 0x10: "lt", 0x11: "gt", 0x12: "slt", 0x13: "sgt",
@@ -490,21 +568,30 @@ def bounded_supported_segments(
             start = 0
             while start < len(piece):
                 end = min(start + max_instructions, len(piece))
-                if use_sequence_patterns and end < len(piece):
+                if end < len(piece):
                     crossing = [
                         index for index in range(start, end)
-                        if (pattern := match_sequence(piece, index)) is not None
-                        and index + len(pattern.instructions) > end
+                        if match_return_data_copy_full(piece, index) is not None
+                        and index + 4 > end
                     ]
+                    if use_sequence_patterns:
+                        crossing.extend(
+                            index for index in range(start, end)
+                            if (pattern := match_sequence(piece, index)) is not None
+                            and index + len(pattern.instructions) > end
+                        )
                     if crossing:
-                        end = crossing[0]
+                        end = min(crossing)
                 # A pattern is always shorter than the default bound.  For a
                 # deliberately tiny test bound, keep it intact and allow this
                 # one segment to exceed the requested instruction count.
-                if end == start and use_sequence_patterns:
-                    pattern = match_sequence(piece, start)
-                    if pattern is not None:
-                        end = start + len(pattern.instructions)
+                if end == start:
+                    if match_return_data_copy_full(piece, start) is not None:
+                        end = start + 4
+                    elif use_sequence_patterns:
+                        pattern = match_sequence(piece, start)
+                        if pattern is not None:
+                            end = start + len(pattern.instructions)
                 if end == start:
                     end = min(start + max_instructions, len(piece))
                 result.append(piece[start:end])
@@ -591,6 +678,7 @@ def simulate(block: list[Instruction], branch: str | None,
     existential_words: list[str] = []
     stack_snapshots: dict[int, list[str]] = {}
     memory_snapshots: dict[int, str] = {}
+    steps_done = 0
 
     def require(name: str, proposition: str) -> str:
         """Add an opcode side condition to the enclosing block theorem.
@@ -768,11 +856,50 @@ def simulate(block: list[Instruction], branch: str | None,
             raise AssertionError(f"no nonterminal effect handler for {effect.value}")
         costs.append(pattern.gas_cost)
 
+    def apply_return_data_copy_full_effect(pattern: ReturnDataCopyFullPattern) -> None:
+        nonlocal mem, aw
+        old_aw = aw
+        length = "(UInt256.ofNat rdata.size)"
+        costs.append(pattern.gas_cost)
+        costs.append(f"memExpansionCost {old_aw} {WORD0} {length}")
+        costs.append(
+            f"GasConstants.Gverylow + GasConstants.Gcopy * (({length}.toNat + 31) / 32)"
+        )
+        mem = f"(rdata.write 0 {mem} 0 {length}.toNat)"
+        aw = f"(M {old_aw} {WORD0} {length})"
+
+    def return_data_copy_full_call_args(
+        pattern: ReturnDataCopyFullPattern, before: str,
+    ) -> str:
+        terms = [before]
+        for offset in range(4):
+            if offset in pattern.hop_positions:
+                terms.append("(by decide)")
+            terms.append("(by native_decide)")
+        terms.append("(by evm_ov)")
+        return " ".join(terms)
+
     index = 0
     while index < len(block):
         ins = block[index]
         stack_snapshots[index] = stack.copy()
         memory_snapshots[index] = mem
+        rdcopy_full = match_return_data_copy_full(block, index)
+        if rdcopy_full is not None:
+            stack_before = len(stack)
+            before, after = next_r()
+            apply_return_data_copy_full_effect(rdcopy_full)
+            proof.append(
+                f"  have {after} := {rdcopy_full.theorem}{rdcopy_full.theorem_args} "
+                f"{return_data_copy_full_call_args(rdcopy_full, before)}"
+            )
+            max_stack_prefix = max(max_stack_prefix, stack_before + 3)
+            last = block[index + 3]
+            pc = u256_nat(last.pc + last.size)
+            index += 4
+            steps_done += 4
+            continue
+
         pattern = match_sequence(block, index) if use_sequence_patterns else None
         if pattern is not None and pattern.effect is SequenceEffect.NESTED_MAPPING_OUTER_HASH:
             required = [u256_nat(64), u256_nat(32), u256_nat(0)]
@@ -841,6 +968,7 @@ def simulate(block: list[Instruction], branch: str | None,
             last = block[index + count - 1]
             pc = u256_nat(last.pc + last.size)
             index += count
+            steps_done += count
             continue
 
         op = ins.opcode
@@ -1147,7 +1275,7 @@ def simulate(block: list[Instruction], branch: str | None,
                 stack.insert(0, f"((g.subNat (C + ({cumulative}) + 2)).toUInt256)")
                 proof.append(
                     f"  have {after} := RD.gas "
-                    f"(RD.normalizeCounters (k' := k + {rno - 1}) "
+                    f"(RD.normalizeCounters (k' := k + {steps_done}) "
                     f"(C' := C + ({cumulative})) {before} (by omega) (by omega)) "
                     f"{decode} {ov}"
                 )
@@ -1224,6 +1352,7 @@ def simulate(block: list[Instruction], branch: str | None,
 
         max_stack_prefix = max(max_stack_prefix, len(stack))
         index += 1
+        steps_done += 1
 
     return Summary(initial, stack, mem, aw, world_map, pc, costs, proof, existential,
                    terminal, extra_hypotheses, branch, max_stack_prefix, existential_words,
