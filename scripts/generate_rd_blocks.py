@@ -14,6 +14,11 @@ every maximal supported segment on either side.
 Example:
   scripts/generate_rd_blocks.py contract.hex --name runtime \
     --code-term My.bytecode --bytecode-import My.Bytecode --output RuntimeBlocks.lean
+
+For creation bytecode, ``--creation-code`` treats ``--code-term`` as the fixed
+compiler-produced prefix.  Every summary quantifies an arbitrary ``tail`` and
+runs over ``codeTerm ++ tail``; instruction decodes and jump destinations are
+lifted from the fixed prefix.
 """
 
 from __future__ import annotations
@@ -660,7 +665,9 @@ class Summary:
 
 
 def simulate(block: list[Instruction], branch: str | None,
-             use_sequence_patterns: bool = True) -> Summary:
+             use_sequence_patterns: bool = True,
+             decode_proof: str = "(by native_decide)",
+             creation_prefix: str | None = None) -> Summary:
     depth = required_input_depth(block)
     initial = [f"x{i}" for i in range(depth)]
     stack = initial.copy()
@@ -701,6 +708,22 @@ def simulate(block: list[Instruction], branch: str | None,
         before = f"r{rno}"
         rno += 1
         return before, f"r{rno}"
+
+    def valid_jump(dest: str) -> str:
+        """Return the proof term used by JUMP/JUMPI.
+
+        Creation summaries ask callers for membership in the fixed prefix's
+        jump table, then lift that fact to the actual prefix-plus-tail code.
+        Runtime summaries retain their existing full-code hypothesis.
+        """
+        if creation_prefix is None:
+            return require("hvalid", f"(D_J __CODE__ 0).contains {dest} = true")
+        valid = require(
+            "hvalid", f"(D_J {creation_prefix} 0).contains {dest} = true"
+        )
+        return (
+            f"(j tail {dest} {valid})"
+        )
 
     def ends_with(expected: tuple[tuple[int, int | None], ...], index: int) -> bool:
         start = index - len(expected) + 1
@@ -875,7 +898,7 @@ def simulate(block: list[Instruction], branch: str | None,
         for offset in range(4):
             if offset in pattern.hop_positions:
                 terms.append("(by decide)")
-            terms.append("(by native_decide)")
+            terms.append(decode_proof)
         terms.append("(by evm_ov)")
         return " ".join(terms)
 
@@ -910,10 +933,10 @@ def simulate(block: list[Instruction], branch: str | None,
             before, after = next_r()
             count = len(pattern.instructions)
             if pattern.effect is SequenceEffect.NESTED_MAPPING_INNER_HASH:
-                nested_decodes = ", ".join(["by native_decide"] * 14)
+                nested_decodes = ", ".join([decode_proof] * 14)
                 witness_terms = [before, f"by exact ⟨{nested_decodes}⟩"]
             else:
-                witness_terms = [before] + ["by native_decide"] * count
+                witness_terms = [before] + [decode_proof] * count
             if pattern.generic_final_push:
                 witness_terms.insert(-1, "by decide")
             witnesses = ", ".join(witness_terms + ["by evm_ov"])
@@ -973,7 +996,7 @@ def simulate(block: list[Instruction], branch: str | None,
 
         op = ins.opcode
         before, after = next_r()
-        decode = "(by native_decide)"
+        decode = decode_proof
         ov = "(by evm_ov)"
         step_pc = ins.size
 
@@ -1283,14 +1306,14 @@ def simulate(block: list[Instruction], branch: str | None,
             proof.append(f"  have {after} := {before}.jumpdest {decode} {ov}")
         elif op == 0x56:
             dest = stack.pop(0)
-            valid = require("hvalid", f"(D_J __CODE__ 0).contains {dest} = true")
+            valid = valid_jump(dest)
             proof.append(f"  have {after} := {before}.jump {decode} {valid} {ov}")
             pc = dest
         elif op == 0x57:
             dest, cond = stack.pop(0), stack.pop(0)
             if branch == "taken":
                 cond_hyp = require("hcond", f"{cond} ≠ {u256_nat(0)}")
-                valid = require("hvalid", f"(D_J __CODE__ 0).contains {dest} = true")
+                valid = valid_jump(dest)
                 proof.append(
                     f"  have {after} := {before}.jumpiT {decode} {cond_hyp} {valid} {ov}"
                 )
@@ -1359,7 +1382,9 @@ def simulate(block: list[Instruction], branch: str | None,
                    f"r{rno}")
 
 
-def render_summary(prefix: str, code_term: str, block: list[Instruction], summary: Summary) -> str:
+def render_summary(prefix: str, code_term: str, block: list[Instruction], summary: Summary,
+                   creation_code: bool = False,
+                   creation_code_size: int | None = None) -> str:
     suffix = ""
     if summary.branch == "taken":
         suffix = "_taken"
@@ -1368,22 +1393,24 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
     name = f"{prefix}_block_{block[0].pc}{suffix}"
     xs = " ".join(summary.stack_in)
     xbinder = f" {{{xs} : UInt256}}" if xs else ""
+    tail_param = "{tail : ByteArray} " if creation_code else ""
     params = (
-        f"{{ee : ExecutionEnv}} {{g : Sat256}} {{s0 : State}} {{mem : ByteArray}} "
+        f"{tail_param}{{ee : ExecutionEnv}} {{g : Sat256}} {{s0 : State}} {{mem : ByteArray}} "
         f"{{aw : UInt256}} {{rdata : ByteArray}} "
         f"{{cA : Batteries.RBSet AccountAddress compare}} {{σ : AccountMap}} "
         f"{{k C : ℕ}}{xbinder} {{R : List UInt256}}"
     )
+    effective_code_term = f"({code_term} ++ tail)" if creation_code else code_term
     assumptions: list[str] = []
     if any(ins.opcode != 0xFE for ins in block):
         assumptions.append(f"(hstack : R.length + {summary.max_stack_prefix} ≤ 1024)")
     assumptions.extend(
-        f"({name} : {term.replace('__CODE__', code_term)})"
+        f"({name} : {term.replace('__CODE__', effective_code_term)})"
         for name, term in summary.extra_hypotheses
     )
 
     input_rd = (
-        f"RD {code_term} ee g s0 {u256_nat(block[0].pc)} {stack_term(summary.stack_in)} "
+        f"RD {effective_code_term} ee g s0 {u256_nat(block[0].pc)} {stack_term(summary.stack_in)} "
         f"mem aw rdata (cA, σ) k C"
     )
     assumptions.append(f"(h : {input_rd})")
@@ -1392,7 +1419,7 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
         result = summary.terminal
     else:
         result_rd = (
-            f"RD {code_term} ee g s0 {summary.pc} {stack_term(summary.stack_out)} "
+            f"RD {effective_code_term} ee g s0 {summary.pc} {stack_term(summary.stack_out)} "
             f"{summary.mem} {summary.aw} rdata (cA, {summary.world_map})"
         )
         if summary.existential_counters:
@@ -1405,13 +1432,20 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
                 f"{result_rd} (k + {len(block)}) "
                 f"(C + ({block_cost(summary.costs)}))"
             )
-    result = result.replace("__CODE__", code_term)
+    result = result.replace("__CODE__", effective_code_term)
 
     lines = [f"/-- Automatically generated RD summary for bytecode block at pc {block[0].pc}. -/",
              f"theorem {name} {params}"]
     lines.extend(f"    {a}" for a in assumptions)
     lines.append(f"    : {result} := by")
     lines.append("  let r0 := h")
+    if creation_code:
+        if creation_code_size is None:
+            raise ValueError("creation code size is required in creation mode")
+        lines.append(
+            f"  have hcreationCodeSize : {code_term}.size = {creation_code_size} := "
+            "by native_decide"
+        )
     lines.extend(summary.proof)
     if not summary.terminal:
         last = summary.last_cursor
@@ -1444,7 +1478,8 @@ def unsupported_boundary_comment(ins: Instruction, code_size: int) -> str:
 def generate_units(code: bytes, prefix: str, code_term: str,
                    fail_on_unsupported: bool = False, keep_metadata: bool = False,
                    max_summary_instructions: int = MAX_SUMMARY_INSTRUCTIONS,
-                   use_sequence_patterns: bool = True) -> list[str]:
+                   use_sequence_patterns: bool = True,
+                   creation_code: bool = False) -> list[str]:
     """Generate theorem/comment units without a Lean module wrapper."""
     prefix = lean_ident(prefix)
     analyzed_code = code if keep_metadata else strip_solidity_metadata(code)
@@ -1470,19 +1505,41 @@ def generate_units(code: bytes, prefix: str, code_term: str,
                 ["taken", "fallthrough"] if piece[-1].opcode == 0x57 else [None]
             )
             for branch in branches:
-                summary = simulate(piece, branch, use_sequence_patterns)
-                units.append(render_summary(prefix, code_term, piece, summary))
+                decode_proof = "(by native_decide)"
+                creation_prefix = None
+                if creation_code:
+                    creation_prefix = code_term
+                    decode_proof = (
+                        "(by exact d tail _ _ _ (by native_decide) "
+                        "(by rw [hcreationCodeSize]; native_decide) (by native_decide))"
+                    )
+                summary = simulate(piece, branch, use_sequence_patterns,
+                                   decode_proof, creation_prefix)
+                units.append(render_summary(prefix, code_term, piece, summary, creation_code,
+                                            len(code) if creation_code else None))
     return units
 
 
-def render_module(prefix: str, imports: list[str], units: list[str]) -> str:
+def render_module(prefix: str, imports: list[str], units: list[str],
+                  creation_code: bool = False,
+                  code_term: str | None = None) -> str:
     """Wrap generated units as an independently elaboratable Lean module."""
     prefix = lean_ident(prefix)
     output = ["import Reasoning.SummaryPatterns"]
+    if creation_code:
+        output.append("import Reasoning.Initcode")
     output.extend(f"import {module}" for module in imports)
     output += ["", "open Solm ABI Ethereum Ethereum.EVM",
                "open Reasoning.Theory Reasoning.Reach", "",
                f"namespace {prefix}Blocks", ""]
+    if creation_code:
+        if code_term is None:
+            raise ValueError("code term is required in creation mode")
+        output += [
+            f"private abbrev d := Reasoning.Theory.decode_append_left_of_decode {code_term}",
+            f"private abbrev j := Reasoning.Theory.D_J_contains_append_left {code_term}",
+            "",
+        ]
     for unit in units:
         output += [unit, ""]
     output += [f"end {prefix}Blocks", ""]
@@ -1492,11 +1549,12 @@ def render_module(prefix: str, imports: list[str], units: list[str]) -> str:
 def generate(code: bytes, prefix: str, code_term: str, imports: list[str],
              fail_on_unsupported: bool = False, keep_metadata: bool = False,
              max_summary_instructions: int = MAX_SUMMARY_INSTRUCTIONS,
-             use_sequence_patterns: bool = True) -> str:
+             use_sequence_patterns: bool = True,
+             creation_code: bool = False) -> str:
     """Generate a single Lean module. Use ``write_outputs`` for file sharding."""
     units = generate_units(code, prefix, code_term, fail_on_unsupported, keep_metadata,
-                           max_summary_instructions, use_sequence_patterns)
-    return render_module(prefix, imports, units)
+                           max_summary_instructions, use_sequence_patterns, creation_code)
+    return render_module(prefix, imports, units, creation_code, code_term)
 
 
 def shard_units(units: list[str], shard_size: int) -> list[list[str]]:
@@ -1520,9 +1578,12 @@ def shard_units(units: list[str], shard_size: int) -> list[list[str]]:
 
 
 def write_outputs(output: Path, prefix: str, imports: list[str], units: list[str],
-                  shard_size: int | None) -> list[Path]:
+                  shard_size: int | None, creation_code: bool = False,
+                  code_term: str | None = None) -> list[Path]:
     if shard_size is None:
-        output.write_text(render_module(prefix, imports, units), encoding="utf-8")
+        output.write_text(
+            render_module(prefix, imports, units, creation_code, code_term), encoding="utf-8"
+        )
         return [output]
 
     shards = shard_units(units, shard_size)
@@ -1531,7 +1592,9 @@ def write_outputs(output: Path, prefix: str, imports: list[str], units: list[str
     paths: list[Path] = []
     for index, shard in enumerate(shards, 1):
         path = output.with_name(f"{output.stem}_{index:0{width}d}{suffix}")
-        path.write_text(render_module(prefix, imports, shard), encoding="utf-8")
+        path.write_text(
+            render_module(prefix, imports, shard, creation_code, code_term), encoding="utf-8"
+        )
         paths.append(path)
     return paths
 
@@ -1562,6 +1625,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="split long supported runs after this many instructions (default: 64)")
     parser.add_argument("--no-sequence-patterns", action="store_true",
                         help="emit one primitive RD step per opcode")
+    parser.add_argument("--creation-code", action="store_true",
+                        help="quantify an arbitrary constructor-argument tail and summarize "
+                             "--code-term ++ tail, lifting decodes and jumps from --code-term")
     args = parser.parse_args(argv)
     if (args.bytecode is None) == (args.hex_bytecode is None):
         parser.error("provide exactly one of BYTECODE or --hex")
@@ -1570,10 +1636,10 @@ def main(argv: list[str] | None = None) -> int:
                 else read_bytecode(args.bytecode, args.code_term))
         units = generate_units(code, args.name, args.code_term, args.fail_on_unsupported,
                                args.keep_metadata, args.max_summary_instructions,
-                               not args.no_sequence_patterns)
+                               not args.no_sequence_patterns, args.creation_code)
         paths = write_outputs(args.output, args.name,
                               [args.bytecode_import, *args.imports], units,
-                              args.shard_size)
+                              args.shard_size, args.creation_code, args.code_term)
     except (OSError, ValueError) as error:
         parser.error(str(error))
     if args.shard_size is not None:

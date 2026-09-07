@@ -9,10 +9,32 @@ cd "$repo_root"
 
 python3 scripts/test_generate_rd_blocks.py
 
-# Exercise the original six summariser companions in one elaborating fixture.
-# The copy-and-revert patterns appear before their revert suffixes, checking
-# longest-match use. The free-memory-pointer extension is covered below by both
-# real solc examples and the full corpus check.
+# Creation summaries run over the compiler-produced prefix plus an arbitrary
+# constructor-argument tail.  This tiny prefix also checks precise decode
+# lifting for code shorter than the conservative 33-byte window lemma.
+python3 scripts/generate_lean_bytecode.py --hex 60806040526008565b38 \
+  --name creationModeBytecode --output "$test_dir/CreationModeBytecode.lean"
+lake env lean -R "$test_dir" -o "$test_dir/CreationModeBytecode.olean" \
+  "$test_dir/CreationModeBytecode.lean"
+python3 scripts/generate_rd_blocks.py "$test_dir/CreationModeBytecode.lean" \
+  --name creationMode --code-term creationModeBytecode \
+  --bytecode-import CreationModeBytecode --creation-code \
+  --fail-on-unsupported --output "$test_dir/CreationModeBlocks.lean"
+rg -Fq '{tail : ByteArray}' "$test_dir/CreationModeBlocks.lean"
+rg -Fq 'RD (creationModeBytecode ++ tail)' "$test_dir/CreationModeBlocks.lean"
+rg -Fq 'private abbrev d := Reasoning.Theory.decode_append_left_of_decode creationModeBytecode' \
+  "$test_dir/CreationModeBlocks.lean"
+rg -Fq 'private abbrev j := Reasoning.Theory.D_J_contains_append_left creationModeBytecode' \
+  "$test_dir/CreationModeBlocks.lean"
+rg -Fq 'd tail _ _ _' "$test_dir/CreationModeBlocks.lean"
+rg -Fq 'j tail' "$test_dir/CreationModeBlocks.lean"
+LEAN_PATH="$test_dir${LEAN_PATH:+:$LEAN_PATH}" lake env lean \
+  "$test_dir/CreationModeBlocks.lean"
+
+# Exercise the selector/revert summariser companions in one elaborating fixture.
+# Return-data copies use the mandatory full-copy combinators; the free-memory-
+# pointer extension is covered below by real solc examples and the full corpus
+# check.
 python3 scripts/generate_lean_bytecode.py \
   --hex 5f3560e01c0060003560e01c005f5ffd600080fd3d5f5f3e3d5ffd3d6000803e3d6000fd \
   --name summaryPatternsBytecode --output "$test_dir/SummaryPatternsBytecode.lean"
@@ -21,7 +43,7 @@ lake env lean -R "$test_dir" -o "$test_dir/SummaryPatternsBytecode.olean" \
 python3 scripts/generate_rd_blocks.py "$test_dir/SummaryPatternsBytecode.lean" \
   --name summaryPatterns --code-term summaryPatternsBytecode \
   --bytecode-import SummaryPatternsBytecode --output "$test_dir/SummaryPatterns.lean"
-test "$(rg -c 'RD\.solcSummary' "$test_dir/SummaryPatterns.lean")" -eq 6
+test "$(rg -c 'RD\.solcSummary' "$test_dir/SummaryPatterns.lean")" -eq 4
 LEAN_PATH="$test_dir${LEAN_PATH:+:$LEAN_PATH}" lake env lean "$test_dir/SummaryPatterns.lean"
 
 python3 scripts/generate_lean_bytecode.py \
@@ -74,7 +96,7 @@ python3 scripts/generate_rd_blocks.py "$test_dir/ExtraRequirementsBytecode.lean"
   --bytecode-import ExtraRequirementsBytecode \
   --shard-size 1 --output "$test_dir/ExtraRequirements.lean"
 rg -Fq '(hguard0 :' "$test_dir/ExtraRequirements_001.lean"
-test "$(rg -Fh '(hperm :' "$test_dir"/ExtraRequirements_*.lean | wc -l)" -eq 1
+test "$(rg -F --no-filename '(hperm :' "$test_dir"/ExtraRequirements_*.lean | wc -l)" -eq 1
 rg -q 'have r14 := r13.add' "$test_dir"/ExtraRequirements_*.lean
 for shard in "$test_dir"/ExtraRequirements_*.lean; do
   LEAN_PATH="$test_dir${LEAN_PATH:+:$LEAN_PATH}" lake env lean "$shard"
