@@ -486,4 +486,349 @@ theorem StmtsRefine.forLoop (v : ℕ) :
 
 end ForLoop
 
+/-- Exit relation for a combined body/post iteration. The source result belongs
+to the body, but the EVM endpoint is after the whole iteration. For a normal or
+continue body result, retain the actual post execution and its result here;
+successful post execution restores `Inv` at `header`, and post revert uses `Q`.
+Break exits normally without executing post. Body return/revert also bypass post.
+No intermediate bytecode PC, RD witness, or invariant for post is required. -/
+def forIterationExit (cfg : Config) (post : List Stmt) (header : UInt256)
+    (Inv : StateRel) (Q : ExitRel) : ExitRel
+  | .ok frame evm, endpoint | .continue frame evm, endpoint =>
+      ∃ result, ExecBlock cfg frame evm post result ∧ forPostExit header Inv Q result endpoint
+  | .break frame evm, endpoint => Q (.ok frame evm) endpoint
+  | .returned frame evm values, endpoint => Q (.returned frame evm values) endpoint
+  | .reverted, endpoint => Q .reverted endpoint
+
+/-- Combined-iteration counterpart of `execForLoop`. `hiteration` proves body and
+post together: its RD endpoint is after both, with source post execution carried
+by `forIterationExit`. The body may produce any `ExecResult`; continue runs post,
+break exits normally, and return/revert propagate. Post may fall through or
+revert, matching `ExecForLoop`. Guards must evaluate to a Boolean, as in the split
+rule. A continuing iteration decreases the variant; early exits need not do so. -/
+theorem execForLoopCombined
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {cfg : Config}
+    (header bodyHeader : UInt256) (cond : Expr) (post body : List Stmt)
+    (Inv BodyInv : ℕ → StateRel) (Q : ExitRel)
+    (hfalse : ∀ cur frame evm, Inv 0 cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool false))
+    (htrue : ∀ v cur frame evm, Inv (v + 1) cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool true))
+    (hexit : StmtsRefine code ee g s0 cfg header (Inv 0) [] Q)
+    (henter : ∀ v, StmtsRefine code ee g s0 cfg header (Inv (v + 1)) []
+      (fallthrough bodyHeader (BodyInv v)))
+    (hiteration : ∀ v, StmtsRefine code ee g s0 cfg bodyHeader (BodyInv v) body
+      (forIterationExit cfg post header (Inv v) Q)) :
+    ∀ v cur k C frame evm,
+      cur.pc = header →
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C →
+      Inv v cur frame evm →
+      ∃ result endpoint,
+        ExecForLoop cfg frame evm cond post body result ∧
+        ReachesEndpoint code ee g s0 endpoint ∧ Q result endpoint := by
+  intro v
+  induction v with
+  | zero =>
+      intro cur k C frame evm hpc rd hi
+      obtain ⟨_, ep, hnil, hr, hq⟩ := hexit cur k C frame evm hpc rd hi
+      cases hnil
+      exact ⟨_, ep, ExecForLoop.falseDone (hfalse cur frame evm hi), hr, hq⟩
+  | succ v ih =>
+      intro cur k C frame evm hpc rd hi
+      have hc := htrue v cur frame evm hi
+      obtain ⟨_, ep, hnil, hr, he⟩ := henter v cur k C frame evm hpc rd hi
+      cases hnil
+      cases ep <;> simp only [fallthrough] at he
+      rename_i curBody
+      obtain ⟨kb, cb, rdBody⟩ := hr
+      obtain ⟨r, ep, hb, hr, hq⟩ :=
+        hiteration v curBody kb cb frame evm he.1 rdBody he.2
+      have resume : ∀ f e,
+          (ExecBlock cfg frame evm body (.ok f e) ∨
+            ExecBlock cfg frame evm body (.continue f e)) →
+          (∃ r, ExecBlock cfg f e post r ∧ forPostExit header (Inv v) Q r ep) →
+          ∃ result endpoint,
+            ExecForLoop cfg frame evm cond post body result ∧
+            ReachesEndpoint code ee g s0 endpoint ∧ Q result endpoint := by
+        intro f e hb hp
+        obtain ⟨r, hp, hq⟩ := hp
+        cases r <;> simp only [forPostExit] at hq
+        · rename_i f' e'
+          cases ep with
+          | returned => exact False.elim hq
+          | reverted => exact False.elim hq
+          | reached next =>
+              obtain ⟨kn, cn, rn⟩ := hr
+              obtain ⟨result, endpoint, hl, hr, hq⟩ := ih next kn cn f' e' hq.1 rn hq.2
+              rcases hb with hb | hb
+              · exact ⟨result, endpoint, ExecForLoop.iterate hc hb hp hl, hr, hq⟩
+              · exact ⟨result, endpoint, ExecForLoop.continueIter hc hb hp hl, hr, hq⟩
+        · rcases hb with hb | hb
+          · exact ⟨_, ep, ExecForLoop.iteratePostRevert hc hb hp, hr, hq⟩
+          · exact ⟨_, ep, ExecForLoop.continuePostRevert hc hb hp, hr, hq⟩
+      cases r with
+      | ok f e => exact resume f e (Or.inl hb) hq
+      | «continue» f e => exact resume f e (Or.inr hb) hq
+      | «break» f e => exact ⟨_, ep, ExecForLoop.bodyBreak hc hb, hr, hq⟩
+      | returned f e values => exact ⟨_, ep, ExecForLoop.bodyReturn hc hb, hr, hq⟩
+      | reverted => exact ⟨_, ep, ExecForLoop.bodyRevert hc hb, hr, hq⟩
+
+/-- Execute a combined loop followed by `stmts`. A false guard or body break
+reaches `exit` with `R`, then invokes `htail` on the actual resulting pair.
+Body return/revert and post revert satisfy `Q` directly and skip `stmts`.
+Initialization has already run, so the source initializer is empty. -/
+theorem BlockProgress.forLoopCombined
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {cfg : Config}
+    (header bodyHeader exit : UInt256) (cond : Expr) (post body stmts : List Stmt)
+    (Inv BodyInv : ℕ → StateRel) (R : StateRel) (Q : ExitRel)
+    (hfalse : ∀ cur frame evm, Inv 0 cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool false))
+    (htrue : ∀ v cur frame evm, Inv (v + 1) cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool true))
+    (hexit : StmtsRefine code ee g s0 cfg header (Inv 0) [] (sequenceExit exit R Q))
+    (henter : ∀ v, StmtsRefine code ee g s0 cfg header (Inv (v + 1)) []
+      (fallthrough bodyHeader (BodyInv v)))
+    (hiteration : ∀ v, StmtsRefine code ee g s0 cfg bodyHeader (BodyInv v) body
+      (forIterationExit cfg post header (Inv v) (sequenceExit exit R Q)))
+    (htail : StmtsRefine code ee g s0 cfg exit R stmts Q)
+    (v : ℕ) (cur : Cursor) (k C : ℕ) (frame : Frame) (evm : State)
+    (hpc : cur.pc = header)
+    (hRD : RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C)
+    (hInv : Inv v cur frame evm) :
+    BlockProgress code ee g s0 cfg frame evm (.for [] cond post body :: stmts) Q := by
+  obtain ⟨result, endpoint, hl, hr, hq⟩ := execForLoopCombined header bodyHeader cond post body
+    Inv BodyInv (sequenceExit exit R Q) hfalse htrue hexit henter hiteration
+    v cur k C frame evm hpc hRD hInv
+  exact BlockProgress.seqOrExit
+    (BlockProgress.ofStmt (ExecStmt.for ExecBlock.nil hl) hr hq) htail
+
+/-- Fixed-start combined loop and tail refinement. One iteration hypothesis
+replaces separate body/post refinements. Normal loop exits, including break,
+pass their RD evidence and `R` to `htail`; return/revert bypass the tail. -/
+theorem BlockRefinesFrom.forLoopCombined
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {cfg : Config}
+    (header bodyHeader exit : UInt256) (cond : Expr) (post body stmts : List Stmt)
+    (Inv BodyInv : ℕ → StateRel) (R : StateRel) (Q : ExitRel)
+    (hfalse : ∀ cur frame evm, Inv 0 cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool false))
+    (htrue : ∀ v cur frame evm, Inv (v + 1) cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool true))
+    (hexit : StmtsRefine code ee g s0 cfg header (Inv 0) [] (sequenceExit exit R Q))
+    (henter : ∀ v, StmtsRefine code ee g s0 cfg header (Inv (v + 1)) []
+      (fallthrough bodyHeader (BodyInv v)))
+    (hiteration : ∀ v, StmtsRefine code ee g s0 cfg bodyHeader (BodyInv v) body
+      (forIterationExit cfg post header (Inv v) (sequenceExit exit R Q)))
+    (htail : StmtsRefine code ee g s0 cfg exit R stmts Q)
+    (v : ℕ) (cur : Cursor) (k C : ℕ) (frame : Frame) (evm : State)
+    (hpc : cur.pc = header) :
+    BlockRefinesFrom code ee g s0 cfg cur k C frame evm (Inv v)
+      (.for [] cond post body :: stmts) Q :=
+  BlockProgress.forLoopCombined header bodyHeader exit cond post body stmts Inv BodyInv R Q
+    hfalse htrue hexit henter hiteration htail v cur k C frame evm hpc
+
+/-- Combined loop and tail refinement for every related starting pair at the
+header. All loop parameters and obligations are explicit in this declaration. -/
+theorem StmtsRefine.forLoopCombined
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {cfg : Config}
+    (header bodyHeader exit : UInt256) (cond : Expr) (post body stmts : List Stmt)
+    (Inv BodyInv : ℕ → StateRel) (R : StateRel) (Q : ExitRel)
+    (hfalse : ∀ cur frame evm, Inv 0 cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool false))
+    (htrue : ∀ v cur frame evm, Inv (v + 1) cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool true))
+    (hexit : StmtsRefine code ee g s0 cfg header (Inv 0) [] (sequenceExit exit R Q))
+    (henter : ∀ v, StmtsRefine code ee g s0 cfg header (Inv (v + 1)) []
+      (fallthrough bodyHeader (BodyInv v)))
+    (hiteration : ∀ v, StmtsRefine code ee g s0 cfg bodyHeader (BodyInv v) body
+      (forIterationExit cfg post header (Inv v) (sequenceExit exit R Q)))
+    (htail : StmtsRefine code ee g s0 cfg exit R stmts Q)
+    (v : ℕ) :
+    StmtsRefine code ee g s0 cfg header (Inv v) (.for [] cond post body :: stmts) Q :=
+  BlockRefinesFrom.forLoopCombined header bodyHeader exit cond post body stmts Inv BodyInv R Q
+    hfalse htrue hexit henter hiteration htail v
+
+
+/-- Normal initialization reaches the empty-initializer loop with `R`. Initializer
+return/revert bypass both the loop and its tail. The source semantics does not
+permit break or continue in the initializer. -/
+def forInitExit (header : UInt256) (R : StateRel) (Q : ExitRel) : ExitRel
+  | .ok frame evm, endpoint => fallthrough header R (.ok frame evm) endpoint
+  | .returned frame evm values, endpoint => Q (.returned frame evm values) endpoint
+  | .reverted, endpoint => Q .reverted endpoint
+  | _, _ => False
+
+/-- Refine initialization separately, then delegate to a loop with empty init.
+The continuation receives the actual frame, state and RD endpoint after init,
+so it can choose the loop variant from the established relation `R`. -/
+theorem BlockProgress.forInitSeq
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {cfg : Config}
+    {frame : Frame} {evm : State}
+    (header : UInt256) (init : List Stmt) (cond : Expr) (post body stmts : List Stmt)
+    (R : StateRel) (Q : ExitRel)
+    (hinit : BlockProgress code ee g s0 cfg frame evm init (forInitExit header R Q))
+    (hloop : StmtsRefine code ee g s0 cfg header R (.for [] cond post body :: stmts) Q) :
+    BlockProgress code ee g s0 cfg frame evm (.for init cond post body :: stmts) Q := by
+  obtain ⟨result, endpoint, hi, hr, hq⟩ := hinit
+  cases result with
+  | ok f e =>
+      cases endpoint <;> simp only [forInitExit, fallthrough] at hq
+      rename_i cur
+      obtain ⟨k, C, rd⟩ := hr
+      apply BlockProgress.wrapPrefix (branch := [.for [] cond post body])
+        (branchFrame := f) (branchEvm := e) ?_ (hloop cur k C f e hq.1 rd hq.2)
+      intro result hb
+      have hs : ExecStmt cfg f e (.for [] cond post body) result := by
+        cases hb with
+        | consNormal hs hn => cases hn; exact hs
+        | consReturn hs => exact hs
+        | consRevert hs => exact hs
+        | consBreak hs => exact hs
+        | consContinue hs => exact hs
+      cases hs with
+      | «for» hn hl => cases hn; exact ExecStmt.for hi hl
+      | forInitReturn hn => cases hn
+      | forInitRevert hn => cases hn
+  | returned f e values =>
+      exact ⟨_, endpoint, ExecBlock.consReturn (ExecStmt.forInitReturn hi), hr, hq⟩
+  | reverted =>
+      exact ⟨_, endpoint, ExecBlock.consRevert (ExecStmt.forInitRevert hi), hr, hq⟩
+  | «break» => exact False.elim hq
+  | «continue» => exact False.elim hq
+
+/-- Fixed-start initializer refinement followed by any empty-initializer loop
+rule, including `forLoopCombined`. Initializer returns and reverts skip `hloop`. -/
+theorem BlockRefinesFrom.forInitSeq
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {cfg : Config}
+    (cur : Cursor) (k C : ℕ) (frame : Frame) (evm : State)
+    (header : UInt256) (init : List Stmt) (cond : Expr) (post body stmts : List Stmt)
+    (P R : StateRel) (Q : ExitRel)
+    (hinit : BlockRefinesFrom code ee g s0 cfg cur k C frame evm P init (forInitExit header R Q))
+    (hloop : StmtsRefine code ee g s0 cfg header R (.for [] cond post body :: stmts) Q) :
+    BlockRefinesFrom code ee g s0 cfg cur k C frame evm P (.for init cond post body :: stmts) Q := by
+  intro rd hp
+  exact BlockProgress.forInitSeq header init cond post body stmts R Q (hinit rd hp) hloop
+
+/-- Initializer and empty-initializer loop refinements compose for every related
+starting pair at `entry`. All parameters and obligations are declared here. -/
+theorem StmtsRefine.forInitSeq
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {cfg : Config}
+    (entry header : UInt256) (init : List Stmt) (cond : Expr) (post body stmts : List Stmt)
+    (P R : StateRel) (Q : ExitRel)
+    (hinit : StmtsRefine code ee g s0 cfg entry P init (forInitExit header R Q))
+    (hloop : StmtsRefine code ee g s0 cfg header R (.for [] cond post body :: stmts) Q) :
+    StmtsRefine code ee g s0 cfg entry P (.for init cond post body :: stmts) Q := by
+  intro cur k C frame evm hpc
+  exact BlockRefinesFrom.forInitSeq cur k C frame evm header init cond post body stmts P R Q
+    (hinit cur k C frame evm hpc) hloop
+
+/-- The source `for` semantics permits initializer return/revert, but has no rule
+for an escaping break/continue. This condition is required when moving init into
+ordinary sequencing, which would otherwise propagate those results. It places
+no restriction on control flow in the loop body or the following statements. -/
+def ForInitSafe (cfg : Config) (init : List Stmt) : Prop :=
+  ∀ frame evm frame' evm',
+    (¬ ExecBlock cfg frame evm init (.break frame' evm')) ∧
+    (¬ ExecBlock cfg frame evm init (.continue frame' evm'))
+
+private theorem execBlock_append_split {cfg : Config} {front tail : List Stmt}
+    {frame : Frame} {evm : State} {result : ExecResult}
+    (h : ExecBlock cfg frame evm (front ++ tail) result) :
+    (∃ frame' evm', ExecBlock cfg frame evm front (.ok frame' evm') ∧
+      ExecBlock cfg frame' evm' tail result) ∨
+    (ExecBlock cfg frame evm front result ∧ ∀ f e, result ≠ .ok f e) := by
+  induction front generalizing frame evm with
+  | nil => exact Or.inl ⟨frame, evm, ExecBlock.nil, h⟩
+  | cons stmt rest ih =>
+      cases h with
+      | consNormal hs ht =>
+          rcases ih ht with ⟨f, e, hi, ht⟩ | ⟨hi, hterm⟩
+          · exact Or.inl ⟨f, e, ExecBlock.consNormal hs hi, ht⟩
+          · exact Or.inr ⟨ExecBlock.consNormal hs hi, hterm⟩
+      | consReturn hs => exact Or.inr ⟨ExecBlock.consReturn hs, by intros; intro h; cases h⟩
+      | consRevert hs => exact Or.inr ⟨ExecBlock.consRevert hs, by intros; intro h; cases h⟩
+      | consBreak hs => exact Or.inr ⟨ExecBlock.consBreak hs, by intros; intro h; cases h⟩
+      | consContinue hs => exact Or.inr ⟨ExecBlock.consContinue hs, by intros; intro h; cases h⟩
+
+/-- Fold an ordinary initializer prefix back into the source `for` statement.
+Execution results and both source states are preserved, including exits in the
+initializer and any break/continue originating in the tail. -/
+theorem execBlock_forInit_of_append
+    {cfg : Config} {frame : Frame} {evm : State} {result : ExecResult}
+    {init : List Stmt} {cond : Expr} {post body stmts : List Stmt}
+    (hsafe : ForInitSafe cfg init)
+    (h : ExecBlock cfg frame evm (init ++ (.for [] cond post body :: stmts)) result) :
+    ExecBlock cfg frame evm (.for init cond post body :: stmts) result := by
+  rcases execBlock_append_split h with ⟨f, e, hi, ht⟩ | ⟨hi, hterm⟩
+  · have lift : ∀ r, ExecStmt cfg f e (.for [] cond post body) r →
+        ExecStmt cfg frame evm (.for init cond post body) r := by
+      intro r hs
+      cases hs with
+      | «for» hn hl => cases hn; exact ExecStmt.for hi hl
+      | forInitReturn hn => cases hn
+      | forInitRevert hn => cases hn
+    cases ht with
+    | consNormal hs ht => exact ExecBlock.consNormal (lift _ hs) ht
+    | consReturn hs => exact ExecBlock.consReturn (lift _ hs)
+    | consRevert hs => exact ExecBlock.consRevert (lift _ hs)
+    | consBreak hs => exact ExecBlock.consBreak (lift _ hs)
+    | consContinue hs => exact ExecBlock.consContinue (lift _ hs)
+  · cases result with
+    | ok f e => exact (hterm f e rfl).elim
+    | returned f e values => exact ExecBlock.consReturn (ExecStmt.forInitReturn hi)
+    | reverted => exact ExecBlock.consRevert (ExecStmt.forInitRevert hi)
+    | «break» f e => exact ((hsafe frame evm f e).1 hi).elim
+    | «continue» f e => exact ((hsafe frame evm f e).2 hi).elim
+
+/-- Reduce initialized loop progression to ordinary sequencing of init and the
+empty-initializer loop. RD and the final relation are unchanged. The default
+safety proof discharges ordinary straight-line initializers by source inversion. -/
+theorem BlockProgress.forInit
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {cfg : Config}
+    {frame : Frame} {evm : State}
+    {init : List Stmt} {cond : Expr} {post body stmts : List Stmt} {Q : ExitRel}
+    (h : BlockProgress code ee g s0 cfg frame evm
+      (init ++ (.for [] cond post body :: stmts)) Q)
+    (hsafe : ForInitSafe cfg init := by
+      intro frame evm frame' evm'
+      constructor <;> intro h
+      all_goals repeat' first | cases ‹ExecBlock _ _ _ _ _› | cases ‹ExecStmt _ _ _ _ _›) :
+    BlockProgress code ee g s0 cfg frame evm (.for init cond post body :: stmts) Q := by
+  obtain ⟨r, ep, hb, hr, hq⟩ := h
+  exact ⟨r, ep, execBlock_forInit_of_append hsafe hb, hr, hq⟩
+
+/-- Change a fixed-start initialized-loop goal into refinement of
+`init ++ (.for [] cond post body :: stmts)`. No intermediate invariant or
+universally quantified loop obligation is introduced. Use
+`refine BlockRefinesFrom.forInit ?_` to run the default safety proof and leave
+just the flattened refinement goal for ordinary sequencing. -/
+theorem BlockRefinesFrom.forInit
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {cfg : Config}
+    {cur : Cursor} {k C : ℕ} {frame : Frame} {evm : State}
+    {init : List Stmt} {cond : Expr} {post body stmts : List Stmt}
+    {P : StateRel} {Q : ExitRel}
+    (h : BlockRefinesFrom code ee g s0 cfg cur k C frame evm P
+      (init ++ (.for [] cond post body :: stmts)) Q)
+    (hsafe : ForInitSafe cfg init := by
+      intro frame evm frame' evm'
+      constructor <;> intro h
+      all_goals repeat' first | cases ‹ExecBlock _ _ _ _ _› | cases ‹ExecStmt _ _ _ _ _›) :
+    BlockRefinesFrom code ee g s0 cfg cur k C frame evm P
+      (.for init cond post body :: stmts) Q := by
+  intro rd hp
+  exact BlockProgress.forInit (h rd hp) hsafe
+
+/-- The same initializer conversion for refinement at a program counter. -/
+theorem StmtsRefine.forInit
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {cfg : Config}
+    {pc : UInt256} {init : List Stmt} {cond : Expr} {post body stmts : List Stmt}
+    {P : StateRel} {Q : ExitRel}
+    (h : StmtsRefine code ee g s0 cfg pc P (init ++ (.for [] cond post body :: stmts)) Q)
+    (hsafe : ForInitSafe cfg init := by
+      intro frame evm frame' evm'
+      constructor <;> intro h
+      all_goals repeat' first | cases ‹ExecBlock _ _ _ _ _› | cases ‹ExecStmt _ _ _ _ _›) :
+    StmtsRefine code ee g s0 cfg pc P (.for init cond post body :: stmts) Q := by
+  intro cur k C frame evm hpc
+  exact BlockRefinesFrom.forInit (h cur k C frame evm hpc) hsafe
+
 end Reasoning.Refinement
