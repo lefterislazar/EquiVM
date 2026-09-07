@@ -834,8 +834,7 @@ def simulate(block: list[Instruction], branch: str | None,
                 f"memExpansionCost {old_aw} {first} {WORD32}",
                 f"memExpansionCost {aw1} {second} {WORD32}",
                 f"memExpansionCost {aw2} {u256_nat(0)} {u256_nat(64)}",
-                f"GasConstants.Gkeccak256 + GasConstants.Gkeccak256word * "
-                f"(({u256_nat(64)}.toNat + 31) / 32)",
+                f"30 + 6 * (({u256_nat(64)}.toNat + 31) / 32)",
             ])
             mem_name = ("twoWordHashMem" if effect is SequenceEffect.MAPPING_HASH_KEY_FIRST
                         else "twoWordHashMemSlotFirst")
@@ -853,8 +852,7 @@ def simulate(block: list[Instruction], branch: str | None,
                 f"memExpansionCost {old_aw} {u256_nat(32)} {WORD32}",
                 f"memExpansionCost {aw1} {u256_nat(0)} {WORD32}",
                 f"memExpansionCost {aw2} {u256_nat(0)} {u256_nat(64)}",
-                f"GasConstants.Gkeccak256 + GasConstants.Gkeccak256word * "
-                f"(({u256_nat(64)}.toNat + 31) / 32)",
+                f"30 + 6 * (({u256_nat(64)}.toNat + 31) / 32)",
             ])
             mem = f"(twoWordHashMemSlotFirst {owner} {u256_nat(slot)} {mem})"
             aw = f"(M {aw2} {u256_nat(0)} {u256_nat(64)})"
@@ -869,8 +867,7 @@ def simulate(block: list[Instruction], branch: str | None,
                 f"memExpansionCost {old_aw} {u256_nat(32)} {WORD32}",
                 f"memExpansionCost {aw1} {u256_nat(0)} {WORD32}",
                 f"memExpansionCost {aw2} {u256_nat(0)} {u256_nat(64)}",
-                f"GasConstants.Gkeccak256 + GasConstants.Gkeccak256word * "
-                f"(({u256_nat(64)}.toNat + 31) / 32)",
+                f"30 + 6 * (({u256_nat(64)}.toNat + 31) / 32)",
             ])
             mem = f"(twoWordHashMemSlotFirst {spender} {inner_slot} {mem})"
             aw = f"(M {aw2} {u256_nat(0)} {u256_nat(64)})"
@@ -886,7 +883,7 @@ def simulate(block: list[Instruction], branch: str | None,
         costs.append(pattern.gas_cost)
         costs.append(f"memExpansionCost {old_aw} {WORD0} {length}")
         costs.append(
-            f"GasConstants.Gverylow + GasConstants.Gcopy * (({length}.toNat + 31) / 32)"
+            f"3 + 3 * (({length}.toNat + 31) / 32)"
         )
         mem = f"(rdata.write 0 {mem} 0 {length}.toNat)"
         aw = f"(M {old_aw} {WORD0} {length})"
@@ -1180,7 +1177,7 @@ def simulate(block: list[Instruction], branch: str | None,
             stack.insert(0, f"(keccakWord {a} {b} {mem})")
             costs.append(f"memExpansionCost {aw} {a} {b}")
             costs.append(
-                f"GasConstants.Gkeccak256 + GasConstants.Gkeccak256word * (({b}.toNat + 31) / 32)"
+                f"30 + 6 * (({b}.toNat + 31) / 32)"
             )
             aw = f"(M {aw} {a} {b})"
             mapping_effect: SequenceEffect | None = None
@@ -1247,14 +1244,14 @@ def simulate(block: list[Instruction], branch: str | None,
             source = "ee.calldata" if op == 0x37 else "__CODE__"
             mem = f"({source}.write {b}.toNat {mem} {a}.toNat {c}.toNat)"
             costs.append(f"memExpansionCost {aw} {a} {c}")
-            costs.append(f"GasConstants.Gverylow + GasConstants.Gcopy * (({c}.toNat + 31) / 32)")
+            costs.append(f"3 + 3 * (({c}.toNat + 31) / 32)")
             aw = f"(M {aw} {a} {c})"
             proof.append(f"  have {after} := RD.{ins.name} {before} {decode} {ov}")
         elif op == 0x3E:
             a, b, c = stack.pop(0), stack.pop(0), stack.pop(0)
             mem = f"(rdata.write {b}.toNat {mem} {a}.toNat {c}.toNat)"
             costs.append(f"memExpansionCost {aw} {a} {c}")
-            costs.append(f"GasConstants.Gverylow + GasConstants.Gcopy * (({c}.toNat + 31) / 32)")
+            costs.append(f"3 + 3 * (({c}.toNat + 31) / 32)")
             aw = f"(M {aw} {a} {c})"
             zero_terms = {WORD0, u256_nat(0)}
             if b in zero_terms and c == "(UInt256.ofNat rdata.size)":
@@ -1351,8 +1348,7 @@ def simulate(block: list[Instruction], branch: str | None,
             costs.append(f"memExpansionCost {aw} {off} {length}")
             topics = count - 2
             costs.append(
-                f"GasConstants.Glog + GasConstants.Glogdata * {length}.toNat + "
-                f"{topics} * GasConstants.Glogtopic"
+                f"375 + 8 * {length}.toNat + {topics} * 375"
             )
             aw = f"(M {aw} {off} {length})"
             proof.append(f"  have {after} := RD.{ins.name} {before} {decode} {perm} {ov}")

@@ -93,6 +93,19 @@ class SequencePatternTests(unittest.TestCase):
         self.assertNotIn("decode_append_left_of_decode", rendered)
         self.assertIn("RD runtimeBytecode", rendered)
 
+    def test_dynamic_gas_constants_emit_as_numerals(self) -> None:
+        for code in ("60006000602039", "6000602020", "600060206001a1"):
+            with self.subTest(code):
+                summary = rd.simulate(instructions(code), None)
+                costs = "\n".join(str(cost) for cost in summary.costs)
+                self.assertNotIn("GasConstants.", costs)
+        self.assertIn("3 + 3 *", "\n".join(str(cost) for cost in
+                                            rd.simulate(instructions("60006000602039"), None).costs))
+        self.assertIn("30 + 6 *", "\n".join(str(cost) for cost in
+                                             rd.simulate(instructions("6000602020"), None).costs))
+        self.assertIn("375 + 8 *", "\n".join(str(cost) for cost in
+                                              rd.simulate(instructions("600060206001a1"), None).costs))
+
     def test_all_six_patterns_match(self) -> None:
         for expected, code in CASES.items():
             with self.subTest(expected):

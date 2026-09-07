@@ -98,6 +98,15 @@ supported segments. The generator emits summaries for every segment before and a
 restarting the suffix from a fresh symbolic RD state, and leaves a prominent comment for the one
 unproved transition. Use `--fail-on-unsupported` when CI should reject any such boundary.
 
+For creation bytecode, add `--creation-code`. In this mode `--code-term` denotes the fixed
+compiler-produced creation prefix, each theorem quantifies an arbitrary `tail : ByteArray`, and all
+RD states use `codeTerm ++ tail`. Decode facts and prefix jump destinations are lifted across the
+append, while `CODESIZE` and `CODECOPY` continue to observe the full prefix-plus-tail byte array.
+Each generated module binds the prefix-specialized lifting lemmas once as the private aliases `d`
+and `j`, keeping repeated block proofs compact.
+Constructor proofs can therefore specialize `tail` to their symbolic ABI encoding without
+regenerating summaries for each argument value.
+
 Every nonterminal theorem has the form `RD entry ... → RD exit ...`. Deterministic blocks retain
 exact counters and combine all fixed gas into one constant plus the remaining symbolic costs.
 Warm/cold operations (`SLOAD`, `SSTORE`, and `EXTCODESIZE`) switch only the counters to
