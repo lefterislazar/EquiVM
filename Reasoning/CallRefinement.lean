@@ -1,6 +1,5 @@
 import Reasoning.Refinement
 import Reasoning.ExternalCall
-import Reasoning.DelegateCall
 
 /-!
 # Paired call progression
@@ -34,6 +33,35 @@ structure CallStateRel (s0 : State) (ee : ExecutionEnv)
   readOnly : RDWorld s0 evm
   created : evm.createdAccounts = world.1
   accounts : accountMapEquiv world.2 evm.accountMap
+
+/-- Initial world agreement for a pair of transaction states. -/
+theorem CallStateRel.initState {cA gh bl σ_evm σ_solm σ₀ g A I}
+    (haccounts : accountMapEquiv σ_evm σ_solm) :
+    CallStateRel (initState cA gh bl σ_evm σ₀ g A I) I (cA, σ_evm)
+      (initState cA gh bl σ_solm σ₀ g A I) :=
+  ⟨rfl, ⟨rfl, rfl, rfl⟩, rfl, haccounts⟩
+
+/-- Matching storage writes preserve call-state agreement, including the read-only
+world used by subsequent calls. Account maps need only be equivalent. -/
+theorem CallStateRel.storageStore {s0 ee world evm}
+    (h : CallStateRel s0 ee world evm) (owner : AccountAddress) (slot value : UInt256) :
+    CallStateRel s0 ee (world.1, sstoreAccountMap owner world.2 slot value)
+      (Solm.EVM.storageStore evm owner slot value) := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · rw [storageStore_executionEnv]; exact h.env
+  · unfold Solm.EVM.storageStore State.lookupAccount
+    cases evm.accountMap.find? owner <;> simpa [Option.option, State.setAccount, RDWorld] using h.readOnly
+  · rw [storageStore_createdAccounts]; exact h.created
+  · rw [storageStore_accountMap]
+    exact accountMapEquiv_sstoreAccountMap owner slot value h.accounts
+
+/-- The common case writes storage owned by the current execution environment. -/
+theorem CallStateRel.storageStore_codeOwner {s0 ee world evm}
+    (h : CallStateRel s0 ee world evm) (slot value : UInt256) :
+    CallStateRel s0 ee (world.1, sstoreAccountMap ee.codeOwner world.2 slot value)
+      (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot value) := by
+  rw [h.env]
+  exact h.storageStore ee.codeOwner slot value
 
 /-- The concrete CALL successor, including output-memory copying and memory expansion. -/
 def callCursor (pc : UInt256) (rest : List UInt256) (mem : ByteArray) (aw : UInt256)

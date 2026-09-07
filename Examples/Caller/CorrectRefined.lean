@@ -11,6 +11,7 @@ import Reasoning.Storage
 import Reasoning.Reach
 import Reasoning.Constructor
 import Reasoning.CallRefinement
+import Reasoning.CallMemory
 import Reasoning.RuntimeRefinement
 
 /-!
@@ -29,47 +30,6 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.R
 set_option maxRecDepth 10000
 
 namespace Caller.Refined
-
-private theorem decodeReturnValues_uint256_ok {returndata : ByteArray}
-    (hlo : 32 ≤ returndata.size) (hhi : returndata.size < (2 : Nat) ^ 255) :
-    ABI.decodeReturnValues? [abiUInt256] returndata =
-      some [(.int (Int.ofNat (fromByteArrayBigEndian (returndata.extract 0 32))))] := by
-  have hlen : returndata.toList.length = returndata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  have htake0 : (returndata.toList.take 32).length = 32 := by
-    rw [List.length_take, hlen]
-    omega
-  have hword := bytesToWord_take32_eq_extract0_32 (returndata := returndata)
-  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
-    (by decide)]
-  rw [if_neg (by
-    rintro ⟨_, hhuge⟩
-    rw [hlen] at hhuge
-    omega)]
-  rw [decodeScalarWords_uint256_ok (bytes := returndata.toList) htake0]
-  simp [hword, UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)]
-
-private theorem decodeReturnValues_uint256_none_short {returndata : ByteArray}
-    (hshort : returndata.size < 32) :
-    ABI.decodeReturnValues? [abiUInt256] returndata = none := by
-  have hlen : returndata.toList.length = returndata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
-    (by decide)]
-  rw [if_neg (by
-    rintro ⟨_, hhuge⟩
-    rw [hlen] at hhuge
-    omega)]
-  rw [decodeScalarWords_uint256_none_short (bytes := returndata.toList) (by rw [hlen]; omega)]
-
-private theorem decodeReturnValues_uint256_none_huge {returndata : ByteArray}
-    (hhuge : (2 : Nat) ^ 255 ≤ returndata.size) :
-    ABI.decodeReturnValues? [abiUInt256] returndata = none := by
-  have hlen : returndata.toList.length = returndata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
-    (by decide)]
-  rw [if_pos (by exact ⟨by simp, by rw [hlen]; exact hhuge⟩)]
 
 /-! ## Solm-side dispatch facts (mirror `Truth`) -/
 
@@ -959,38 +919,6 @@ theorem callerStore_stored (I : ExecutionEnv) (v : Value) :
     ((callerDecStore I).insert "tmp" v).get? "stored" = none := by
   rw [store_get_ne _ _ (by decide), callerDecStore, store_get_ne _ _ (by decide),
       store_get_ne _ _ (by decide), store_get_empty]
-theorem ofNat_toNat_lt (n : ℕ) (h : n < UInt256.size) : (UInt256.ofNat n).toNat = n :=
-  ulit_toNat' n h
-theorem callerL_succ (n : ℕ) (h1 : 32 ≤ n) (h2 : n < UInt256.size) :
-    (min (⟨32⟩:UInt256) (UInt256.ofNat n)).toNat = 32 := by
-  show (if (⟨32⟩:UInt256) ≤ UInt256.ofNat n then (⟨32⟩:UInt256) else UInt256.ofNat n).toNat = 32
-  rw [if_pos (show (⟨32⟩:UInt256) ≤ UInt256.ofNat n from ?_)]
-  · rfl
-  · show (32:ℕ) ≤ (UInt256.ofNat n).val.val
-    rw [show (UInt256.ofNat n).val.val = (UInt256.ofNat n).toNat from rfl, ofNat_toNat_lt n h2]; omega
-theorem callerL_rev (n : ℕ) (h : n < 32) :
-    (min (⟨32⟩:UInt256) (UInt256.ofNat n)).toNat = n := by
-  show (if (⟨32⟩:UInt256) ≤ UInt256.ofNat n then (⟨32⟩:UInt256) else UInt256.ofNat n).toNat = n
-  have hnsize : n < UInt256.size := by
-    have h32 : 32 < UInt256.size := by norm_num [UInt256.size]
-    omega
-  rw [if_neg (show ¬ (⟨32⟩:UInt256) ≤ UInt256.ofNat n from ?_), ofNat_toNat_lt n hnsize]
-  · show ¬ (32:ℕ) ≤ (UInt256.ofNat n).val.val
-    rw [show (UInt256.ofNat n).val.val = (UInt256.ofNat n).toNat from rfl, ofNat_toNat_lt n (by omega)]; omega
-theorem callerWrite_size (I : ExecutionEnv) (o : ByteArray) (L : ℕ) (hL : L ≤ 32) (hLo : L ≤ o.size) :
-    (o.write 0 (callerCalldataMem I) 128 L).size = 164 := by
-  rcases Nat.eq_zero_or_pos L with h | h
-  · subst h; rw [byteArray_write_len_zero]; exact callerCalldataMem_size I
-  · rw [write_eq_gen o (callerCalldataMem I) 128 L (by omega) hLo (by rw [callerCalldataMem_size]; omega),
-      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
-      ByteArray.size_extract, callerCalldataMem_size]; omega
-theorem callerWrite_read64 (I : ExecutionEnv) (o : ByteArray) (L : ℕ) (hL : L ≤ 32) (hLo : L ≤ o.size) :
-    (o.write 0 (callerCalldataMem I) 128 L).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  rcases Nat.eq_zero_or_pos L with h | h
-  · subst h; rw [byteArray_write_len_zero]; exact callerCalldataMem_read64 I
-  · rw [write_read_below_gen o (callerCalldataMem I) 128 L 64 (by omega) hLo
-      (by rw [callerCalldataMem_size]; omega) (by omega), callerCalldataMem_read64]
-
 /-- The cursor reached by the compiler's call-argument preparation, before GAS. -/
 noncomputable def callerPreCallCursor (I : ExecutionEnv) (world : CallWorld) : Cursor where
   pc := ⟨142⟩
@@ -1001,24 +929,6 @@ noncomputable def callerPreCallCursor (I : ExecutionEnv) (world : CallWorld) : C
   aw := ⟨6⟩
   rdata := ByteArray.empty
   world := world
-
-noncomputable def callerCallEntry (I : ExecutionEnv) (world : CallWorld) (gas : UInt256) : Cursor :=
-  { callerPreCallCursor I world with pc := ⟨143⟩, stack := gas :: (callerPreCallCursor I world).stack }
-
-/-- Every possible return-data length preserves the free-pointer read. This fact
-is shared by successful ABI decoding and both decoder-revert cases. -/
-theorem callerPostCallFreePtr (I : ExecutionEnv) (o : ByteArray) (ho : o.size < UInt256.size) :
-    let mem := o.write 0 (callerCalldataMem I) 128 (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat
-    (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ ⟨6⟩ * ⟨32⟩ then ⟨0⟩
-      else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 64 32))) = ⟨128⟩ := by
-  dsimp only
-  have hL : (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat ≤ 32 ∧
-      (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat ≤ o.size := by
-    by_cases h : 32 ≤ o.size
-    · rw [callerL_succ o.size h ho]; exact ⟨le_rfl, h⟩
-    · rw [callerL_rev o.size (by omega)]; exact ⟨by omega, le_rfl⟩
-  exact mloadFreePtrValue (by rw [callerWrite_size I o _ hL.1 hL.2]; decide)
-    (by decide) (callerWrite_read64 I o _ hL.1 hL.2)
 
 set_option maxHeartbeats 1000000 in
 /-- The whole source body, from a concrete pre-CALL cursor. The prefix executes
@@ -1033,14 +943,14 @@ theorem callerBodyRefinesFrom {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256} {
       (initState cA gh bl σ_solm σ₀ g A I)
       (fun cur _ e => CallStateRel (initState cA gh bl σ_evm σ₀ g A I) I cur.world e)
       runTransition.body (runtimeExit (.abi [])) := by
-  intro rd hr
-  dsimp only [callerPreCallCursor] at rd
-  obtain ⟨gas, rdCall⟩ := rd.rawGas (by decide) (by evm_ov)
+  apply BlockRefinesFrom.gas (by change decode callerBytecode ⟨142⟩ = _; decide)
+    (by simp [callerPreCallCursor])
+  intro gas rd hr
   refine BlockProgress.seqOfRD (front := [.require (.binary .eq (.env .callvalue) (.intLit 0))])
-    (cur' := callerCallEntry I (cA, σ_evm) gas)
+    (cur' := gasCursor (callerPreCallCursor I (cA, σ_evm)) gas)
     (R := fun cur _ e => CallStateRel (initState cA gh bl σ_evm σ₀ g A I) I cur.world e)
     (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ExecBlock.nil)
-    rdCall hr ?_
+    rd hr ?_
   refine BlockRefinesFrom.externalCall (value := 0)
     (argVals := [.int (Int.ofNat (callerArg1 I).toNat)])
     (fun _ => rfl) (fun h => h)
@@ -1049,50 +959,42 @@ theorem callerBodyRefinesFrom {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256} {
     (fun _ => by simp only [evalExprs?, evalExpr?, EvalResult.ofOption, callerStore_n,
       EvalResult.bind, bind, pure])
     (fun _ => by decide) (fun _ => callerTarget_eq hclean)
-    (fun _ => by simpa only [callerCallEntry, callerPreCallCursor, callerOutPtr_eq] using callerEncode_eq I)
+    (fun _ => by simpa only [gasCursor, callerPreCallCursor, callerOutPtr_eq] using callerEncode_eq I)
     (by change decode callerBytecode ⟨143⟩ = _; decide) hperm (by simp) True.intro ?_ ?_
   · intro o evm' world' k' C'
     dsimp only [callCursor]
     intro _hcall hosize
-    have haw : UInt256.ofNat (MachineState.M (MachineState.M (⟨6⟩ : UInt256).toNat
-        (callerOutPtr I).toNat (UInt256.sub ⟨164⟩ (callerOutPtr I)).toNat)
-        (callerOutPtr I).toNat (⟨32⟩ : UInt256).toNat) = (⟨6⟩ : UInt256) := by
-      rw [callerOutPtr_eq]; decide
-    have hfp := callerPostCallFreePtr I o hosize
+    have haw := callActiveWords_eq (⟨6⟩ : UInt256) (callerOutPtr I)
+      (UInt256.sub ⟨164⟩ (callerOutPtr I)) (callerOutPtr I) ⟨32⟩
+      (by rw [callerOutPtr_eq]; decide) (by rw [callerOutPtr_eq]; decide)
+    have memFacts := callOutputFacts (callerCalldataMem I) o ⟨128⟩ ⟨32⟩ hosize
+      (by rw [callerCalldataMem_size]; decide)
+    have hfp := mloadFreePtrValue (by rw [memFacts.size, callerCalldataMem_size]; decide)
+      (by decide : ¬ (⟨64⟩ : UInt256) ≥ ⟨6⟩ * ⟨32⟩)
+      ((memFacts.readBelow 64 (by decide)).trans (callerCalldataMem_read64 I))
+    rw [show callerConfig.externalABI.decode? "pow2" o =
+      ABI.decodeReturnValues? [abiUInt256] o from rfl, decodeReturnValues_uint256_eq]
     by_cases ho : 32 ≤ o.size ∧ o.size < 2 ^ 255
-    · have hd : callerConfig.externalABI.decode? "pow2" o =
-          some [.int (Int.ofNat (fromByteArrayBigEndian (o.extract 0 32)))] := by
-        simpa [callerConfig, callerExternalABI, defaultDecodeReturn?] using
-          decodeReturnValues_uint256_ok ho.1 ho.2
-      rw [hd]
+    · rw [if_pos ho]
       intro rd' hr'
-      dsimp only [callerCallEntry, callerPreCallCursor] at rd'
-      rw [haw, callerOutPtr_eq, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
-        callerL_succ o.size ho.1 hosize] at rd'
-      rw [callerL_succ o.size ho.1 hosize] at hfp
+      dsimp only [gasCursor, callerPreCallCursor] at rd'
+      rw [haw, callerOutPtr_eq] at rd'
       have hrd := callerX_successChain rd' hperm ho.1 ho.2 hfp
-        (write32_read_back o (callerCalldataMem I) 128 ho.1 (by rw [callerCalldataMem_size]; omega))
-        (by rw [callerWrite_size I o 32 (by omega) ho.1]; omega)
+        (memFacts.readWord (by decide) ho.1)
+        (by rw [memFacts.size, callerCalldataMem_size]; omega)
       have hassign := callerAssign evm'
         ((callerDecStore I).insert "tmp" (.int (Int.ofNat (fromByteArrayBigEndian (o.extract 0 32)))))
         (fromByteArrayBigEndian (o.extract 0 32))
         (callerStore_stored I _)
-      refine ⟨_, .returned _ ByteArray.empty,
-        ExecBlock.consNormal (ExecStmt.assign ?_ hassign) ExecBlock.nil, hrd,
-        ?_, ?_, .abi (.fallthrough rfl rfl (by native_decide))⟩
-      · simp only [evalExpr?, EvalResult.ofOption, store_get_self, collapseReturns]
-      · simpa only [storageStore_createdAccounts] using hr'.created.symm
-      · rw [storageStore_accountMap, hr'.env]
-        exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ _ hr'.accounts
-    · have hd : callerConfig.externalABI.decode? "pow2" o = none := by
-        by_cases hshort : o.size < 32
-        · simpa [callerConfig, callerExternalABI, defaultDecodeReturn?] using
-            decodeReturnValues_uint256_none_short hshort
-        · simpa [callerConfig, callerExternalABI, defaultDecodeReturn?] using
-            decodeReturnValues_uint256_none_huge (returndata := o) (by omega)
-      rw [hd]
+      have hstored := hr'.storageStore_codeOwner ⟨0⟩
+        (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)))
+      refine BlockProgress.ofRDret
+        (ExecBlock.consNormal (ExecStmt.assign ?_ hassign) ExecBlock.nil) hrd
+        hstored.created.symm hstored.accounts abiVoidFallthrough
+      simp only [evalExpr?, EvalResult.ofOption, store_get_self, collapseReturns]
+    · rw [if_neg ho]
       intro rd'
-      dsimp only [callerCallEntry, callerPreCallCursor] at rd'
+      dsimp only [gasCursor, callerPreCallCursor] at rd'
       rw [haw, callerOutPtr_eq] at rd'
       obtain ⟨k1, C1, rd165⟩ := callerX_succ_to165 rd' (by simp)
       obtain ⟨k2, C2, rd470⟩ := callerX_succ_to470 rd165 hfp
@@ -1119,7 +1021,7 @@ theorem callerExec_canonical {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some rfl rfl
       (by rw [callerDispatch.eq, if_pos hmatch])
   exact (callerBodyRefinesFrom hwv hperm hclean).toRuntimeEquivalenceFor rd
-    ⟨rfl, ⟨rfl, rfl, rfl⟩, rfl, hAccounts⟩ hcode hd
+    (CallStateRel.initState hAccounts) hcode hd
     (callerDecode_n hsz68 hbig (callerArg0_canonical hclean))
 
 theorem callerReEquiv_callvalueZero

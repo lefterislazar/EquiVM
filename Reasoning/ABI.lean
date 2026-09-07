@@ -4420,4 +4420,63 @@ theorem encodeABIValues_single_dynArray_static
       simp [ABI.abiTupleHeadSize?, ABI.isDynamicABIType, ABI.encodeABIValuesFrom?,
         ABI.encodeABIValue?, ABI.encodeABIArrayElems?, hstatic, h]
 
+theorem decodeReturnValues_uint256_ok {returndata : ByteArray}
+    (hlo : 32 ≤ returndata.size) (hhi : returndata.size < (2 : Nat) ^ 255) :
+    ABI.decodeReturnValues? [abiUInt256] returndata =
+      some [(.int (Int.ofNat (fromByteArrayBigEndian (returndata.extract 0 32))))] := by
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  have htake0 : (returndata.toList.take 32).length = 32 := by
+    rw [List.length_take, hlen]
+    omega
+  have hword := bytesToWord_take32_eq_extract0_32 (returndata := returndata)
+  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
+    (by decide)]
+  rw [if_neg (by
+    rintro ⟨_, hhuge⟩
+    rw [hlen] at hhuge
+    omega)]
+  rw [decodeScalarWords_uint256_ok (bytes := returndata.toList) htake0]
+  simp [hword, UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)]
+
+theorem decodeReturnValues_uint256_none_short {returndata : ByteArray}
+    (hshort : returndata.size < 32) :
+    ABI.decodeReturnValues? [abiUInt256] returndata = none := by
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
+    (by decide)]
+  rw [if_neg (by
+    rintro ⟨_, hhuge⟩
+    rw [hlen] at hhuge
+    omega)]
+  rw [decodeScalarWords_uint256_none_short (bytes := returndata.toList) (by rw [hlen]; omega)]
+
+theorem decodeReturnValues_uint256_none_huge {returndata : ByteArray}
+    (hhuge : (2 : Nat) ^ 255 ≤ returndata.size) :
+    ABI.decodeReturnValues? [abiUInt256] returndata = none := by
+  have hlen : returndata.toList.length = returndata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]; rfl
+  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
+    (by decide)]
+  rw [if_pos (by exact ⟨by simp, by rw [hlen]; exact hhuge⟩)]
+
+/-- Complete characterization of the scalar uint256 return decoder, including its
+signed-length guard. This describes this ABI decoder, independently of any contract. -/
+theorem decodeReturnValues_uint256_eq (returndata : ByteArray) :
+    ABI.decodeReturnValues? [abiUInt256] returndata =
+      if 32 ≤ returndata.size ∧ returndata.size < 2 ^ 255 then
+        some [.int (Int.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)))]
+      else none := by
+  split_ifs with h
+  · exact decodeReturnValues_uint256_ok h.1 h.2
+  · by_cases hshort : returndata.size < 32
+    · exact decodeReturnValues_uint256_none_short hshort
+    · exact decodeReturnValues_uint256_none_huge (by omega)
+
+/-- Void returns have an empty ABI encoding. -/
+@[simp] theorem encodeReturnValues_nil : ABI.encodeReturnValues? [] [] = some ByteArray.empty := by
+  simp [ABI.encodeReturnValues?, ABI.encodeABIValues?, ABI.encodeABIValuesFrom?, ABI.abiTupleHeadSize?]
+  rfl
+
 end Reasoning.Theory

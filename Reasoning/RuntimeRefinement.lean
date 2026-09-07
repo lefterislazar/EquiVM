@@ -1,4 +1,5 @@
 import Reasoning.Refinement
+import Reasoning.ABI
 
 /-!
 # From body refinement to runtime equivalence
@@ -40,6 +41,34 @@ def runtimeExit (convention : ReturnConvention) (result : ExecResult)
         returnDataEquiv out value convention
   | .reverted, .reverted => True
   | _, _ => False
+
+/-- The empty ABI result of falling through a void function. -/
+theorem abiVoidFallthrough : returnDataEquiv ByteArray.empty none (.abi []) :=
+  .abi (.fallthrough (dvs := []) rfl rfl encodeReturnValues_nil)
+
+/-- The empty ABI result of an explicit void return. -/
+theorem abiVoidReturn : returnDataEquiv ByteArray.empty (some []) (.abi []) :=
+  .abi (.returned rfl encodeReturnValues_nil)
+
+/-- Close a paired block at a successful transaction halt. The default result
+equation handles explicit returns, fallthrough and escaping loop control using the
+same convention as `ExecFuncBody`. Out-of-gas stays inside `hret`. -/
+theorem BlockProgress.ofRDret {code ee g s0 cfg frame evm body result world out convention}
+    {frame' : Frame} {evm' : State} {value : Option (List Value)}
+    (hsource : ExecBlock cfg frame evm body result) (hret : RDret code g s0 world out)
+    (hcreated : world.1 = evm'.createdAccounts) (haccounts : accountMapEquiv world.2 evm'.accountMap)
+    (hreturn : returnDataEquiv out value convention)
+    (hresult : functionResult result = .returned frame' evm' value := by rfl) :
+    BlockProgress code ee g s0 cfg frame evm body (runtimeExit convention) := by
+  refine ⟨result, .returned world out, hsource, hret, ?_⟩
+  simp only [runtimeExit, hresult]
+  exact ⟨hcreated, haccounts, hreturn⟩
+
+/-- Close matching source/EVM reverts, without exposing the RD out-of-gas case. -/
+theorem BlockProgress.ofRDrev {code ee g s0 cfg frame evm body convention}
+    (hsource : ExecBlock cfg frame evm body .reverted) (hrev : RDrev code g s0) :
+    BlockProgress code ee g s0 cfg frame evm body (runtimeExit convention) :=
+  ⟨.reverted, .reverted, hsource, hrev, True.intro⟩
 
 /-- Dispatch-independent bridge. `hexec` lifts the proved body execution into the
 chosen selector, receive, or fallback execution. A stronger body postcondition can

@@ -84,6 +84,38 @@ def BlockRefinesFrom (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : S
   P cur frame evm →
   BlockProgress code ee g s0 cfg frame evm stmts Q
 
+/-- Advance only the EVM, preserving the source frame and state. The witness can
+contain a cursor, counters, or values discovered by RD; no gas split is exposed. -/
+theorem BlockRefinesFrom.ofRD {code ee g s0 cfg cur k C frame evm P stmts Q R}
+    {α : Type} {next : α → Cursor} {steps costs : α → ℕ}
+    (hstep : RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C →
+      P cur frame evm → ∃ a, RD code ee g s0 (next a).pc (next a).stack
+        (next a).mem (next a).aw (next a).rdata (next a).world (steps a) (costs a) ∧
+        R (next a) frame evm)
+    (hnext : ∀ a, BlockRefinesFrom code ee g s0 cfg (next a) (steps a) (costs a)
+      frame evm R stmts Q) :
+    BlockRefinesFrom code ee g s0 cfg cur k C frame evm P stmts Q := by
+  intro rd hp
+  obtain ⟨a, rd', hr⟩ := hstep rd hp
+  exact hnext a rd' hr
+
+/-- The EVM cursor after GAS, with its concrete result exposed to the continuation. -/
+def gasCursor (cur : Cursor) (gas : UInt256) : Cursor :=
+  { cur with pc := cur.pc + ⟨1⟩, stack := gas :: cur.stack }
+
+/-- Execute GAS without advancing the source. The entry relation is retained at
+the old cursor; the continuation can inspect the new cursor and pushed gas word. -/
+theorem BlockRefinesFrom.gas {code ee g s0 cfg cur k C frame evm P stmts Q}
+    (hdec : decode code cur.pc = some (.GAS, .none)) (hov : cur.stack.length + 1 ≤ 1024)
+    (hnext : ∀ gas, BlockRefinesFrom code ee g s0 cfg (gasCursor cur gas) (k + 1) (C + 2)
+      frame evm (fun _ f e => P cur f e) stmts Q) :
+    BlockRefinesFrom code ee g s0 cfg cur k C frame evm P stmts Q := by
+  apply BlockRefinesFrom.ofRD (next := gasCursor cur) (steps := fun _ => k + 1)
+    (costs := fun _ => C + 2) (R := fun _ f e => P cur f e) ?_ hnext
+  intro rd hp
+  obtain ⟨gas, rd'⟩ := rd.rawGas hdec hov
+  exact ⟨gas, rd', hp⟩
+
 /-- Package separately proved Solm and RD block effects, after comparing their states. -/
 theorem BlockProgress.ofRD {code ee g s0 cfg frame evm stmts result Q}
     {cur : Cursor} {k C : ℕ}
