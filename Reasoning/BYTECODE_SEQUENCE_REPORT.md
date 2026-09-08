@@ -145,7 +145,7 @@ the detailed entries below.
 | R044 | [`RD.solcReturnUint8FromMem`](../Reasoning/Solc.lean#L5958) | 19 | 1 | 3 |
 | R045 | [`RD.solcWordConstGetterExternal`](../Reasoning/Solc.lean#L6183) | 24 | 1 | 3 |
 | R046 | [`solcLegacySelectorLoad`](../Reasoning/Solc.lean#L7398) | 4 | 2 | 3 |
-| R047 | [`RD.returndatacopyFull`](../Reasoning/Reach.lean#L712) | 4 | 1 | 2 |
+| R047 | [`RD.returndatacopyFull`](../Reasoning/Reach.lean#L3816) | 4 | 1 | 2 |
 | R048 | [`RD.selectorArmWidthNotTakenAuto`](../Reasoning/Reach.lean#L2182) | 5 | 1 | 2 |
 | R049 | [`RD.solcAddressSlotGetter`](../Reasoning/Solc.lean#L2992) | 11 | 1 | 2 |
 | R050 | [`RD.solcCheckedAddStringRevert`](../Reasoning/Solc.lean#L5197) | 43 | 1 | 2 |
@@ -950,7 +950,7 @@ Entries remain in descending aggregate-use order, matching the ranking above.
 
 | Theorem | Direct uses | Directory breakdown | Result |
 |---|---:|---|---|
-| [`RD.returndatacopyFull`](../Reasoning/Reach.lean#L712) | 2 | Examples 1, Reasoning 1 | ∃ mem' aw' k' C', RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) stk mem' aw' rdata acc k' C' |
+| [`RD.returndatacopyFull`](../Reasoning/Reach.lean#L3816) | 2 | Examples 1, Reasoning 1 | RD code ee g s0 (pc + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) stk (rdata.write 0 mem 0 (UInt256.ofNat rdata.size).toNat) (M aw ⟨0⟩ (UInt256.ofNat rdata.size)) rdata acc (k + 4) (C + 6 + (memExpansionCost aw ⟨0⟩ (UInt256.ofNat rdata.size) + (GasConstants.Gverylow + GasConstants.Gcopy * (((UInt256.ofNat rdata.size).toNat + 31) / 32)))) |
 
 ### R048 — `RD.selectorArmWidthNotTakenAuto`
 

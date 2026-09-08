@@ -85,6 +85,60 @@ class SequencePatternTests(unittest.TestCase):
                          (8, "delegatecall"), (11, "staticcall")):
             self.assertIn(f"boundary at pc {pc}: {name}", output)
 
+    def test_creation_mode_quantifies_tail_and_lifts_prefix_facts(self) -> None:
+        # Free-memory-pointer pattern; PUSH1 8; JUMP; JUMPDEST; CODESIZE.
+        # The prefix is deliberately shorter than 33 bytes to exercise both
+        # sequence witnesses and exact-width decode lifting.
+        units = rd.generate_units(
+            bytes.fromhex("60806040526008565b38"), "creation", "creationBytecode",
+            keep_metadata=True, creation_code=True,
+        )
+        rendered = "\n".join(units)
+        self.assertIn("{tail : ByteArray}", rendered)
+        self.assertIn("RD (creationBytecode ++ tail)", rendered)
+        self.assertIn("(UInt256.ofNat (creationBytecode ++ tail).size)", rendered)
+        self.assertIn("d tail _ _ _", rendered)
+        self.assertIn("RD.solcSummaryFreeMemoryPointer", rendered)
+        self.assertIn("(D_J creationBytecode 0).contains", rendered)
+        self.assertIn("j tail", rendered)
+
+        module = rd.render_module(
+            "creation", ["CreationBytecode"], units, True, "creationBytecode"
+        )
+        self.assertIn(
+            "private abbrev d := Reasoning.Theory.decode_append_left_of_decode creationBytecode",
+            module,
+        )
+        self.assertIn(
+            "private abbrev j := Reasoning.Theory.D_J_contains_append_left creationBytecode",
+            module,
+        )
+        self.assertEqual(1, module.count("decode_append_left_of_decode"))
+        self.assertEqual(1, module.count("D_J_contains_append_left"))
+
+    def test_runtime_mode_remains_closed_over_code_term(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("600100"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        rendered = "\n".join(units)
+        self.assertNotIn("{tail : ByteArray}", rendered)
+        self.assertNotIn("decode_append_left_of_decode", rendered)
+        self.assertIn("RD runtimeBytecode", rendered)
+
+    def test_dynamic_gas_constants_emit_as_numerals(self) -> None:
+        for code in ("60006000602039", "6000602020", "600060206001a1"):
+            with self.subTest(code):
+                summary = rd.simulate(instructions(code), None)
+                costs = "\n".join(str(cost) for cost in summary.costs)
+                self.assertNotIn("GasConstants.", costs)
+        self.assertIn("3 + 3 *", "\n".join(str(cost) for cost in
+                                            rd.simulate(instructions("60006000602039"), None).costs))
+        self.assertIn("30 + 6 *", "\n".join(str(cost) for cost in
+                                             rd.simulate(instructions("6000602020"), None).costs))
+        self.assertIn("375 + 8 *", "\n".join(str(cost) for cost in
+                                              rd.simulate(instructions("600060206001a1"), None).costs))
+
     def test_all_six_patterns_match(self) -> None:
         for expected, code in CASES.items():
             with self.subTest(expected):
@@ -186,12 +240,12 @@ class SequencePatternTests(unittest.TestCase):
             with self.subTest(code):
                 self.assertIsNone(rd.match_sequence(instructions(code), 0))
 
-    def test_longest_match_wins(self) -> None:
+    def test_mandatory_full_copy_summary_takes_precedence(self) -> None:
         match = rd.match_sequence(instructions(CASES["return_data_copy_revert"]), 0)
         self.assertEqual("return_data_copy_revert", match.name)
         summary = rd.simulate(instructions(CASES["return_data_copy_revert"]), None)
-        self.assertEqual(1, len(summary.proof))
-        self.assertIn("solcSummaryReturnDataCopyRevert", summary.proof[0])
+        self.assertEqual(4, len(summary.proof))
+        self.assertIn("returndatacopyFull", summary.proof[0])
 
     def test_split_does_not_cut_pattern(self) -> None:
         run = instructions("30" * 63 + CASES["return_data_copy_revert"])

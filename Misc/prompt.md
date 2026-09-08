@@ -5,12 +5,16 @@ specification. You goal is to complete the proof of the top-level theorem
 in `Correct.lean` with no `sorry` and no added axioms, except for the 
 accepted trusted base below.
 
-```lean
-
 You are given a working directory, which is named after the contract
 (`<Name>/`) and includes:
 
 - The EVM bytecode (file `Bytecode.lean`).
+
+- Proved RD block summaries
+  (normally in `Blocks.lean`, possibly with a small index or generation
+  manifest). These summaries will be provided. Treat them as proof inputs:
+  inspect their statements and compose them, but do not regenerate them or
+  replace them with hand-written opcode traces.
 
 - The source it was compiled from (e.g., `<Name>.sol`), plus the exact
   compiler and options used to produce it. The bytecode can be of
@@ -63,16 +67,18 @@ Things to watch for:
 - The Solm spec, in general, must model storage reads/writes in the
   order the bytecode performs them. This is not a hard rule, for all
   data types. But for mapping, array, string and byte types this is
-  important as otherwise you will have to introduce a slot noncollision
-  axiom to prove the refinement, which is not allowed.
+  important because a different order may require a slot noncollision
+  assumption to prove the refinement.
 
   If you find that you need such an axiom, evaluate whether the Solm can 
   be written 
   differently to exactly model the bytecode's storage reads/writes. 
   If it can, rewrite the Solm spec to do so.
   
-  Only add such axiom if the compiler has done an optimization that cannot 
-  be reflected in the Solm spec and the proof cannot be completed without it.
+  If reordering the spec's storage operations is insufficient to reflect
+  a compiler optimization, and the proof requires a slot noncollision
+  assumption, use only the narrow exception in Section 2. Difficulty
+  completing a proof is not by itself evidence that an axiom is needed.
 
 - The Solm spec must use helper functions where possible and not
   inline the same logic in multiple places. This is important for
@@ -120,11 +126,10 @@ file. If the proof gets difficult, do not try to bypass the problem
 and move to another function. Investigate thoroughly and report
 immediately any blocking issues you may find.
 
-You should tackle proofs in order of dependency: if function `f` calls
-function `g`, prove `g` first, then `f`. This is true for both
-internal and external calls.
-
-The proof of each function follows, roughly, four phases:
+The proof of each function follows, roughly, five phases. Paths containing
+external or internal calls use the paired refinement workflow described
+below instead of postponing the EVM/Solm comparison until the final connect
+step.
 
 
 1. ABI decode. Prove decode succeeds for valid calldata and fails on
@@ -136,22 +141,80 @@ The proof of each function follows, roughly, four phases:
 
 2. Add trusted selector facts for the public selectors in `Trusted.lean`.
 
-3. Solm source body. Prove the `ExecTransitionBody` result (return
+3. Solm source body for call-free paths. Prove the `ExecTransitionBody` result (return
    value / storage update / revert) using `Reasoning.SolmBody`
    (`ExecStmt`/`ExecBlock` combinators, `evalExpr_*`, `requireStep`,
    `returns`). For mutating functions, split success and revert
    branches early.
 
-4. EVM reachability. Thread the bytecode trace from the body entry PC
-   to `RDret` (success) or `RDrev` (revert) using `evm_run … with [ …
-   ]` cooked-step chains and factored `RD.*` routine lemmas. Never
-   write one giant `evm_run`; split into named `have`s, one per
-   phase/routine.
+4. EVM reachability for call-free paths. Thread the bytecode trace from
+   the body entry PC to `RDret` (success) or `RDrev` (revert) using
+   mainly the provided block summaries and factored `RD.*` routine
+   lemmas, and in exceptional cases were partial decoding of a block
+   is semantically useful, manual `evm_run … with [ …
+   ]` cooked-step chains. 
 
 5. Connect. `reEquivExecution` / `reEquivDecodingFailed` /
    `reEquivNoDispatch` / `reEquivElim` glue the source result, the
    decode fact, and the EVM `RDret`/`RDrev` into
    `runtimeEquivalenceFor`.
+
+For a path containing a call, or paths where complicated operations and control-flow
+benefit a more coupled proof approach, replace steps 3–5 for that path with a
+paired proof based on `Reasoning.Refinement` and
+`Reasoning.CallRefinement`:
+
+1. Instantiate the known entry relation. At transaction start,
+   `CallStateRel.initState haccounts` supplies the standard world and
+   environment agreement. A function-body refinement may start at a
+   later cursor reached by dispatcher/ABI-decoder summaries: its
+   incoming RD still anchors that cursor to the original transaction
+   state. When the cursor and source frame/decoded locals are fixed
+   explicitly, the relation can often be just
+   `fun cur _ e => CallStateRel s0 ee cur.world e`, with representation
+   facts supplied by the concrete arguments and separate hypotheses.
+   Define a richer `StateRel` only where a reusable boundary needs to
+   describe varying stack shapes, locals, memory, or other invariants;
+   do not introduce a new relation for every path entry.
+
+2. Prove the path as `BlockRefinesFrom` when the starting cursor is
+   concrete, or `StmtsRefine` when it should be reusable for every
+   related cursor at a PC. Use `BlockRefinesFrom.seqOfRD` when a prefix
+   is most conveniently summarized by separate RD and Solm execution facts.
+   This should be the case for most opcodes except `GAS` and calls,
+   because the summaries will cover those segments.
+
+3. Compose the provided block-summary lemmas, or the ones in the 
+   reasoning library, to reach semantic boundaries.
+   Manual decoding of blocks can happen only if itp rovides important
+   semantics information, but is generally discouraged.
+   Summaries may deliberately stop before a source-visible `GAS`, the
+   forwarding `GAS` immediately before a CALL-family opcode, the call
+   itself, and result-decoder branches.
+
+4. At an external-call boundary, apply the appropriate paired
+   `BlockRefinesFrom` call rule (`externalCall`, `lowLevelCall`,
+   `checkedCall`, or `delegateCall`). Establish its operand-stack,
+   target, calldata, value, and `CallStateRel` hypotheses from the
+   entry relation and the provided summaries. The rule synchronizes
+   the EVM call attempt with the Solm call and hides the call-depth,
+   balance, gas, and callee-outcome case split. For an ordinary typed
+   call, the false-status obligation should normally be only
+   `post-call RD → RDrev`.
+
+5. Prove the post-call bytecode status and return-decoder paths using
+   the provided summaries. A successful continuation receives the
+   actual returndata, resulting source state, EVM world, RD counters,
+   and `CallStateRel`; use these facts directly in the continuation,
+   or package them in a richer relation when needed for a reusable
+   suffix. Continue over the remaining Solm statements. Match failed status or failed
+   decoding with `RDrev` as required by the call rule.
+
+6. At the function boundary, use
+   `BlockRefinesFrom.toRuntimeEquivalenceFor` (or the corresponding
+   reusable refinement bridge) to obtain `runtimeEquivalenceFor`.
+   Call-free dispatcher and malformed-calldata paths may continue to
+   use the ordinary connect lemmas.
 
 ---
 
@@ -176,6 +239,20 @@ The only acceptable trusted facts are:
 - The selector / jump-dest facts in `Bytecode.lean` (the selector
   bytes of each function).
 
+- Keccak literals which the compiler has resolved at compile time.
+
+- Slot noncollision axioms, only when reordering the Solm spec's
+  storage operations is insufficient to reflect a compiler
+  optimization and the refinement requires the assumption. First
+  identify the exact conflicting accesses and establish why matching
+  their order in the spec cannot resolve the obligation. State only
+  the noncollision property needed for those accesses, with explicit
+  domain restrictions where applicable; do not assume unrestricted
+  injectivity of Keccak. Document the justification beside the axiom
+  and report it in the final audit. The resulting correctness theorem
+  is conditional on that assumption, which is not a proved property
+  of EVM or Keccak.
+
 - The pre-existing library axiom `keccak_size` in
   `Reasoning/Memory.lean` (Keccak output is 32 bytes), used by
   contracts that hash at run time.
@@ -185,8 +262,9 @@ The only acceptable trusted facts are:
   enter the footprint through the return-data size bound of the
   external-call machinery; you never invoke them directly.
 
-Do not introduce new axioms about EVM semantics, Solm semantics, or
-mapping-slot noncollision. If you think you need one, stop, report the
+Do not introduce new axioms about EVM or Solm semantics. Slot
+noncollision axioms are permitted only under the exception above.
+For any other new axiom outside this accepted base, stop, report the
 situation, and ask for guidance.
 
 ---
@@ -203,8 +281,10 @@ The proof of a contract `<Name>` goes in a directory `<Name>/`:
 | `<Name>.sol` | the Solidity source + the exact compiler invocation used. |
 | `Spec.lean` | the Solm `ContractDecl`, storage layout, `Config`. |
 | `Bytecode.lean` | runtime bytecode + selector/jump-dest trusted facts. |
+| `Blocks.lean` | provided proved RD summaries, especially for call-bearing paths; do not regenerate or edit. |
 | `Common.lean` | contract-wide ABI / memory / selector / return / other helpers shared by ≥2 functions. |
 | `Storage.lean` | contract-wide storage load/store + RBMap preservation + bool-return facts (only if it has storage). |
+| `CallTraces.lean` | optional contract-specific composition of provided summaries around call boundaries, status paths, and return decoders. |
 | `<Fn>.lean` | one file per interface (public/external) function — its decode, source body, EVM trace, and `…BodyCore` refinement. |
 | `Constructor.lean` | the equivalence proof of the contract's constructor. |
 | `Correct.lean` | thin top-level: dispatcher driver + per-function routing + revert paths + constructor packaging + the final `theorem <name>Correct`. |
@@ -237,7 +317,7 @@ The proof of a contract `<Name>` goes in a directory `<Name>/`:
 `Reasoning/` is a library of abstractions, lemmas, and tactics for
 proving EVM bytecode correct against its Solm spec. Useful reads:
 
-- `Reasoning/GUIDE.md` — the library map: where every kind of fact
+- `Reasoning/STRUCTURE.md` — the library map: where every kind of fact
   lives, import layering, and the gotchas (native_decide for decode,
   `RD.foo rd` not `rd.foo`, heartbeat budgets, etc.).
 
@@ -355,6 +435,7 @@ lists (`returnType := [T]` / `.return [e]`, multi-value
 
 - For an example of binary search dispatch, see `Examples/Ballot`. 
 - For an example of linear dispatch, see `Examples/ERC20`.
+- For an example of refinement proofs with calls, see `Examples/NestedCaller`.
 
 
 *Hard rule:* do not import code directly from `Examples/` into your proof. 
@@ -363,31 +444,85 @@ directory and flag it for promotion to the library if it is general enough.
 
 ---
 
-## 6. Function Calls and loops
+## 6. Function calls, gas paths, and loops
 
 Function calls should be proven modularly. In particular:
 
 - External calls (calls to other contracts):
 
-  All external calls are proved correct by showing the bytecode and
-  the source semantics make to the same opaque Ethereum.EVM.Θ
-  invocation. Runtime RD lemmas produce the Θ witness; calldata/target
-  lemmas prove the bytecode memory slice matches the source ABI call;
-  then callCoincides or direct callViaEVM.callMade turns that into the
-  source-side call relation, with account-map transport handled by
-  typedCallViaEVM_accountMapEquiv or callViaEVM_accountMapEquiv.
+  Prove a call-bearing path as paired progression, using
+  `BlockRefinesFrom` or `StmtsRefine`; do not run the complete EVM and
+  Solm paths independently and connect them only after both have
+  terminated. Use the provided RD summaries to reach the call setup,
+  retaining the concrete cursor/stack/memory facts and `CallStateRel`.
+  Reuse the known entry relation; package additional facts into a
+  richer `StateRel` when a reusable call-prefix or continuation lemma
+  needs it. Facts fixed by concrete theorem arguments need not also
+  be encoded in the relation.
+
+  At the CALL-family opcode, apply the matching rule from
+  `Reasoning.CallRefinement`: `BlockRefinesFrom.externalCall`,
+  `.lowLevelCall`, `.checkedCall`, or `.delegateCall`. These rules
+  prove that both sides make the same opaque call and choose the same
+  result. They internally handle call depth, insufficient balance,
+  forwarded gas, callee execution, returndata, and account-map
+  transport. Do not reproduce those case splits in the contract proof.
+
+  The ordinary typed-call rule has two continuations. From status
+  `false`, use the provided failure/status summaries to prove `RDrev`;
+  this obligation does not need another typed-call hypothesis. From
+  status `true`, use the provided returndata and decoder summaries. If
+  source ABI decoding fails, prove the corresponding EVM decoder path
+  reaches `RDrev`. If it succeeds, continue with `BlockRefinesFrom`
+  for the tail of the source statement list. The continuation receives
+  the actual EVM cursor, returndata, resulting Solm state, changed
+  world, counters, and `CallStateRel`; do not throw those witnesses
+  away and reconstruct them later.
 
   For static external calls, you may also use the proved fact that the
   accounts storage is preserved by the call.
 
+- Gas paths:
+
+  Treat `GAS` as a paired boundary only when it has source-level
+  meaning or supplies a call operand. Use `BlockRefinesFrom.letGas`
+  when the source statement at the head of the list is `.letGas`; it
+  puts the same gas word on the EVM stack and in the Solm local. Use
+  `BlockRefinesFrom.gas` for a compiler-inserted forwarding `GAS`
+  before a CALL-family opcode while leaving the source state
+  unchanged. If a provided summary has already consumed `GAS` and
+  exposes its word, use `BlockRefinesFrom.letGasOfRD` rather than
+  stepping it again.
+
+  A source `gasleft()` followed by a condition should keep the gas word
+  in the path relation and branch on that same value on both sides.
+  Out-of-gas remains hidden inside RD; do not add a separate
+  `OutOfGas` disjunct to every prefix or continuation hypothesis.
+  There is no benefit in breaking summaries at unrelated `GAS`
+  opcodes that are fully internal to a straight-line routine.
+
 - Internal calls:
 
-  For internal calls, never inline the caller proof manually. Prove
-  the callee body once as an ExecFuncBody, then use
+  For internal calls, never inline the caller proof manually.
+  When in plain RD proof segments,
+  prove the callee body once as an ExecFuncBody, then use
   internalCallFunctionReturn or internalCallFunctionRevert to
   discharge the caller’s .internalCall statement by supplying argument
   evaluation, function lookup, parameter binding, and the callee body
   proof.
+
+  During a refinement-style proof, prove its body
+  once as `BlockRefinesFrom`/`StmtsRefine`, with `internalCallExit`
+  describing its return and revert endpoints, then apply
+  `BlockRefinesFrom.internalCall`. Supply argument evaluation,
+  function lookup, parameter binding, the relation at the callee
+  entry, and refinements for the caller continuations. This is
+  especially important when the internal callee itself contains an
+  external call: the callee proof owns that paired call, while callers
+  reuse its body refinement.
+  If the internall call does not contain an external call itself,
+  it may be delt with as in the plain RD proof segments,
+  using `BlockRefinesFrom.seqOfRD`.
 
   This is also true when a public function is also called internally
   by another function of the contract. The callee body is proved once,
@@ -401,13 +536,32 @@ Function calls should be proven modularly. In particular:
   prove `f` before tackling the proof of `g`.
 
 
-- Loops: 
+- Loops:
 
-  The `Examples/BlindAuction` example has a big complicated loop in the 
-  `Reveal` function and shows how to prove loops by induction: state
-  the invariant over the loop counter, prove a single reusable
-  body-step lemma, and close the loop by induction on the remaining
-  iterations, on both the Solm side and the bytecode trace.
+  For simple loops and bytecode-only loops (such as compiler-generated
+  copy or encoding routines), use the RD loop rules and available
+  block summaries. Prove any corresponding Solm execution separately;
+  within a larger refinement proof, compose these facts using
+  `seqOfRD` or advance only the EVM using `BlockRefinesFrom.ofRD`.
+
+  Use the refinement loop rules only for more complex loops that
+  benefit from a coupled EVM/Solm proof—for example, bodies with calls
+  or several interacting control-flow paths. Such loops may benefit
+  even when they contain no calls. State a `StateRel` invariant over
+  the relevant source locals, EVM stack shape, and memory facts,
+  indexed by a decreasing variant; include `CallStateRel` when needed
+  by calls or world agreement. Use `StmtsRefine.forLoopCombined` and
+  the provided summaries for the header, body, post, and exit
+  boundaries. Prove the body as a reusable paired refinement with the
+  appropriate exit relations: `break` goes to the loop tail;
+  `continue` and normal body completion execute the post; return and
+  revert bypass both.
+
+  `Examples/NestedCaller` is the reference architecture for an
+  internal function containing `gasleft()` and an external call, used
+  from a loop with break and continue. Use it as a reading reference
+  only; do not import or build it from the working proof.
+
 ---
 
 ## 7. Build discipline, tactics, proof engineering, efficiency
@@ -438,7 +592,8 @@ Function calls should be proven modularly. In particular:
   into its proper file and delete the scratch.
 
 - Decode obligations use `native_decide`, not `decide` (~20× faster on
-  big bytecode). `evm_run` cooked steps auto-supply it; raw steps
+  big bytecode). The block summaries as well as `evm_run` cooked steps
+  auto-supply it; raw steps
   write `(by native_decide)` for decode, `(by decide)` for small side
   conditions, `(by jump_dest)` for jump-dest membership, `(by evm_ov)`
   for stack-overflow bounds. Keep these — the resulting `native_decide`
@@ -451,8 +606,18 @@ Function calls should be proven modularly. In particular:
 
 ## 8. Routine-lemma discipline
 
+Use the supplied `Blocks.lean` summaries as
+the primary EVM stepping interface. The summary-generation work has
+already been done. Do not re-prove a covered block with `evm_run`, and
+do not regenerate or edit the summaries. Compose them into
+contract-specific path lemmas for reaching call, gas, decoder, loop,
+and continuation boundaries. If a required bytecode edge is not
+covered, first verify that it is genuinely absent from the supplied
+summaries and report the gap.
+
 Every repeated bytecode segment becomes one `RD`-combinator lemma,
-proved once, applied many times:
+proved once and applied many times. This guidance applies to
+call-free traces and genuine gaps outside the provided summaries:
 
 - A straight-line bytecode segment `pc_in → pc_out` over a stack tail
   `R` becomes a theorem of the form `RD code … pc_in (args ++ R) … → ∃
@@ -469,33 +634,12 @@ proved once, applied many times:
 - Before writing a trace, scan the bytecode for segments solc shares
   (decoders, the address mask/cleanup, the mapping-hash `keccak`
   suffix, the uint256 ABI encoder, identity `cleanup_t_*`
-  routines). solc emits these once; prove them once. If you find
-  yourself writing the same `evm_run [...]` block in two functions,
-  stop and extract a lemma.
+  routines). solc emits these once; prove them once.
 
 - Generalize hard-coded constants (PCs, widths, types, stack tails)
   into lemma parameters wherever possible, so the lemma is reusable
   across functions. If a lemma is truly contract-independent, flag it
   for promotion to `Reasoning/`.
-
-- Split traces into `have`s, one per sub-trace / routine. A single
-  giant `evm_run` over a compound tail blows the heartbeat/`whnf`
-  budget. Factoring a routine over a generic tail `R` needs
-  `set_option maxHeartbeats 1000000 in` and intermediate `have`s — see
-  the note in `Reasoning/GUIDE.md` and `RD.erc20DecodeAddrMask`.
-
-Disassemble — never guess PCs, opcodes, or jump-dests. The biggest
-failure mode in these proofs is guessing contract-specific constants:
-the exact `evm_run … with [push2 ⟨71⟩, dup1, …]` opcode sequence for a
-basic block, the entry/exit PCs, the jump-dest set, the selector
-bytes, the stack shapes. These are a pure function of the bytecode —
-one wrong token fails late and opaquely and wastes a whole cycle. Read
-them off the actual bytecode: disassemble `Bytecode.lean` (a short
-script, `evmasm`/`solc --asm`, or by decoding the byte array) to get
-each block's exact cooked-step list, its PCs, and the jump-dest array
-before writing the trace. Treat the trace as "fill in the
-side-conditions of a known opcode list," not "invent the opcode list."
-When a step fails, re-check it against the disassembly first.
 
 ---
 
@@ -520,9 +664,9 @@ When a step fails, re-check it against the disassembly first.
 
 - No `sorry` in the finished proof.
 
-- Do not introduce new `axiom`, unless explicitly told to do so. If
-  you think you need one, stop, report the situation, and ask for
-  guidance.
+- Introduce new axioms only within the accepted base in Section 2,
+  including its restricted slot noncollision exception. For any
+  other new axiom, stop, report the situation, and ask for guidance.
 
 ---
 
@@ -551,6 +695,10 @@ selector/jump-dest facts, and — where applicable — the library axiom
 precompile output-size axioms (`Ethereum.EVM.ffi_sha256_output_size`,
 `Ethereum.EVM.blob*_output_chunks`, …), which enter through the
 external-call return-data bound.
+Any slot noncollision axioms admitted under Section 2 must also be
+listed explicitly, with the affected accesses, why reordering the
+spec was insufficient, and a statement that correctness depends on
+these assumptions.
 (`ByteArray_zeroes_size`, `Theta_returnData_size_lt_2pow138`, and
 `typedCallViaEVM_accountMapEquiv` are proved theorems, not axioms —
 they do not appear in the footprint.) Flag only anything beyond this
