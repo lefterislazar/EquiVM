@@ -106,14 +106,25 @@ def storageLocWriteWord (slot : EVM.Word) (startByte : Nat)
       let previousLowBits := (slot.toNat / 2 ^ (8 * startByte)) % lowBits
       EVM.word (valueWord.toNat * lowBits + previousLowBits)
 
+inductive StorageStoreError where
+  | staticModeViolation
+  | invalidValue
+  deriving DecidableEq, Repr
+
 -- TODO: Should the given value be restricted to fit in the location?
-def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Option EVM.State := do
+def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) :
+    Except StorageStoreError EVM.State := do
+  -- Reject storage writes in a static (read-only) execution context.
+  unless self.executionEnv.perm do
+    throw .staticModeViolation
   let slot := EVM.storageLoad self self.executionEnv.codeOwner loc.slot
   -- LITTLE ENDIAN (`toBytes' ++ zero-pad`) — the *correct* LE serialization, matching
   -- `storageLocLoad` byte-for-byte so that load∘store round-trips and a whole-slot `uint256`
   -- store of `v` writes exactly `v` (the EVM `SSTORE` word).
   let ⟨slotBytes, hprevStorageRefSize⟩ := EVM.Word.toBytesLEWithSizeProof slot
-  let valueWord <- valueToWord value
+  let valueWord <- match valueToWord value with
+    | some word => pure word
+    | none => throw .invalidValue
   let startByte := loc.offset.val
   let endByte := loc.offset.val + loc.size.val
   let writeWord := storageLocWriteWord slot startByte loc.bitOffset valueWord
@@ -150,7 +161,7 @@ def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Opti
         · omega
       · simp
   let resUInt256 : Ethereum.UInt256 := ⟨Ethereum.fromBytes' resList, hresSize⟩
-  EVM.storageStore self self.executionEnv.codeOwner loc.slot resUInt256
+  pure (EVM.storageStore self self.executionEnv.codeOwner loc.slot resUInt256)
 
 structure StorageLayout where
   layout : EvaledStorageRef -> EVM.State -> Option StorageLoc

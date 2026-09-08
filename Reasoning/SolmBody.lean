@@ -826,11 +826,11 @@ theorem assignStorageRef_storage_scalar_value {cfg : Config} {solm : Frame} {evm
     (hty : storageTypeAt? solm.contract.storage er = some ty)
     (hloc : cfg.storage.layout er = fun _ => some loc)
     (hscalar : match value with | .struct _ _ | .array _ | .bytes _ => False | _ => True)
-    (hstore : storageLocStore evm loc value = some evm') :
+    (hstore : storageLocStore evm loc value = .ok evm') :
     assignStorageRef? cfg solm evm .storage slot value = .ok (solm, evm') := by
   rw [assignStorageRef?]
   simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind, EvalResult.ofOption,
-    hloc, hstore, pure]
+    hloc, hstore, storageStoreResultToEval, pure]
   cases value <;> simp at hscalar ⊢
 
 /-- A scalar integer storage write collapses to a single `storageLocStore`. -/
@@ -840,7 +840,7 @@ theorem assignStorageRef_storage_scalar {cfg : Config} {solm : Frame} {evm evm' 
     (her : evalStorageRef cfg solm evm slot = .ok er)
     (hty : storageTypeAt? solm.contract.storage er = some ty)
     (hloc : cfg.storage.layout er = fun _ => some loc)
-    (hstore : storageLocStore evm loc (.int n) = some evm') :
+    (hstore : storageLocStore evm loc (.int n) = .ok evm') :
     assignStorageRef? cfg solm evm .storage slot (.int n) = .ok (solm, evm') := by
   exact assignStorageRef_storage_scalar_value hbase her hty hloc (by trivial) hstore
 

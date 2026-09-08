@@ -33,16 +33,23 @@ def defaultDecodeReturn? (_name : Ident) (bytes : EVM.Bytes) : Option (List Valu
 def defaultExternalCallABI : ExternalCallABI :=
   { encode? := defaultEncodeCall?, decode? := defaultDecodeReturn? }
 
+/-- Value transfer requires a writable caller and an ordinary `CALL`.
+    `STATICCALL` uses zero value. Compare the EVM word after the usual integer conversion. -/
+def callPermissionAllowed (evm : EVM.State) (value : ℤ) (perm : Bool) : Prop :=
+  (evm.executionEnv.perm && perm) = true ∨ EVM.wordOfInt value = ⟨0⟩
+
 /-- A raw message call to `target` with the given `value` and `calldata`, bridged directly to the
     EVM `Θ`.  No ABI encoding — calldata is supplied verbatim — and the boolean result is the raw
-    call success flag.  The final optional parameter is the callee permission bit passed to `Θ`;
-    ordinary `CALL` uses the default `true`, while `STATICCALL` uses `false`.  Both the low-level
-    `.call` and (via `typedCallViaEVM`) typed external calls are built on this. -/
+    call success flag.  The final optional parameter selects ordinary `CALL` (`true`) or
+    `STATICCALL` (`false`). The callee permission combines it with the caller's permission.
+    Forbidden value transfers have no bridge result: statement rules revert the caller.
+    Both low-level `.call` and (via `typedCallViaEVM`) typed external calls use this bridge. -/
 inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
     (value : ℤ) (calldata : EVM.Bytes) :
     (Bool × EVM.State × EVM.Bytes) → (perm : Bool := true) → Prop where
   | callMade :
-      valueWord = EVM.wordOfInt value
+      callPermissionAllowed evm value perm
+      → valueWord = EVM.wordOfInt value
       → (∃ (callGas : Ethereum.UInt256) (A_in : Ethereum.Substate),
         -- The external call bridges directly to the EVM `Θ`.  Solm tracks neither gas nor the
         -- substate, so — exactly as `callGas` is already existential — the *entire* input
@@ -69,8 +76,7 @@ inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
             calldata
             (evm.executionEnv.depth + 1)
             evm.executionEnv.header
-            perm -- permission to modify state;
-                 -- true for call/delegatecall/callcode, false for staticcall
+            (evm.executionEnv.perm && perm)
         )
 
       → evm' = { evm with accountMap := σ', substate := A', createdAccounts := cA' }
@@ -80,7 +86,8 @@ inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
       → callViaEVM evm target value calldata (z, evm', o) perm
 
   | callNotMade :
-      A' = ((evm.addAccessedAccount target) |>.substate )
+      callPermissionAllowed evm value perm
+      → A' = ((evm.addAccessedAccount target) |>.substate )
       → evm' = { evm with substate := A' }
       → (¬ (EVM.wordOfInt value ≤ (evm.accountMap.find? evm.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))
          ∧ evm.executionEnv.depth ≠ 1024))
@@ -133,8 +140,9 @@ def typedCallViaEVM (cfg : Config) (evm : EVM.State) (target : EVM.Address)
   ∃ calldata, cfg.externalABI.encode? name args = some calldata
             ∧ callViaEVM evm target value calldata result perm
 
-/-- Preconditions under which a `new` (the `CREATE` opcode) actually runs the init code,
-    mirroring the guards the opcode checks before calling `Lambda`. -/
+/-- Preconditions under which a permitted `new` actually runs the init code,
+    mirroring the guards the opcode checks before calling `Lambda`.
+    `newViaEVM` separately rejects creation in static mode. -/
 def newCanCreate (evm : EVM.State) (value : ℤ) (initCode : EVM.Bytes) : Prop :=
   let creator := evm.accountMap.find? evm.executionEnv.codeOwner |>.getD default
   EVM.wordOfInt value ≤ creator.balance        -- creator can afford the endowment
@@ -150,7 +158,8 @@ inductive newViaEVM (cfg : Config) (evm : EVM.State)
     (name : Ident) (value : ℤ) (args : List Value) (salt : Option ByteArray) :
     (EVM.Address × EVM.State × Bool) → Prop where
   | created :
-      cfg.creationCode name args = .some initCode
+      evm.executionEnv.perm = true
+      → cfg.creationCode name args = .some initCode
       → newCanCreate evm value initCode
       → valueWord = EVM.wordOfInt value
       → (∃ createGas refunds accessedStorageKeys,
@@ -187,8 +196,12 @@ inductive newViaEVM (cfg : Config) (evm : EVM.State)
       → evm' = { evm with accountMap := σ', substate := A', createdAccounts := cA' }
       → newViaEVM cfg evm name value args salt (addr, evm', z)
   | notCreated :
-      cfg.creationCode name args = .some initCode
+      evm.executionEnv.perm = true
+      → cfg.creationCode name args = .some initCode
       → ¬ newCanCreate evm value initCode
+      → newViaEVM cfg evm name value args salt (EVM.address 0, evm, false)
+  | staticModeViolation :
+      evm.executionEnv.perm = false
       → newViaEVM cfg evm name value args salt (EVM.address 0, evm, false)
 
 end Solm

@@ -111,7 +111,7 @@ theorem emptyConstructorCorrect_of_RDret
     constructorEquivalence cfg initcode contract runtimeCode := by
   refine constructorEquivalence.intro ?_
   intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
-      args deployedInitcode hdeploy hcode _hcalldata _hperm hσ
+      args deployedInitcode hdeploy hcode _hcalldata hσ
   have hdeployed := emptyCtorDeployment_eq_initcode hself hparams hdeploy
   rw [hdeployed] at hcode
   have hrd := hrun (createdAccounts := createdAccounts)

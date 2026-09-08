@@ -267,6 +267,8 @@ inductive Stmt where
   | pop : StorageRef -> Stmt
   /- `delete x`: reset the storage at `x` to its zero value (recursively, per its type) -/
   | delete : StorageRef -> Stmt
+  /-- `event()`: abstract event emission, modeling only the prohibition in static mode. -/
+  | event : Stmt
   deriving Repr, Inhabited
 
 

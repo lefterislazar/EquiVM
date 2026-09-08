@@ -77,7 +77,7 @@ theorem callCoincides {cfg : Config} {evm : EVM.State} {name : Ident} {args : Li
           (AccountAddress.ofUInt256 targetWord) (toExecute evm.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat) (evm.executionEnv.depth + 1)
-          evm.executionEnv.header callPerm) :
+          evm.executionEnv.header (evm.executionEnv.perm && callPerm)) :
     typedCallViaEVM cfg evm tgt name 0 args
       (z, { evm with accountMap := σ', substate := A', createdAccounts := cA' }, o)
       callPerm := by
@@ -85,7 +85,7 @@ theorem callCoincides {cfg : Config} {evm : EVM.State} {name : Ident} {args : Li
   have h := hΘ
   rw [accountAddress_roundtrip, ← htgt] at h
   exact ⟨mem.readWithPadding inOff.toNat inSize.toNat, hcd,
-    callViaEVM.callMade (perm := callPerm) wordOfInt_zero.symm ⟨callGas, A_in, h⟩ rfl
+    callViaEVM.callMade (perm := callPerm) (Or.inr wordOfInt_zero) wordOfInt_zero.symm ⟨callGas, A_in, h⟩ rfl
       (by show (⟨0⟩ : UInt256) ≤ _; exact Fin.zero_le _) hdepth⟩
 
 theorem typedCallViaEVM_executionEnv_eq {cfg : Config} {evm evm' : EVM.State}
@@ -95,10 +95,10 @@ theorem typedCallViaEVM_executionEnv_eq {cfg : Config} {evm evm' : EVM.State}
     evm'.executionEnv = evm.executionEnv := by
   obtain ⟨_calldata, _hencode, hraw⟩ := hcall
   cases hraw with
-  | callMade _hvalue _hTheta hevm' _hvalue' _hdepth =>
+  | callMade hallowed _hvalue _hTheta hevm' _hvalue' _hdepth =>
       subst hevm'
       rfl
-  | callNotMade _hsubstate hevm' _hvalue =>
+  | callNotMade hallowed _hsubstate hevm' _hvalue =>
       subst hevm'
       rfl
 
@@ -108,11 +108,11 @@ theorem callViaEVM_static_accountStorageStateEq {evm evm' : EVM.State}
     (hcall : callViaEVM evm target value calldata (z, evm', out) false) :
     accountStorageStateEq evm.accountMap evm'.accountMap := by
   cases hcall with
-  | callMade _hvalue hTheta hevm' _hvalue' _hdepth =>
+  | callMade hallowed _hvalue hTheta hevm' _hvalue' _hdepth =>
       rcases hTheta with ⟨_callGas, _A_in, hΘ⟩
       subst hevm'
-      exact Theta_static_accountStorageStateEq hΘ.symm
-  | callNotMade _hsubstate hevm' _hvalue =>
+      exact Theta_static_accountStorageStateEq (by simpa only [Bool.and_false] using hΘ.symm)
+  | callNotMade hallowed _hsubstate hevm' _hvalue =>
       subst hevm'
       exact accountStorageStateEq_refl evm.accountMap
 
@@ -130,11 +130,11 @@ theorem callViaEVM_static_accountCodeStateEq {evm evm' : EVM.State}
     (hcall : callViaEVM evm target value calldata (z, evm', out) false) :
     accountCodeStateEq evm.accountMap evm'.accountMap := by
   cases hcall with
-  | callMade _hvalue hTheta hevm' _hvalue' _hdepth =>
+  | callMade hallowed _hvalue hTheta hevm' _hvalue' _hdepth =>
       rcases hTheta with ⟨_callGas, _A_in, hΘ⟩
       subst hevm'
-      exact Theta_static_accountCodeStateEq hΘ.symm
-  | callNotMade _hsubstate hevm' _hvalue =>
+      exact Theta_static_accountCodeStateEq (by simpa only [Bool.and_false] using hΘ.symm)
+  | callNotMade hallowed _hsubstate hevm' _hvalue =>
       subst hevm'
       exact accountCodeStateEq_refl evm.accountMap
 
@@ -286,7 +286,7 @@ theorem typedCallViaEVM_accountMapEquiv {cfg : Config} {evm_evm evm_solm evm'_ev
   have h_ext_eq : accountMapExtensionalEq evm_evm.accountMap evm_solm.accountMap :=
     accountMapExtensionalEq_of_accountMapEquiv hAccounts
   cases hcall with
-  | callMade hvalue hTheta hevm' hvalue' hdepth =>
+  | callMade hallowed hvalue hTheta hevm' hvalue' hdepth =>
     obtain ⟨callGas, A_in, hTheta⟩ := hTheta
     rename_i valueWord cA' σ' g' A'
     obtain ⟨σ'_solm, g''_solm, A'_solm, hTheta_s', hσ'⟩ :=
@@ -302,14 +302,14 @@ theorem typedCallViaEVM_accountMapEquiv {cfg : Config} {evm_evm evm_solm evm'_ev
             (toExecute evm_solm.accountMap tgt) callGas
             (UInt256.ofNat evm_solm.executionEnv.gasPrice) valueWord valueWord calldata
             (evm_solm.executionEnv.depth + 1) evm_solm.executionEnv.header
-            callPerm := by
+            (evm_solm.executionEnv.perm && callPerm) := by
       rw [hEnv, hCreated']
       exact hTheta_s'
     use σ'_solm
     use A'_solm
     constructor
     · refine ⟨calldata, hdecode, ?_⟩
-      exact callViaEVM.callMade (perm := callPerm) hvalue
+      exact callViaEVM.callMade (perm := callPerm) (by simpa [callPermissionAllowed, hEnv] using hallowed) hvalue
         ⟨callGas, A_in, hTheta_s⟩ rfl (by
         rw [hEnv]
         rw [← accountMapExtensionalEq_balanceOf h_ext_eq evm_evm.executionEnv.codeOwner]
@@ -317,13 +317,14 @@ theorem typedCallViaEVM_accountMapEquiv {cfg : Config} {evm_evm evm_solm evm'_ev
         rw [hEnv]
         exact hdepth)
     · simpa [hevm'] using hσ'
-  | callNotMade hsubstate hevm' hvalue =>
+  | callNotMade hallowed hsubstate hevm' hvalue =>
     let A' := (State.addAccessedAccount evm_solm tgt).substate
     use evm_solm.accountMap
     use A'
     constructor
     · refine ⟨calldata, hdecode, ?_⟩
       apply callViaEVM.callNotMade (perm := callPerm)
+      · simpa [callPermissionAllowed, hEnv] using hallowed
       · rfl
       · simp [A', hCreated, hevm']
       · rw [hEnv]
@@ -356,7 +357,7 @@ theorem typedCallViaEVM_callMade_accountMapEquiv {cfg : Config}
           (toExecute evm_evm.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm_evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
-          (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header callPerm)
+          (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header (evm_evm.executionEnv.perm && callPerm))
     (hAccounts : accountMapEquiv evm_evm.accountMap evm_solm.accountMap)
     (hOriginalAccounts : evm_evm.σ₀ = evm_solm.σ₀)
     (hCreated : evm_solm.createdAccounts = evm_evm.createdAccounts)
@@ -578,7 +579,7 @@ theorem callNotMade_depthLimit {cfg : Config} {evm : EVM.State} {tgt : EVM.Addre
       (false, { evm with substate := (evm.addAccessedAccount tgt).substate }, ByteArray.empty)
       callPerm := by
   refine ⟨calldata, hcd, ?_⟩
-  apply callViaEVM.callNotMade (perm := callPerm) rfl rfl
+  apply callViaEVM.callNotMade (perm := callPerm) (Or.inr wordOfInt_zero) rfl rfl
   rintro ⟨_, hne⟩
   exact hne hdepth
 

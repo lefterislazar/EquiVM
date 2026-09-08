@@ -481,6 +481,9 @@ mutual
         letI : Decidable (rx = ry) := StorageRef.decEq rx ry
         exact decEqOfIff (rx = ry) (by intro h; cases h; rfl) (by intro h; cases h; rfl)
 
+    next =>
+        exact isTrue rfl
+
   private def Stmt.decEqList : (as bs : List Stmt) → Decidable (as = bs)
     | [], [] => isTrue rfl
     | a :: as, b :: bs =>

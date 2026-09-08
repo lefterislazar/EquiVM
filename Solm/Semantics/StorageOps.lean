@@ -73,6 +73,21 @@ def storagePrepareResultToEval : StorageReadResult EVM.State -> EvalResult EVM.S
   | .revert => .revert
   | .error => .error .storageError
 
+/-- A prohibited write is a runtime failure; an invalid value is a model-level error. -/
+def storageStoreResultToEval : Except StorageStoreError EVM.State -> EvalResult EVM.State
+  | .ok evm => .ok evm
+  | .error .staticModeViolation => .revert
+  | .error .invalidValue => .error .storageError
+
+/-- Layout-owned writes and clears obey the same static permission as ordinary slot stores. -/
+def storageWriteHookToEval (evm : EVM.State)
+    (hook : EVM.State -> Option (StorageReadResult EVM.State)) : EvalResult EVM.State :=
+  if evm.executionEnv.perm then
+    match hook evm with
+    | some result => storagePrepareResultToEval result
+    | none => .error .storageError
+  else .revert
+
 def storageValueResultToEval : StorageReadResult Value -> EvalResult Value
   | .ok v => .ok v
   | .revert => .revert
@@ -89,7 +104,7 @@ def clearStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
     StorageType -> EvalResult EVM.State
   | .elem _ | .contract _ =>
       match cfg.storage.layout er evm with
-      | some loc => EvalResult.ofOption .storageError (storageLocStore evm loc (.int 0))
+      | some loc => storageStoreResultToEval (storageLocStore evm loc (.int 0))
       | none => .error .storageError
   | .mapping _ _ => .ok evm
   | .struct _ fields => clearFields? cfg evm er fields
@@ -101,18 +116,14 @@ def clearStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
           match storageLocLoad evm lenLoc with
           | .int len =>
               match clearArrayElems? cfg evm er t' len.toNat with
-              | .ok evm1 => EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int 0))
+              | .ok evm1 => storageStoreResultToEval (storageLocStore evm1 lenLoc (.int 0))
               | r => r
           | _ => .error .storageError
       | none => .error .storageError
   | .bytes =>
-      match cfg.storage.clearValue? er .bytes evm with
-      | some result => storagePrepareResultToEval result
-      | none => .error .storageError
+      storageWriteHookToEval evm (cfg.storage.clearValue? er .bytes)
   | .string =>
-      match cfg.storage.clearValue? er .string evm with
-      | some result => storagePrepareResultToEval result
-      | none => .error .storageError
+      storageWriteHookToEval evm (cfg.storage.clearValue? er .string)
   termination_by t => (sizeOf t, 0)
 
 def clearFields? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
@@ -154,7 +165,7 @@ def writeStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
   | .elem _, v
   | .contract _, v =>
       match cfg.storage.layout er evm with
-      | some loc => EvalResult.ofOption .storageError (storageLocStore evm loc v)
+      | some loc => storageStoreResultToEval (storageLocStore evm loc v)
       | none => .error .storageError
   | .struct _ ftypes, .struct _ fvals => writeFields? cfg evm er ftypes fvals
   | .tuple ts, .tuple vs => writeTupleElems? cfg evm er 0 ts vs
@@ -169,15 +180,11 @@ def writeStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
       let evm1 <- writeArrayElems? cfg evm0 er t' 0 vs
       let lenLoc <- EvalResult.ofOption .storageError
         (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
-      EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int vs.length))
+      storageStoreResultToEval (storageLocStore evm1 lenLoc (.int vs.length))
   | .bytes, .bytes bs =>
-      match cfg.storage.writeValue? er .bytes (.bytes bs) evm with
-      | some result => storagePrepareResultToEval result
-      | none => .error .storageError
+      storageWriteHookToEval evm (cfg.storage.writeValue? er .bytes (.bytes bs))
   | .string, .bytes bs =>
-      match cfg.storage.writeValue? er .string (.bytes bs) evm with
-      | some result => storagePrepareResultToEval result
-      | none => .error .storageError
+      storageWriteHookToEval evm (cfg.storage.writeValue? er .string (.bytes bs))
   | _, _ => .error .typeError
   termination_by t => (sizeOf t, 0)
 

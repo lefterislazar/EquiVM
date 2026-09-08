@@ -85,8 +85,9 @@ def resumeAfterInternalCall (caller : Frame) (retVar : Ident) (value : Option (L
     (the layout's `.length` query), stores length `L+1`, then `some v` writes the value at element
     `L` via `writeStorage?`.  Writing the length first mirrors solc's generated storage order and
     also makes the new index in-bounds for the ordinary storage writer.  `none` is a grow-only push
-    (the new slots are already zero by storage default).  `.revert`s only if evaluating the array ref
-    does.  It `.error`s (a stuck, ill-formed program) when the target isn't a dynamic array, the
+    (the new slots are already zero by storage default).  `.revert`s if evaluating the array ref
+    does or a slot write violates static permissions.  It `.error`s (a stuck, ill-formed program)
+    when the target isn't a dynamic array, the
     layout has no `.length`/element slot for it, the length slot doesn't hold an integer, or a
     compound value's shape doesn't match the element type — i.e. for a well-formed layout + matching
     value, `.revert` is the only non-`.ok` outcome. -/
@@ -99,7 +100,7 @@ def pushArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef
         (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
       match storageLocLoad evm lenLoc with
       | .int len => do
-          let evmLen <- EvalResult.ofOption .storageError (storageLocStore evm lenLoc (.int (len + 1)))
+          let evmLen <- storageStoreResultToEval (storageLocStore evm lenLoc (.int (len + 1)))
           match value with
             | some v =>
                 writeStorage? cfg evmLen
@@ -124,7 +125,7 @@ def pushArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef
 /-- `arr.pop()`: remove the last element of the dynamic array named by `ref`.  Reverts when the
     array is empty (solc's `Panic(0x31)`).  Otherwise recursively clears the whole last element
     (per its declared type, via `clearStorage?` — so nested arrays/structs are fully zeroed) and
-    sets the length to `L-1`. -/
+    sets the length to `L-1`.  Slot writes in static mode also revert. -/
 def popArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
     : EvalResult EVM.State := do
   let (er, ty) <- resolveStorageRef? cfg solm evm ref
@@ -138,7 +139,7 @@ def popArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
           else do
             let evm1 <- clearStorage? cfg evm
               { er with steps := er.steps ++ [.aindex (.int (len - 1))] } elemTy
-            EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int (len - 1)))
+            storageStoreResultToEval (storageLocStore evm1 lenLoc (.int (len - 1)))
       | _ => .error .storageError
   -- `bytes`/`string` pop: read-modify-write; empty → revert (solc `Panic(0x31)`).
   | .bytes | .string => do
@@ -151,7 +152,8 @@ def popArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
 
 /-- `delete x`: reset the storage at `ref` to its zero value, recursively per its declared type
     (`clearStorage?` — a dynamic array becomes empty, a struct/array is fully zeroed).  `.revert`s
-    only if evaluating the ref does; `.error`s on an ill-formed layout/type. -/
+    if evaluating the ref does or a slot write violates static permissions;
+    `.error`s on an ill-formed layout/type. -/
 def deleteStorage? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
     : EvalResult EVM.State := do
   let (er, ty) <- resolveStorageRef? cfg solm evm ref
@@ -336,6 +338,12 @@ inductive ExecStmt (cfg : Config) :
   | externalCallReceiverRevert :
       evalExpr? cfg solm evm receiver = .revert ->
       ExecStmt cfg solm evm (.externalCall receiver name eth args retVar (perm := perm)) .reverted
+  | externalCallPermissionRevert :
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .ok argVals ->
+      ¬ callPermissionAllowed evm sendVal perm ->
+      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar (perm := perm)) .reverted
   | externalCallSendRevert :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .revert ->
@@ -361,6 +369,13 @@ inductive ExecStmt (cfg : Config) :
         (.ok { solm with locals := (solm.locals.insert okVar (.bool false)).insert dataVar (.bytes out) } evm')
   | lowLevelCallReceiverRevert :
       evalExpr? cfg solm evm receiver = .revert ->
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar (perm := perm)) .reverted
+  | lowLevelCallPermissionRevert :
+      -- The CALL opcode fails in the caller; this cannot be returned as `okVar = false`.
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExpr? cfg solm evm cdata = .ok (.bytes calldata) ->
+      ¬ callPermissionAllowed evm sendVal perm ->
       ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar (perm := perm)) .reverted
   | lowLevelCallSendRevert :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
@@ -432,6 +447,14 @@ inductive ExecStmt (cfg : Config) :
       evalExpr? cfg solm evm receiver = .revert ->
       ExecStmt cfg solm evm
         (.checkedCall receiver name eth args retVar onSuccess errVar onFail (perm := perm)) .reverted
+  | checkedCallPermissionRevert :
+      -- A violation in the caller cannot enter the catch block for a callee failure.
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .ok argVals ->
+      ¬ callPermissionAllowed evm sendVal perm ->
+      ExecStmt cfg solm evm
+        (.checkedCall receiver name eth args retVar onSuccess errVar onFail (perm := perm)) .reverted
   | checkedCallSendRevert :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .revert ->
@@ -474,6 +497,12 @@ inductive ExecStmt (cfg : Config) :
       ExecStmt cfg solm evm .break (.break solm evm)
   | continue :
       ExecStmt cfg solm evm .continue (.continue solm evm)
+  | event :
+      evm.executionEnv.perm = true ->
+      ExecStmt cfg solm evm .event (.ok solm evm)
+  | eventRevert :
+      evm.executionEnv.perm = false ->
+      ExecStmt cfg solm evm .event .reverted
 
 /-- The loop part of a `for (init; cond; post) { body }`, after `init` has run.  Each iteration
     checks `cond`; on `true` it runs `body` then `post` and loops.  A `break` in `body` exits the

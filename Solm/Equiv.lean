@@ -160,10 +160,15 @@ inductive execResultsEquiv
     solmRes = .reverted →
     execResultsEquiv evmRes solmRes returnConvention
   -- `INVALID` (`0xFE`) refines a Solm `.reverted`; legacy solc uses it as the assert/panic failure
-  -- path.  It is the ONLY EVM exception matched here — any other error leaves `execResultsEquiv`
-  -- unmatchable, so a real crash never equates with a revert.
+  -- path.  Static-mode violations below are also runtime failures; other exceptions remain
+  -- unmatched.
   | invalidHalt :
     evmRes = .error .InvalidInstruction →
+    solmRes = .reverted →
+    execResultsEquiv evmRes solmRes returnConvention
+
+  | staticModeViolation :
+    evmRes = .error .StaticModeViolation →
     solmRes = .reverted →
     execResultsEquiv evmRes solmRes returnConvention
 
@@ -195,6 +200,11 @@ inductive ctorResultEquiv
   -- `INVALID` (`0xFE`) refines a Solm `.reverted`, as in `execResultsEquiv.invalidHalt`.
   | invalidHalt :
     evmRes = .error .InvalidInstruction →
+    solmRes = .reverted →
+    ctorResultEquiv evmRes solmRes runtimeCode
+
+  | staticModeViolation :
+    evmRes = .error .StaticModeViolation →
     solmRes = .reverted →
     ctorResultEquiv evmRes solmRes runtimeCode
 
@@ -278,7 +288,6 @@ inductive runtimeEquivalenceWithWF (wf : StorageWF) (cfg : Config) (bytecode : B
       (I : Ethereum.ExecutionEnv),
     I.code = bytecode →
     I.calldata.size < Ethereum.UInt256.size →
-    I.perm = true →
     accountMapEquiv σ_evm σ_solm →
     wf σ_evm I →
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
@@ -298,11 +307,6 @@ inductive runtimeEquivalence (cfg : Config) (bytecode : ByteArray) (contract : C
       (I : Ethereum.ExecutionEnv),
     I.code = bytecode →
     I.calldata.size < Ethereum.UInt256.size →
-    -- A top-level message call is never executed in static (read-only) mode: the EVM's
-    -- transaction entry `Υ` sets the permission flag, and Solm's external-call rule likewise
-    -- hardcodes a writable sub-call.  Required for contracts that write storage (`SSTORE` aborts
-    -- under `perm = false`, whereas Solm's `.assign` is permission-free); benign for pure ones.
-    I.perm = true →
     -- The Solm-side initial maps need only be observationally (`accountMapEquiv`) equal to the
     -- EVM-side maps, not syntactically equal — see `runtimeEquivalenceFor`.
     accountMapEquiv σ_evm σ_solm →
@@ -320,14 +324,14 @@ theorem runtimeEquivalenceWithWF_trivial_iff {cfg : Config} {bytecode : ByteArra
     cases h with
     | intro hrun =>
         refine runtimeEquivalence.intro ?_
-        intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
-        exact hrun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts trivial
+        intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hAccounts
+        exact hrun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hAccounts trivial
   · intro h
     cases h with
     | intro hrun =>
         refine runtimeEquivalenceWithWF.intro ?_
-        intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts _hwf
-        exact hrun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
+        intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hAccounts _hwf
+        exact hrun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hAccounts
 
 
 /-- Constructor (deployment) equivalence at fixed transaction inputs: couples the EVM
@@ -401,11 +405,6 @@ inductive constructorEquivalence (cfg : Config) (initcode : ByteArray) (contract
     cfg.selfDeployment initcode args = .some deployedInitcode →
     I.code = deployedInitcode →
     I.calldata = .empty →
-    -- A top-level message call is never executed in static (read-only) mode: the EVM's
-    -- transaction entry `Υ` sets the permission flag, and Solm's external-call rule likewise
-    -- hardcodes a writable sub-call.  Required for contracts that write storage (`SSTORE` aborts
-    -- under `perm = false`, whereas Solm's `.assign` is permission-free); benign for pure ones.
-    I.perm = true →
     -- The Solm-side initial maps need only be observationally (`accountMapEquiv`) equal to the
     -- EVM-side maps, not syntactically equal — see `constructorEquivalenceFor`.
     accountMapEquiv σ_evm σ_solm →
@@ -469,6 +468,10 @@ inductive ctorResultEquivWith
     evmRes = .error .InvalidInstruction →
     solmRes = .reverted →
     ctorResultEquivWith evmRes solmRes runtimeCodeOf
+  | staticModeViolation :
+    evmRes = .error .StaticModeViolation →
+    solmRes = .reverted →
+    ctorResultEquivWith evmRes solmRes runtimeCodeOf
 
 /-- The constant-runtime constructor relation is exactly the parameterized one at
     `runtimeCodeOf := fun _ => some runtimeCode`. -/
@@ -480,11 +483,13 @@ theorem ctorResultEquiv_const {evmRes solmRes} {rc : ByteArray} :
     | successVoidReturn e1 e2 e3 e4 e5 => exact .successVoidReturn e1 e2 e3 e4 (by simp_all)
     | revert e1 e2 => exact .revert e1 e2
     | invalidHalt e1 e2 => exact .invalidHalt e1 e2
+    | staticModeViolation e1 e2 => exact .staticModeViolation e1 e2
   · intro h; cases h with
     | success e1 e2 e3 e4 e5 => exact .success e1 e2 e3 e4 (by simp_all)
     | successVoidReturn e1 e2 e3 e4 e5 => exact .successVoidReturn e1 e2 e3 e4 (by simp_all)
     | revert e1 e2 => exact .revert e1 e2
     | invalidHalt e1 e2 => exact .invalidHalt e1 e2
+    | staticModeViolation e1 e2 => exact .staticModeViolation e1 e2
 
 inductive constructorEquivalenceForWith (cfg : Config)
     (contract : ContractDecl) (args : List Value)
@@ -512,7 +517,6 @@ inductive constructorEquivalenceWith (cfg : Config) (initcode : ByteArray) (cont
     cfg.selfDeployment initcode args = .some deployedInitcode →
     I.code = deployedInitcode →
     I.calldata = .empty →
-    I.perm = true →
     accountMapEquiv σ_evm σ_solm →
     constructorEquivalenceForWith cfg contract args createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I runtimeCodeOf
     ) →

@@ -49,6 +49,7 @@ def contractGen : ContractDecl := solidity% contract WETH9 {
   a `TransitionDecl`), `#n` embeds a Lean `Int` term as an `Expr.intLit`.
 * Solidity names that are Lean keywords (`from`, `to`, `end`) are written with guillemets:
   `«from»`, `«to»`.
+* `event();` marks abstract event emission: it only enforces the static-mode restriction.
 -/
 
 open Lean
@@ -736,13 +737,17 @@ private partial def elabStmt (env : Env) (stx : TSyntax `solStmt) : MacroM (Term
   | `(solStmt| $lhs:solExpr -= $rhs:solExpr ;) => elabAssign env lhs rhs (some `sub)
   | `(solStmt| $lhs:solExpr *= $rhs:solExpr ;) => elabAssign env lhs rhs (some `mul)
   | `(solStmt| $lhs:solExpr /= $rhs:solExpr ;) => elabAssign env lhs rhs (some `div)
-  -- expression statements: require / push / pop on a dotted-ident path -------
+  -- expression statements: event / require / push / pop on a dotted-ident path -------
   | `(solStmt| $e:solExpr ;) => do
       let `(solExpr| $f:ident ($args:solExpr,*)) := e
         | Macro.throwErrorAt stx "solm: unsupported expression statement"
       let comps := f.getId.components.map (·.toString)
       let args := args.getElems
-      if comps == ["require"] then
+      if comps == ["event"] then
+        unless args.isEmpty do
+          Macro.throwErrorAt stx "solm: event expects no arguments"
+        return (← `(Solm.Stmt.event), env)
+      else if comps == ["require"] then
         let some c := args[0]? | Macro.throwErrorAt stx "solm: require expects a condition"
         -- An optional message argument is dropped, as in the AST.
         return (← `(Solm.Stmt.require $(← elabExpr env c)), env)

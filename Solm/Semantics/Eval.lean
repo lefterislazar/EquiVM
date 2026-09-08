@@ -275,7 +275,7 @@ def assignStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
     | _ => do
       -- scalar leaf: a single whole/partial-slot store
       let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef evm)
-      let evm' <- EvalResult.ofOption .storageError (storageLocStore evm loc value)
+      let evm' <- storageStoreResultToEval (storageLocStore evm loc value)
       pure (solm, evm')
 
 def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
