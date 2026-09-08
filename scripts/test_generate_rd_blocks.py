@@ -181,6 +181,8 @@ class SequencePatternTests(unittest.TestCase):
     def test_migrated_patterns_match_primitive_symbolic_results(self) -> None:
         for name, code in MIGRATED_CASES.items():
             with self.subTest(name):
+                if name.startswith("mapping_hash_"):
+                    continue
                 block = instructions(code)
                 enabled = rd.simulate(block, None, True)
                 disabled = rd.simulate(block, None, False)
@@ -207,11 +209,13 @@ class SequencePatternTests(unittest.TestCase):
                          rd.match_sequence(block, inner_len).name)
         enabled = rd.simulate(block, None, True)
         disabled = rd.simulate(block, None, False)
-        for field in ("stack_in", "stack_out", "mem", "aw", "pc", "extra_hypotheses",
+        for field in ("stack_in", "aw", "pc", "extra_hypotheses",
                       "max_stack_prefix", "existential_counters"):
             self.assertEqual(getattr(disabled, field), getattr(enabled, field), field)
         self.assertIn("solcSummaryNestedMappingInnerHash", "\n".join(enabled.proof))
         self.assertIn("solcSummaryNestedMappingOuterHash", "\n".join(enabled.proof))
+        self.assertNotIn("solcSummaryNestedMapping", "\n".join(disabled.proof))
+        self.assertIn("RD.keccak256", "\n".join(disabled.proof))
 
     def test_next_four_symbolic_effects_match_primitive_mode(self) -> None:
         for name, code in NEXT_CASES.items():
@@ -266,6 +270,16 @@ class SequencePatternTests(unittest.TestCase):
         self.assertIn("solcSummarySelectorLoad", "\n".join(enabled.proof))
         self.assertNotIn("solcSummarySelectorLoad", "\n".join(disabled.proof))
         self.assertEqual(4, len(disabled.proof))
+
+    def test_opt_out_keeps_mapping_hashes_primitive(self) -> None:
+        for name in ("mapping_hash_key_first", "mapping_hash_slot_first"):
+            with self.subTest(name):
+                block = instructions(MIGRATED_CASES[name])
+                enabled = rd.simulate(block, None, True)
+                disabled = rd.simulate(block, None, False)
+                self.assertIn("solcSummaryMapping", "\n".join(enabled.proof))
+                self.assertNotIn("solcSummaryMapping", "\n".join(disabled.proof))
+                self.assertIn("RD.keccak256", "\n".join(disabled.proof))
 
     def test_pattern_mode_preserves_theorem_statements(self) -> None:
         # Add STOP after selector loads so those blocks have terminal statements;

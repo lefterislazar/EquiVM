@@ -1196,13 +1196,13 @@ def simulate(block: list[Instruction], branch: str | None,
                                 (0x84, None), (0x20, None))
             nested_outer_ops = ((0x90, None), (0x91, None), (0x52, None), (0x90, None),
                                 (0x82, None), (0x52, None), (0x90, None), (0x20, None))
-            if ends_with(key_first_ops, index):
+            if use_sequence_patterns and ends_with(key_first_ops, index):
                 mapping_effect = SequenceEffect.MAPPING_HASH_KEY_FIRST
-            elif ends_with(slot_first_ops, index):
+            elif use_sequence_patterns and ends_with(slot_first_ops, index):
                 mapping_effect = SequenceEffect.MAPPING_HASH_SLOT_FIRST
-            elif ends_with(nested_inner_ops, index):
+            elif use_sequence_patterns and ends_with(nested_inner_ops, index):
                 mapping_effect = SequenceEffect.NESTED_MAPPING_INNER_HASH
-            elif ends_with(nested_outer_ops, index):
+            elif use_sequence_patterns and ends_with(nested_outer_ops, index):
                 candidate = stack_snapshots[index - 7]
                 if len(candidate) >= 5 and [candidate[1], candidate[2], candidate[4]] == [
                         u256_nat(64), u256_nat(32), u256_nat(0)]:
