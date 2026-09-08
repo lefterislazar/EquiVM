@@ -8,6 +8,7 @@ import Reasoning.Storage
 import Reasoning.Dispatch
 import Reasoning.SolmBody
 import Reasoning.ExternalCall
+import Reasoning.StaticMode
 import Mathlib.Tactic.IntervalCases
 
 /-!
@@ -48,10 +49,11 @@ theorem endStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
       .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
   simpa [wordLoc, uint256Loc] using storageLocLoad_uint256 evm slot
 
-theorem endStorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
+theorem endStorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256)
+    (hperm : evm.executionEnv.perm = true) :
     storageLocStore evm (wordLoc slot) (.int (Int.ofNat val.toNat)) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
-  simpa [wordLoc, uint256Loc] using storageLocStore_uint256 evm slot val
+      .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
+  simpa [wordLoc, uint256Loc] using storageLocStore_uint256 evm slot val hperm
 
 theorem endAccountMapExtensionalEq_of_accountMapEquiv {σ τ : AccountMap}
     (hστ : accountMapEquiv σ τ) : accountMapExtensionalEq σ τ := by
@@ -87,7 +89,7 @@ theorem endCallMade_accountMapEquiv_with_substate {cfg : Config}
           (toExecute evm_evm.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm_evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
-          (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header callPerm)
+          (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header (evm_evm.executionEnv.perm && callPerm))
     (hAccounts : accountMapEquiv evm_evm.accountMap evm_solm.accountMap)
     (hOriginalAccounts : evm_evm.σ₀ = evm_solm.σ₀)
     (hCreated : evm_solm.createdAccounts = evm_evm.createdAccounts)
@@ -112,7 +114,7 @@ theorem endCallMade_accountMapEquiv_with_substate {cfg : Config}
       (toExecute evm_solm.accountMap tgt) callGas
       (UInt256.ofNat evm_solm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
       (mem.readWithPadding inOff.toNat inSize.toNat)
-      (evm_solm.executionEnv.depth + 1) evm_solm.executionEnv.header callPerm = thetaRes
+      (evm_solm.executionEnv.depth + 1) evm_solm.executionEnv.header (evm_solm.executionEnv.perm && callPerm) = thetaRes
   have hcodeEquiv :
       toExecute evm_evm.accountMap tgt = toExecute evm_solm.accountMap tgt :=
     accountMapExtensionalEq_toExecute hExtEq tgt
@@ -123,7 +125,7 @@ theorem endCallMade_accountMapEquiv_with_substate {cfg : Config}
         evm_evm.executionEnv.sender tgt (toExecute evm_evm.accountMap tgt) callGas
         (UInt256.ofNat evm_evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
         (mem.readWithPadding inOff.toNat inSize.toNat)
-        (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header callPerm =
+        (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header (evm_evm.executionEnv.perm && callPerm) =
         (thetaRes.1, thetaRes.2.1, thetaRes.2.2.1, thetaRes.2.2.2.1,
           thetaRes.2.2.2.2.1, thetaRes.2.2.2.2.2) := by
     rw [← hthetaSolm]
@@ -152,7 +154,7 @@ theorem endCallMade_accountMapEquiv_with_substate {cfg : Config}
       (i := ByteArray.empty)
       (ζ := none)
       (H := evm_evm.executionEnv.header)
-      (w := callPerm)
+      (w := (evm_evm.executionEnv.perm && callPerm))
       a1 a1
       (toExecute evm_evm.accountMap tgt)
       cA' thetaRes.1
@@ -172,13 +174,13 @@ theorem endCallMade_accountMapEquiv_with_substate {cfg : Config}
           evm_solm.executionEnv.sender tgt (toExecute evm_solm.accountMap tgt)
           callGas (UInt256.ofNat evm_solm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
-          (evm_solm.executionEnv.depth + 1) evm_solm.executionEnv.header callPerm := by
+          (evm_solm.executionEnv.depth + 1) evm_solm.executionEnv.header (evm_solm.executionEnv.perm && callPerm) := by
     rw [hThetaRel.2.2.2.1, hThetaRel.2.2.2.2.1]
     rw [hCreated']
     exact hthetaSolm.symm
   refine ⟨thetaRes.2.1, thetaRes.2.2.2.1, ?_, ?_, ?_⟩
   · refine ⟨mem.readWithPadding inOff.toNat inSize.toNat, hcd, ?_⟩
-    exact callViaEVM.callMade (perm := callPerm) wordOfInt_zero.symm
+    exact callViaEVM.callMade (perm := callPerm) (Or.inr wordOfInt_zero) wordOfInt_zero.symm
       ⟨callGas, A_in, hThetaS⟩ rfl
       (by
         rw [hEnv]

@@ -1703,6 +1703,91 @@ theorem endCageIlkX_vatIlksReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
+theorem endCageIlkX_artStoreStatic {cA cA' gh bl σ σ' σ₀ A I}
+    {g : Sat256} {sel : UInt256} {vatOut : ByteArray} {k C : ℕ}
+    (hsz36 : 36 ≤ I.calldata.size) (hperm : I.perm = false)
+    (hlo : 160 ≤ vatOut.size)
+    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨9122⟩
+      (endFlowVatIlkArtWord vatOut :: endCageIlkIlkWord I ::
+        endCageIlkReturnPc :: sel :: [])
+      (endCageIlkVatIlksPostCallMem I vatOut) (UInt256.ofNat 9)
+      vatOut (cA', σ') k C) :
+    RDstatic endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  let key := endCageIlkIlkWord I
+  let σArt := endCageIlkPostArtAccountMap σ' I vatOut
+  have hslot : endCageIlkArtSlot I = solcMappingSlot ⟨14⟩ key := by
+    simpa [key] using endCageIlkArtSlot_eq (I := I) hsz36
+  have hmload64Hash :
+      (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkArtHashMem I vatOut).size
+          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+        else UInt256.ofNat
+          (fromByteArrayBigEndian
+            ((endCageIlkArtHashMem I vatOut).readWithPadding
+              (⟨64⟩ : UInt256).toNat 32))) =
+        ⟨128⟩ :=
+    mloadFreePtrValue
+      (by rw [endCageIlkArtHashMem_size_long I vatOut hlo]; decide)
+      (by decide)
+      (endCageIlkArtHashMem_read64_long I vatOut hlo)
+  have hmload64Spot := endCageIlkSpotIlksCalldataMem_mload64_long I vatOut hlo
+  have hselectorShift :
+      UInt256.shiftLeft (⟨0x6cb1c69b⟩ : UInt256) ⟨225⟩ =
+        endFlowVatIlksSelectorShifted := by
+    native_decide
+  have hspotMask :
+      UInt256.land solcAddrMask (endSlotWord ⟨6⟩ σArt I) =
+        endCageIlkSpotWord σArt I := by
+    simpa [σArt, endCageIlkSpotWord, endAddressReturnWord, solcAddrMask] using
+      u256_land_comm solcAddrMask (endSlotWord ⟨6⟩ σArt I)
+  have hinSize :
+      (UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨36⟩) = endFlowVatIlksInSize := by
+    native_decide
+  have hendPtr : ((⟨128⟩ : UInt256) + ⟨36⟩) = endFlowVatIlksEndPtr := by
+    native_decide
+  have hhash :
+      UInt256.ofNat (fromByteArrayBigEndian
+        (ffi.KEC ((endCageIlkArtHashMem I vatOut).readWithPadding 0 64))) =
+          solcMappingSlot ⟨14⟩ key := by
+    unfold endCageIlkArtHashMem
+    exact endFlow_twoWordHashMem_solcMappingSlot_of_ge64 ⟨14⟩ key
+      (by rw [endCageIlkVatIlksPostCallMem_size_long I vatOut hlo]; omega)
+  have rd9125pre := evm_run h with [
+    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
+    raw dup3 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov)]
+  have rd9126 := rd9125pre.mstore 0
+    (wordAt0Mem key (endCageIlkVatIlksPostCallMem I vatOut))
+    (UInt256.ofNat 9) (by native_decide) mem_cost
+    (by simp [wordAt0Mem, key]) (by native_decide) (by evm_ov)
+  have rd9131pre := evm_run rd9126 with [
+    raw push1 ⟨14⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+  have rd9132 := rd9131pre.mstore 0 (endCageIlkArtHashMem I vatOut)
+    (UInt256.ofNat 9) (by native_decide) mem_cost
+    (by
+      change (⟨14⟩ : UInt256).toByteArray.write 0
+          (wordAt0Mem key (endCageIlkVatIlksPostCallMem I vatOut)) 32 32 =
+        (⟨14⟩ : UInt256).toByteArray.write 0
+          (wordAt0Mem (endCageIlkIlkWord I) (endCageIlkVatIlksPostCallMem I vatOut))
+          32 32
+      simp [key])
+    (by native_decide) (by evm_ov)
+  have rd9136pre := evm_run rd9132 with [
+    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
+    raw dup1 (by native_decide) (by evm_ov),
+    raw dup3 (by native_decide) (by evm_ov)]
+  have rd9137pre := rd9136pre.keccak256 0 (solcMappingSlot ⟨14⟩ key)
+    (UInt256.ofNat 9) (by native_decide) mem_cost
+    (by
+      simpa [endCageIlkArtHashMem, key, show (⟨0⟩ : UInt256).toNat = 0 from by decide,
+        show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
+    (by native_decide) (by evm_ov)
+  have rd9140 := evm_run rd9137pre with [
+    raw swap3 (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw swap3 (by native_decide) (by evm_ov)]
+  exact rd9140.sstoreStatic hperm (by native_decide) (by evm_ov)
+
 theorem endCageIlkX_spotIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {vatOut : ByteArray} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size) (hperm : I.perm = true)
@@ -4531,7 +4616,8 @@ theorem endCageIlkAssignArt {locals : Store} (evm : EVM.State) (I : ExecutionEnv
     (vatOut : ByteArray)
     (hbase : locals.get? "Art" = none)
     (hget : locals.get? "ilk" = some (endCageIlkIlkValue I))
-    (hsz36 : 36 ≤ I.calldata.size) :
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hp : evm.executionEnv.perm = true) :
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage (ArtRef (.var "ilk"))
       (.int (Int.ofNat (endFlowVatIlkArtWord vatOut).toNat)) =
@@ -4545,10 +4631,30 @@ theorem endCageIlkAssignArt {locals : Store} (evm : EVM.State) (I : ExecutionEnv
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   simpa [endCageIlkPostArtState] using
-    endStorageLocStore_uint256 evm (endCageIlkArtSlot I) (endFlowVatIlkArtWord vatOut)
+    endStorageLocStore_uint256 evm (endCageIlkArtSlot I) (endFlowVatIlkArtWord vatOut) hp
+
+theorem endCageIlkAssignArtStatic {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
+    (vatOut : ByteArray)
+    (hbase : locals.get? "Art" = none)
+    (hget : locals.get? "ilk" = some (endCageIlkIlkValue I))
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hp : evm.executionEnv.perm = false) :
+    assignStorageRef? config { contract := contract, locals := locals } evm
+      .storage (ArtRef (.var "ilk"))
+      (.int (Int.ofNat (endFlowVatIlkArtWord vatOut).toNat)) =
+        .revert := by
+  apply assignStorageRef_storage_scalar_static
+      (ty := uint256St)
+      (er := endCageIlkArtEvaledRef I)
+      (loc := wordLoc (endCageIlkArtSlot I))
+      (hbase := hbase)
+      (her := evalStorageRef_endCageIlk_Art_of_get evm I hget hsz36)
+      (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
+      (hloc := by rfl) (hscalar := by trivial) (hp := hp)
 
 theorem endCageIlkStmtArt (evm : EVM.State) (I : ExecutionEnv) (vatOut : ByteArray)
-    (hsz36 : 36 ≤ I.calldata.size) :
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hp : evm.executionEnv.perm = true) :
     ExecStmt config { contract := contract, locals := endCageIlkStoreVatIlk I vatOut } evm
       (.assign .storage (ArtRef (.var "ilk")) (.tupleGet (.var "vatIlk") 0))
       (.ok { contract := contract, locals := endCageIlkStoreVatIlk I vatOut }
@@ -4565,7 +4671,28 @@ theorem endCageIlkStmtArt (evm : EVM.State) (I : ExecutionEnv) (vatOut : ByteArr
     · rw [endCageIlkStoreVatIlk, store_get_ne _ _ (by decide), endCageIlkStore,
         store_get_self]
     · exact hsz36
+    · exact hp
   exact ExecStmt.assign hrhs hassign
+
+theorem endCageIlkStmtArtStatic (evm : EVM.State) (I : ExecutionEnv) (vatOut : ByteArray)
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hp : evm.executionEnv.perm = false) :
+    ExecStmt config { contract := contract, locals := endCageIlkStoreVatIlk I vatOut } evm
+      (.assign .storage (ArtRef (.var "ilk")) (.tupleGet (.var "vatIlk") 0))
+      .reverted := by
+  have hrhs := evalExpr_endCageIlk_vatIlk_art evm I vatOut
+  have hassign :
+      assignStorageRef? config { contract := contract, locals := endCageIlkStoreVatIlk I vatOut }
+        evm .storage (ArtRef (.var "ilk"))
+        (.int (Int.ofNat (endFlowVatIlkArtWord vatOut).toNat)) =
+          .revert := by
+    apply endCageIlkAssignArtStatic
+    · simp [endCageIlkStoreVatIlk, endCageIlkStore]
+    · rw [endCageIlkStoreVatIlk, store_get_ne _ _ (by decide), endCageIlkStore,
+        store_get_self]
+    · exact hsz36
+    · exact hp
+  exact ExecStmt.assignStoreRevert hrhs hassign
 
 theorem evalExpr_endCageIlk_spotIlk_pip (evm : EVM.State) (I : ExecutionEnv)
     (vatOut spotOut : ByteArray) :
@@ -4789,7 +4916,8 @@ theorem endCageIlkAssignTag {locals : Store} (evm : EVM.State) (I : ExecutionEnv
     (tagV : UInt256)
     (hbase : locals.get? "tag" = none)
     (hget : locals.get? "ilk" = some (endCageIlkIlkValue I))
-    (hsz36 : 36 ≤ I.calldata.size) :
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hp : evm.executionEnv.perm = true) :
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage (tagRef (.var "ilk")) (.int (Int.ofNat tagV.toNat)) =
         .ok ({ contract := contract, locals := locals }, endCageIlkPostTagState evm I tagV) := by
@@ -4802,10 +4930,11 @@ theorem endCageIlkAssignTag {locals : Store} (evm : EVM.State) (I : ExecutionEnv
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   simpa [endCageIlkPostTagState] using
-    endStorageLocStore_uint256 evm (endCageIlkTagSlot I) tagV
+    endStorageLocStore_uint256 evm (endCageIlkTagSlot I) tagV hp
 
 theorem endCageIlkStmtTag (evm : EVM.State) (I : ExecutionEnv)
-    (vatOut spotOut parOut readOut : ByteArray) (hsz36 : 36 ≤ I.calldata.size) :
+    (vatOut spotOut parOut readOut : ByteArray) (hsz36 : 36 ≤ I.calldata.size)
+    (hp : evm.executionEnv.perm = true) :
     ExecStmt config
       { contract := contract, locals := endCageIlkStoreTagV I vatOut spotOut parOut readOut }
       evm (.assign .storage (tagRef (.var "ilk")) (.var "tagV"))
@@ -4838,7 +4967,7 @@ theorem endCageIlkStmtTag (evm : EVM.State) (I : ExecutionEnv)
           endCageIlkStoreSpotIlk, store_get_ne _ _ (by decide),
           endCageIlkStoreVatIlk, store_get_ne _ _ (by decide),
           endCageIlkStore, store_get_self])
-      hsz36
+      hsz36 hp
   exact ExecStmt.assign htagV hassign
 
 theorem endCageIlkTailReverts_wdivMulOverflow (evm : EVM.State) (I : ExecutionEnv)
@@ -4871,7 +5000,8 @@ theorem endCageIlkTailReturns (evm : EVM.State) (I : ExecutionEnv)
     (hsz36 : 36 ≤ I.calldata.size)
     (hreadSize : 32 ≤ readOut.size)
     (hfit : (endCageIlkReturnWord parOut).toNat * endWadWord.toNat < UInt256.size)
-    (hy : endCageIlkReturnWord readOut ≠ ⟨0⟩) :
+    (hy : endCageIlkReturnWord readOut ≠ ⟨0⟩)
+    (hp : evm.executionEnv.perm = true) :
     ExecBlock config { contract := contract, locals := endCageIlkStoreRead I vatOut spotOut parOut readOut }
       evm
       [ .internalCall "wdiv" [.var "parV", .cast (.var "pipRead") uint256St] "tagV",
@@ -4881,7 +5011,7 @@ theorem endCageIlkTailReturns (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal
     (endCageIlkStmtWdivReturns evm I vatOut spotOut parOut readOut hreadSize hfit hy) ?_
   refine ExecBlock.consNormal ?_ ExecBlock.nil
-  exact endCageIlkStmtTag evm I vatOut spotOut parOut readOut hsz36
+  exact endCageIlkStmtTag evm I vatOut spotOut parOut readOut hsz36 hp
 
 theorem endCageIlkBodyReverts_vatIlksTerminated {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
@@ -4938,7 +5068,7 @@ theorem endCageIlkBodyReverts_vatIlksTerminated {cA gh bl σ σ₀ A I} {g : UIn
         checkedExternalCallStmts (.var "pip") "read" (.intLit 0) [] "pipRead"
           (perm := false) ++
         [ .internalCall "wdiv" [.var "parV", .cast (.var "pipRead") uint256St] "tagV",
-          .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
+          .assign .storage (tagRef (.var "ilk")) (.var "tagV") ] ++ [.event])
       hvat'
       (by intro f' e' h; cases h)
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
@@ -5012,6 +5142,24 @@ theorem endCageIlkBodyReverts_vatIlksDecodeShort {cA gh bl σ σ₀ A I}
         (A := A) (I := I) (g := g) (evmVat := evmVat) (out := out)
         hcodeSize hcall hshort))
 
+theorem endCageIlkTailFromVatStatic (evmVat : EVM.State)
+    (I : ExecutionEnv) (vatOut : ByteArray) (hsz36 : 36 ≤ I.calldata.size)
+    (hp : evmVat.executionEnv.perm = false) :
+    ExecBlock config { contract := contract, locals := endCageIlkStoreVatIlk I vatOut }
+      evmVat
+      ([ .assign .storage (ArtRef (.var "ilk")) (.tupleGet (.var "vatIlk") 0) ] ++
+      checkedExternalCallStmts (.storage spotRef) "spotIlks" (.intLit 0) [.var "ilk"]
+        "spotIlk" (perm := false) ++
+      [ .letDecl "pip" (some addr) (.tupleGet (.var "spotIlk") 0) ] ++
+      checkedExternalCallStmts (.storage spotRef) "par" (.intLit 0) [] "parV"
+        (perm := false) ++
+      checkedExternalCallStmts (.var "pip") "read" (.intLit 0) [] "pipRead"
+        (perm := false) ++
+      [ .internalCall "wdiv" [.var "parV", .cast (.var "pipRead") uint256St] "tagV",
+        .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
+      .reverted := by
+  exact ExecBlock.consRevert (endCageIlkStmtArtStatic evmVat I vatOut hsz36 hp)
+
 theorem endCageIlkTailFromVatReverts_spotTerminated (evmVat : EVM.State)
     (I : ExecutionEnv) (vatOut : ByteArray) (hsz36 : 36 ≤ I.calldata.size)
     (hspot :
@@ -5019,7 +5167,8 @@ theorem endCageIlkTailFromVatReverts_spotTerminated (evmVat : EVM.State)
       ExecBlock config { contract := contract, locals := endCageIlkStoreVatIlk I vatOut }
         evmArt
         (checkedExternalCallStmts (.storage spotRef) "spotIlks" (.intLit 0) [.var "ilk"]
-          "spotIlk" (perm := false)) .reverted) :
+          "spotIlk" (perm := false)) .reverted)
+    (hp : evmVat.executionEnv.perm = true) :
     ExecBlock config { contract := contract, locals := endCageIlkStoreVatIlk I vatOut }
       evmVat
       ([ .assign .storage (ArtRef (.var "ilk")) (.tupleGet (.var "vatIlk") 0) ] ++
@@ -5040,7 +5189,7 @@ theorem endCageIlkTailFromVatReverts_spotTerminated (evmVat : EVM.State)
         (checkedExternalCallStmts (.storage spotRef) "spotIlks" (.intLit 0) [.var "ilk"]
           "spotIlk" (perm := false)) .reverted := by
     simpa [evmArt] using hspot
-  refine ExecBlock.consNormal (endCageIlkStmtArt evmVat I vatOut hsz36) ?_
+  refine ExecBlock.consNormal (endCageIlkStmtArt evmVat I vatOut hsz36 hp) ?_
   exact execBlock_append_term
     (s1 := checkedExternalCallStmts (.storage spotRef) "spotIlks" (.intLit 0) [.var "ilk"]
       "spotIlk" (perm := false))
@@ -5060,7 +5209,8 @@ theorem endCageIlkTailFromVatReverts_spotNoCode (evmVat : EVM.State)
       Reasoning.Theory.extCodeSizeWord
         (endCageIlkPostArtState evmVat I vatOut).accountMap
         (endCageIlkSpotWord (endCageIlkPostArtState evmVat I vatOut).accountMap
-          (endCageIlkPostArtState evmVat I vatOut).executionEnv) = ⟨0⟩) :
+          (endCageIlkPostArtState evmVat I vatOut).executionEnv) = ⟨0⟩)
+    (hp : evmVat.executionEnv.perm = true) :
     ExecBlock config { contract := contract, locals := endCageIlkStoreVatIlk I vatOut }
       evmVat
       ([ .assign .storage (ArtRef (.var "ilk")) (.tupleGet (.var "vatIlk") 0) ] ++
@@ -5074,7 +5224,7 @@ theorem endCageIlkTailFromVatReverts_spotNoCode (evmVat : EVM.State)
       [ .internalCall "wdiv" [.var "parV", .cast (.var "pipRead") uint256St] "tagV",
         .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
       .reverted := by
-  exact endCageIlkTailFromVatReverts_spotTerminated evmVat I vatOut hsz36
+  exact endCageIlkTailFromVatReverts_spotTerminated (hp := hp) evmVat I vatOut hsz36
     (by
       simpa using
         endCageIlkCheckedSpotIlksNoCode
@@ -5095,7 +5245,8 @@ theorem endCageIlkTailFromVatReverts_spotFailure {evmVat evmSpot : EVM.State}
             (endCageIlkSpotWord (endCageIlkPostArtState evmVat I vatOut).accountMap
               (endCageIlkPostArtState evmVat I vatOut).executionEnv).toNat))
         "spotIlks" 0 [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
-        (false, evmSpot, spotOut) false) :
+        (false, evmSpot, spotOut) false)
+    (hp : evmVat.executionEnv.perm = true) :
     ExecBlock config { contract := contract, locals := endCageIlkStoreVatIlk I vatOut }
       evmVat
       ([ .assign .storage (ArtRef (.var "ilk")) (.tupleGet (.var "vatIlk") 0) ] ++
@@ -5109,7 +5260,7 @@ theorem endCageIlkTailFromVatReverts_spotFailure {evmVat evmSpot : EVM.State}
       [ .internalCall "wdiv" [.var "parV", .cast (.var "pipRead") uint256St] "tagV",
         .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
       .reverted := by
-  exact endCageIlkTailFromVatReverts_spotTerminated evmVat I vatOut hsz36
+  exact endCageIlkTailFromVatReverts_spotTerminated (hp := hp) evmVat I vatOut hsz36
     (by
       simpa using
         endCageIlkCheckedSpotIlksFailure
@@ -5132,7 +5283,8 @@ theorem endCageIlkTailFromVatReverts_spotDecodeShort {evmVat evmSpot : EVM.State
               (endCageIlkPostArtState evmVat I vatOut).executionEnv).toNat))
         "spotIlks" 0 [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmSpot, spotOut) false)
-    (hshort : spotOut.size < 64) :
+    (hshort : spotOut.size < 64)
+    (hp : evmVat.executionEnv.perm = true) :
     ExecBlock config { contract := contract, locals := endCageIlkStoreVatIlk I vatOut }
       evmVat
       ([ .assign .storage (ArtRef (.var "ilk")) (.tupleGet (.var "vatIlk") 0) ] ++
@@ -5146,7 +5298,7 @@ theorem endCageIlkTailFromVatReverts_spotDecodeShort {evmVat evmSpot : EVM.State
       [ .internalCall "wdiv" [.var "parV", .cast (.var "pipRead") uint256St] "tagV",
         .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
       .reverted := by
-  exact endCageIlkTailFromVatReverts_spotTerminated evmVat I vatOut hsz36
+  exact endCageIlkTailFromVatReverts_spotTerminated (hp := hp) evmVat I vatOut hsz36
     (by
       simpa using
         endCageIlkCheckedSpotIlksDecodeRevert
@@ -5421,7 +5573,8 @@ theorem endCageIlkTailFromVatSpotOk {evmVat evmSpot : EVM.State}
           (perm := false) ++
         [ .internalCall "wdiv" [.var "parV", .cast (.var "pipRead") uint256St] "tagV",
           .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
-        res) :
+        res)
+    (hp : evmVat.executionEnv.perm = true) :
     ExecBlock config { contract := contract, locals := endCageIlkStoreVatIlk I vatOut }
       evmVat
       ([ .assign .storage (ArtRef (.var "ilk")) (.tupleGet (.var "vatIlk") 0) ] ++
@@ -5485,7 +5638,7 @@ theorem endCageIlkTailFromVatSpotOk {evmVat evmSpot : EVM.State}
           .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
       hspotPip htail
     simpa [List.append_assoc] using happ
-  refine ExecBlock.consNormal (endCageIlkStmtArt evmVat I vatOut hsz36) ?_
+  refine ExecBlock.consNormal (endCageIlkStmtArt evmVat I vatOut hsz36 hp) ?_
   simpa [evmArt, List.append_assoc] using hrest
 
 theorem endCageIlkPrefixVatIlksSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -5601,7 +5754,8 @@ theorem endCageIlkBodyReverts_vatIlksOkTailReverted {cA gh bl σ σ₀ A I}
         [ .internalCall "wdiv" [.var "parV", .cast (.var "pipRead") uint256St] "tagV",
           .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
       hprefix htail
-    simpa [cageIlkTransition, List.append_assoc] using happ
+    simpa [cageIlkTransition, List.append_assoc] using
+      (execBlock_append_term (s2 := [.event]) happ (by intros; intro h; cases h))
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
 
 theorem endCageIlkBodyReturns_vatIlksOkTail {cA gh bl σ σ₀ A I}
@@ -5629,7 +5783,8 @@ theorem endCageIlkBodyReturns_vatIlksOkTail {cA gh bl σ σ₀ A I}
           (perm := false) ++
         [ .internalCall "wdiv" [.var "parV", .cast (.var "pipRead") uint256St] "tagV",
           .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
-        (.ok fPost evmPost)) :
+        (.ok fPost evmPost))
+    (hp : evmPost.executionEnv.perm = true) :
     let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endCageIlkStore I) cageIlkTransition.body
       (.returned fPost evmPost none) := by
@@ -5663,7 +5818,7 @@ theorem endCageIlkBodyReturns_vatIlksOkTail {cA gh bl σ σ₀ A I}
         [ .internalCall "wdiv" [.var "parV", .cast (.var "pipRead") uint256St] "tagV",
           .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
       hprefix htail
-    simpa [cageIlkTransition, List.append_assoc] using happ
+    simpa [cageIlkTransition, List.append_assoc] using execBlock_append_event happ hp
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockOK hblock
 
 theorem endCageIlkBodyReverts_liveNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -5703,7 +5858,7 @@ theorem endCageIlkBodyReverts_liveNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
         checkedExternalCallStmts (.var "pip") "read" (.intLit 0) [] "pipRead"
           (perm := false) ++
         [ .internalCall "wdiv" [.var "parV", .cast (.var "pipRead") uint256St] "tagV",
-          .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
+          .assign .storage (tagRef (.var "ilk")) (.var "tagV") ] ++ [.event])
       (by simp only [evm0, initState]; exact hwv)
       hguard
 
@@ -5799,7 +5954,7 @@ theorem endCageIlkBodyCoreDecodeFailed_short
 
 theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf cageIlkTransition))
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
@@ -5900,7 +6055,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 hdepthNe htgtVat
                 (endFlowVatIlksEncode_eq I hsz36
                   (twoWordHashMem_size_96 (endCageIlkIlkWord I) ⟨12⟩ solcFreePtrMem_size))
-                (by simpa [initState, hperm] using hΘVatEq)
+                (by simpa [initState, Bool.and_true] using hΘVatEq)
                 (by simpa [initState] using hAccounts)
                 (by simp [evmSolm, initState])
                 (by simp [evmSolm, initState])
@@ -5972,6 +6127,19 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   · simp [evmVatEvm, evmVatSolm, evmSolm, initState]
                   · simp [evmVatEvm, evmVatSolm, evmSolm, initState]
                   · simpa [evmVatEvm, evmVatSolm] using hAccountsVat
+                by_cases hperm : I.perm = true
+                case neg =>
+                  have hp : I.perm = false := by simpa using hperm
+                  have hpVat : evmVatSolm.executionEnv.perm = false := by
+                    simpa [evmVatSolm, evmSolm, initState] using hp
+                  have htail := endCageIlkTailFromVatStatic evmVatSolm I vatOut hsz36 hpVat
+                  have hbody := endCageIlkBodyReverts_vatIlksOkTailReverted
+                    hwv hsz36 hliveSolm htagSolm hvatCodeSolmNE
+                    (by simpa [evmVatSolm, evmSolm] using hcallSolm) hloVat htail
+                  exact (endCageIlkX_artStoreStatic hsz36 hp hloVat rd9122).reEquivExecution
+                    hcode hdispatch hdecode hbody
+                have hpVat : evmVatSolm.executionEnv.perm = true := by
+                  simpa [evmVatSolm, evmSolm, initState] using hperm
                 let evmArtEvm := endCageIlkPostArtState evmVatEvm I vatOut
                 let evmArtSolm := endCageIlkPostArtState evmVatSolm I vatOut
                 have hStateArt : EVMStateEquiv evmArtEvm evmArtSolm := by
@@ -6012,7 +6180,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
                         .reverted := by
                     simpa [evmArtSolm] using
-                      endCageIlkTailFromVatReverts_spotNoCode evmVatSolm I vatOut hsz36
+                      endCageIlkTailFromVatReverts_spotNoCode (hp := hpVat) evmVatSolm I vatOut hsz36
                         hspotCodeSolm
                   have hbody :
                       ExecTransitionBody config contract evmSolm (endCageIlkStore I)
@@ -6158,7 +6326,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
                           .reverted := by
                         simpa [evmArtSolm] using
-                          endCageIlkTailFromVatReverts_spotFailure
+                          endCageIlkTailFromVatReverts_spotFailure (hp := hpVat)
                             (evmVat := evmVatSolm)
                             (evmSpot :=
                               { evmArtSolm with
@@ -6213,7 +6381,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
                             .reverted := by
                           simpa [evmSpotSolm, evmArtSolm] using
-                            endCageIlkTailFromVatReverts_spotDecodeShort
+                            endCageIlkTailFromVatReverts_spotDecodeShort (hp := hpVat)
                               (evmVat := evmVatSolm) (evmSpot := evmSpotSolm)
                               (I := I) (vatOut := vatOut) (spotOut := spotOut)
                               hsz36 hspotCodeSolmNE
@@ -6283,7 +6451,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
                                 .reverted := by
                             simpa [evmSpotSolm, evmArtSolm] using
-                              endCageIlkTailFromVatSpotOk
+                              endCageIlkTailFromVatSpotOk (hp := hpVat)
                                 (evmVat := evmVatSolm) (evmSpot := evmSpotSolm)
                                 (I := I) (vatOut := vatOut) (spotOut := spotOut)
                                 hsz36 hspotCodeSolmNE
@@ -6450,7 +6618,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
                                     .reverted := by
                                 simpa [evmSpotSolm, evmArtSolm] using
-                                  endCageIlkTailFromVatSpotOk
+                                  endCageIlkTailFromVatSpotOk (hp := hpVat)
                                     (evmVat := evmVatSolm) (evmSpot := evmSpotSolm)
                                     (I := I) (vatOut := vatOut) (spotOut := spotOut)
                                     hsz36 hspotCodeSolmNE
@@ -6508,7 +6676,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
                                       .reverted := by
                                   simpa [evmSpotSolm, evmArtSolm] using
-                                    endCageIlkTailFromVatSpotOk
+                                    endCageIlkTailFromVatSpotOk (hp := hpVat)
                                       (evmVat := evmVatSolm) (evmSpot := evmSpotSolm)
                                       (I := I) (vatOut := vatOut) (spotOut := spotOut)
                                       hsz36 hspotCodeSolmNE
@@ -6620,7 +6788,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                             (.var "tagV") ])
                                         .reverted := by
                                     simpa [evmSpotSolm, evmArtSolm] using
-                                      endCageIlkTailFromVatSpotOk
+                                      endCageIlkTailFromVatSpotOk (hp := hpVat)
                                         (evmVat := evmVatSolm) (evmSpot := evmSpotSolm)
                                         (I := I) (vatOut := vatOut) (spotOut := spotOut)
                                         hsz36 hspotCodeSolmNE
@@ -6650,7 +6818,8 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                             "tagV",
                                           .assign .storage (tagRef (.var "ilk"))
                                             (.var "tagV") ])
-                                        (.ok fPost evmPost)) :
+                                        (.ok fPost evmPost))
+                                    (hpPost : evmPost.executionEnv.perm = true) :
                                       ExecTransitionBody config contract evmSolm
                                         (endCageIlkStore I) cageIlkTransition.body
                                         (.returned fPost evmPost none) := by
@@ -6677,7 +6846,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                             (.var "tagV") ])
                                         (.ok fPost evmPost) := by
                                     simpa [evmSpotSolm, evmArtSolm] using
-                                      endCageIlkTailFromVatSpotOk
+                                      endCageIlkTailFromVatSpotOk (hp := hpVat)
                                         (evmVat := evmVatSolm) (evmSpot := evmSpotSolm)
                                         (I := I) (vatOut := vatOut) (spotOut := spotOut)
                                         hsz36 hspotCodeSolmNE
@@ -6691,7 +6860,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       (evmVat := evmVatSolm) (vatOut := vatOut)
                                       hwv hsz36 hliveSolm htagSolm hvatCodeSolmNE
                                       (by simpa [evmVatSolm, evmSolm] using hcallSolm)
-                                      hloVat htail
+                                      hloVat htail hpPost
                                 by_cases hreadCode :
                                     Reasoning.Theory.extCodeSizeWord σ_par
                                       (endCageIlkPipCallWord spotOut) = ⟨0⟩
@@ -6916,7 +7085,12 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                             Nat.lt_of_not_ge hoverMul
                                           by_cases hy :
                                               endCageIlkReturnWord readOut = ⟨0⟩
-                                          · have htailWdiv :=
+                                          · have hpRead : evmReadSolm.executionEnv.perm = true := by
+                                              simpa [evmReadSolm, evmParSolm, evmSpotSolm,
+                                                evmArtSolm, endCageIlkPostArtState,
+                                                storageStore_executionEnv, evmVatSolm, evmSolm,
+                                                initState] using hperm
+                                            have htailWdiv :=
                                               endCageIlkTailReverts_wdivDivZero
                                                 evmReadSolm I vatOut spotOut parOut readOut
                                                 hloRead hfitMul hy
@@ -6948,9 +7122,15 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                     hinvalid)
                                               exact reEquiv_execution hdispatch hdecode hbody
                                                 (execResultsEquiv.invalidHalt hxi rfl)
-                                          · have htailWdiv :=
+                                          · have hpRead : evmReadSolm.executionEnv.perm = true := by
+                                              simpa [evmReadSolm, evmParSolm, evmSpotSolm,
+                                                evmArtSolm, endCageIlkPostArtState,
+                                                storageStore_executionEnv, evmVatSolm, evmSolm,
+                                                initState] using hperm
+                                            have htailWdiv :=
                                               endCageIlkTailReturns evmReadSolm I vatOut
                                                 spotOut parOut readOut hsz36 hloRead hfitMul hy
+                                                hpRead
                                             have htailRead :=
                                               endCageIlkTailAfterParReadOk
                                                 (evmPar := evmParSolm)
@@ -6962,6 +7142,8 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                 hloRead htailWdiv
                                             have htailPip := tailPipFromParTail htailRead
                                             have hbody := bodyReturnFromPip htailPip
+                                              (by simpa [endCageIlkPostTagState,
+                                                storageStore_executionEnv] using hpRead)
                                             obtain ⟨_, _, rd9490⟩ :=
                                               endCageIlkX_wdivReturns
                                                 (vatOut := vatOut) hfitMul hy rd9486
@@ -7102,7 +7284,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
                                   .reverted := by
                               simpa [evmSpotSolm, evmArtSolm] using
-                                endCageIlkTailFromVatSpotOk
+                                endCageIlkTailFromVatSpotOk (hp := hpVat)
                                   (evmVat := evmVatSolm) (evmSpot := evmSpotSolm)
                                   (I := I) (vatOut := vatOut) (spotOut := spotOut)
                                   hsz36 hspotCodeSolmNE
@@ -7168,7 +7350,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             .assign .storage (tagRef (.var "ilk")) (.var "tagV") ])
                           .reverted := by
                       simpa [spotTargetSolm, A_spot, evmArtSolm] using
-                        endCageIlkTailFromVatReverts_spotFailure
+                        endCageIlkTailFromVatReverts_spotFailure (hp := hpVat)
                           (evmVat := evmVatSolm)
                           (evmSpot := { evmArtSolm with substate := A_spot })
                           (I := I) (vatOut := vatOut) (spotOut := ByteArray.empty)

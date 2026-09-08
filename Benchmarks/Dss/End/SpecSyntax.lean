@@ -38,6 +38,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
   constructor() {
     wards[msg.sender] = 1;
     live = 1;
+    event();
   }
 
   function add(uint256 x, uint256 y) internal returns (uint256) {
@@ -151,11 +152,13 @@ def contractSyntax : ContractDecl := solidity% contract End {
   function rely(address usr) external {
     require(wards[msg.sender] == 1);
     wards[usr] = 1;
+    event();
   }
 
   function deny(address usr) external {
     require(wards[msg.sender] == 1);
     wards[usr] = 0;
+    event();
   }
 
   function file(bytes32 what, address data) external {
@@ -178,6 +181,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
     } else {
       require(false);
     }
+    event();
   }
 
   function file(bytes32 what, uint256 data) external {
@@ -188,6 +192,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
     } else {
       require(false);
     }
+    event();
   }
 
   function cage() external {
@@ -209,6 +214,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
     var _potCage = pot.cage();
     require(cure.code.length > 0);
     var _cureCage = cure.cage();
+    event();
   }
 
   function cage(bytes32 ilk) external {
@@ -226,6 +232,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
     var pipRead = pip.read{view}();
     var tagV = wdiv(parV, uint256(pipRead));
     tag[ilk] = tagV;
+    event();
   }
 
   function snip(bytes32 ilk, uint256 id) external {
@@ -251,6 +258,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
     require(lot < #int256Limit && art < #int256Limit);
     require(vat.code.length > 0);
     var _grab = vat.grab(ilk, usr, address(this), vow, int256(lot), int256(art));
+    event();
   }
 
   function skip(bytes32 ilk, uint256 id) external {
@@ -281,6 +289,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
     require(lot < #int256Limit && art < #int256Limit);
     require(vat.code.length > 0);
     var _grab = vat.grab(ilk, usr, address(this), vow, int256(lot), int256(art));
+    event();
   }
 
   function skim(bytes32 ilk, address urn) external {
@@ -301,6 +310,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
     require(wad <= #int256Limit && art <= #int256Limit);
     require(vat.code.length > 0);
     var _grab = vat.grab(ilk, urn, address(this), vow, -int256(wad), -int256(art));
+    event();
   }
 
   function free(bytes32 ilk) external {
@@ -313,6 +323,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
     require(ink <= #int256Limit);
     require(vat.code.length > 0);
     var _grab = vat.grab(ilk, msg.sender, msg.sender, vow, -int256(ink), 0);
+    event();
   }
 
   function thaw() external {
@@ -329,6 +340,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
     var cureTell = cure.tell{view}();
     var debtNew = sub(vatDebt, cureTell);
     debt = debtNew;
+    event();
   }
 
   function flow(bytes32 ilk) external {
@@ -344,6 +356,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
     uint256 den = debt / #RAY;
     uint256 fixV = num / den;
     fix[ilk] = fixV;
+    event();
   }
 
   function pack(uint256 wad) external {
@@ -353,6 +366,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
     var _move = vat.move(msg.sender, vow, amt);
     var bagNew = add(bag[msg.sender], wad);
     bag[msg.sender] = bagNew;
+    event();
   }
 
   function cash(bytes32 ilk, uint256 wad) external {
@@ -363,6 +377,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
     var outNew = add(out[ilk][msg.sender], wad);
     out[ilk][msg.sender] = outNew;
     require(outNew <= bag[msg.sender]);
+    event();
   }
 }
 

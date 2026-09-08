@@ -82,7 +82,8 @@ def endCtorAfterLiveState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨8⟩ ⟨1⟩
 
 theorem assign_endCtorWardsCaller (evm : EVM.State) {locals : Store}
-    (hbase : locals.get? "wards" = none) :
+    (hbase : locals.get? "wards" = none)
+    (hperm : evm.executionEnv.perm = true) :
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage (wardsRef sender) (.int 1) =
         .ok ({ contract := contract, locals := locals }, endCtorAfterWardsState evm) := by
@@ -94,9 +95,9 @@ theorem assign_endCtorWardsCaller (evm : EVM.State) {locals : Store}
       evalExpr?, envValue, valueToKey?, EvalResult.ofOption, EvalResult.bind, pure, bind]
   have hstore :
       storageLocStore evm (wordLoc (wardsSlot (.address evm.executionEnv.source))) (.int 1) =
-        some (endCtorAfterWardsState evm) := by
+        .ok (endCtorAfterWardsState evm) := by
     simpa [endCtorAfterWardsState] using
-      endStorageLocStore_uint256 evm (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
+      endStorageLocStore_uint256 evm (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩ hperm
   exact assignStorageRef_storage_scalar
     (ty := .elem (.int uint256Int))
     (loc := wordLoc (wardsSlot (.address evm.executionEnv.source)))
@@ -108,8 +109,32 @@ theorem assign_endCtorWardsCaller (evm : EVM.State) {locals : Store}
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
     (hstore := hstore)
 
+theorem assign_endCtorWardsCaller_static (evm : EVM.State) {locals : Store}
+    (hbase : locals.get? "wards" = none)
+    (hperm : evm.executionEnv.perm = false) :
+    assignStorageRef? config { contract := contract, locals := locals } evm
+      .storage (wardsRef sender) (.int 1) =
+        .revert := by
+  have her :
+      evalStorageRef config { contract := contract, locals := locals } evm
+        (wardsRef sender) =
+          .ok { base := "wards", steps := [.mindex (.address evm.executionEnv.source)] } := by
+    simp [wardsRef, sender, evalStorageRef, evalStorageRefSteps, evalStorageRefStep,
+      evalExpr?, envValue, valueToKey?, EvalResult.ofOption, EvalResult.bind, pure, bind]
+  exact assignStorageRef_storage_scalar_static
+    (ty := .elem (.int uint256Int))
+    (loc := wordLoc (wardsSlot (.address evm.executionEnv.source)))
+    (hbase := by simpa [wardsRef] using hbase)
+    (her := her)
+    (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
+    (hloc := by
+      funext evm
+      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+    (hscalar := by trivial) (hp := hperm)
+
 theorem assign_endCtorLive (evm : EVM.State) {locals : Store}
-    (hbase : locals.get? "live" = none) :
+    (hbase : locals.get? "live" = none)
+    (hperm : evm.executionEnv.perm = true) :
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage liveRef (.int 1) =
         .ok ({ contract := contract, locals := locals }, endCtorAfterLiveState evm) := by
@@ -119,8 +144,8 @@ theorem assign_endCtorLive (evm : EVM.State) {locals : Store}
     simp [liveRef, evalStorageRef, evalStorageRefSteps, pure, bind, EvalResult.bind]
   have hstore :
       storageLocStore evm (wordLoc ⟨8⟩) (.int 1) =
-        some (endCtorAfterLiveState evm) := by
-    simpa [endCtorAfterLiveState] using endStorageLocStore_uint256 evm ⟨8⟩ ⟨1⟩
+        .ok (endCtorAfterLiveState evm) := by
+    simpa [endCtorAfterLiveState] using endStorageLocStore_uint256 evm ⟨8⟩ ⟨1⟩ hperm
   exact assignStorageRef_storage_scalar
     (ty := .elem (.int uint256Int))
     (loc := wordLoc ⟨8⟩)
@@ -137,7 +162,8 @@ theorem endCtorBodySuccess
     {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩) :
+    (hwv : I.weiValue = ⟨0⟩)
+    (hperm : I.perm = true) :
     let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
       (Sat256.ofUInt256 g) A I
     let evm1 := endCtorAfterWardsState evm0
@@ -150,26 +176,30 @@ theorem endCtorBodySuccess
         .storage (wardsRef sender) (.int 1) =
           .ok ({ contract := contract, locals := ∅ }, evm1) := by
     simpa [evm1, endCtorAfterWardsState] using
-      assign_endCtorWardsCaller evm0 (locals := ∅) (by simp)
+      assign_endCtorWardsCaller evm0 (locals := ∅) (by simp) (by simpa [evm0, initState] using hperm)
   have hassignLive :
       assignStorageRef? config { contract := contract, locals := ∅ } evm1
         .storage liveRef (.int 1) =
           .ok ({ contract := contract, locals := ∅ }, evm2) := by
     simpa [evm2, endCtorAfterLiveState] using
       assign_endCtorLive evm1 (locals := ∅) (by simp)
+        (by simpa [evm1, endCtorAfterWardsState, storageStore_executionEnv, evm0, initState] using hperm)
   simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
   refine ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassignWards) ?_
   exact ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassignLive)
-    ExecBlock.nil
+    (ExecBlock.consNormal (ExecStmt.event (by
+      simpa [evm2, evm1, evm0, endCtorAfterLiveState, endCtorAfterWardsState,
+        storageStore_executionEnv, initState] using hperm)) ExecBlock.nil)
 
 theorem endSolmCtorExecSuccess
     {createdAccounts : Batteries.RBSet AccountAddress compare}
     {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩) :
+    (hwv : I.weiValue = ⟨0⟩)
+    (hperm : I.perm = true) :
     solmCtorExec config contract [] createdAccounts genesisBlockHeader blocks
       σ σ₀ g A I
       (.returned { contract := contract, locals := ∅ }
@@ -189,7 +219,7 @@ theorem endSolmCtorExecSuccess
       ExecFuncBody.execBlockOK
         (endCtorBodySuccess
           (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv)
+          (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hperm)
 
 theorem endSolmCtorExecReverts_nonpayable
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -211,6 +241,26 @@ theorem endSolmCtorExecReverts_nonpayable
         (evm := initState createdAccounts genesisBlockHeader blocks σ σ₀
           (Sat256.ofUInt256 g) A I)
         (locals := (∅ : Store)) hwv
+
+theorem endSolmCtorExecStatic
+    {createdAccounts : Batteries.RBSet AccountAddress compare}
+    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
+    {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = false) :
+    solmCtorExec config contract [] createdAccounts genesisBlockHeader blocks
+      σ σ₀ g A I .reverted := by
+  let evm := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (Sat256.ofUInt256 g) A I
+  refine solmCtorExec.intro (evmState := evm) (argsStore := (∅ : Store)) rfl rfl rfl ?_
+  apply ExecFuncBody.execBlockRevert
+  simp only [contract, constructorDecl, nonpayable, List.cons_append, List.nil_append]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+  · exact evalCallvalueEq_true (by simpa [evm, initState] using hwv)
+  apply ExecBlock.consRevert
+  refine ExecStmt.assignStoreRevert (value := .int 1) ?_ ?_
+  · simp [evalExpr?, pure]
+  · exact assign_endCtorWardsCaller_static evm (by simp)
+      (by simpa [evm, initState] using hperm)
 
 /-! ## EVM initcode trace -/
 
@@ -336,6 +386,52 @@ theorem endCtorInitcodeSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
   exact rd90pre.ret 0 endBytecode
     (by native_decide) mem_cost (endCtorReturnMem_read I) (by evm_ov)
 
+theorem endCtorInitcodeStatic {cA gh bl σ σ₀ A I} {g : Sat256}
+    (hcode : I.code = endCreationBytecode)
+    (hperm : I.perm = false)
+    (hwv : I.weiValue = ⟨0⟩) :
+    RDstatic endCreationBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  have rd0 :
+      RD endCreationBytecode I g
+        (initState cA gh bl σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (cA, σ) 0 0 :=
+    RD.initState hcode
+  have rd16 := evm_run rd0 with [
+    push1 ⟨128⟩, push1 ⟨64⟩,
+    raw mstore 9 solcFreePtrMem (UInt256.ofNat 3)
+      (by native_decide) mem_cost
+      (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
+      (by decide) (by evm_ov),
+    callvalue, dup1, iszero, push2 ⟨16⟩,
+    jumpiT (by rw [hwv]; decide) (by native_decide)]
+  have rd23pre := evm_run rd16 with [
+    jumpdest, pop, caller, push1 ⟨0⟩, dup2, dup2]
+  have rd24 := rd23pre.mstore 0
+    (wordAt0Mem (solcSourceWord I) solcFreePtrMem)
+    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (by evm_ov)
+  have rd28pre := evm_run rd24 with [
+    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov)]
+  have rd29 := rd28pre.mstore 0 (endCtorWardsHashMem I)
+    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (by evm_ov)
+  have rd33pre := evm_run rd29 with [
+    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
+    raw dup1 (by native_decide) (by evm_ov),
+    raw dup3 (by native_decide) (by evm_ov)]
+  have rd34 := rd33pre.keccak256 0 (endCtorCallerWardsSlot I)
+    (UInt256.ofNat 3) (by native_decide) mem_cost (endCtorWardsHashSlot I)
+    (by native_decide) (by evm_ov)
+  have rd38pre := evm_run rd34 with [
+    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov)]
+  exact rd38pre.sstoreStatic hperm (by native_decide)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
 /-! ## Constructor equivalence -/
 
 set_option maxHeartbeats 1200000 in
@@ -343,7 +439,7 @@ theorem endConstructorCorrect :
     constructorEquivalence config endCreationBytecode contract endBytecode := by
   refine constructorEquivalence.intro ?_
   intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
-      args deployedInitcode hdeploy hcode _hcalldata hperm hAccounts
+      args deployedInitcode hdeploy hcode _hcalldata hAccounts
   have hdeployed := emptyCtorDeployment_eq_initcode end_selfDeployment_eq
     end_ctor_params_nil hdeploy
   rw [hdeployed] at hcode
@@ -353,45 +449,56 @@ theorem endConstructorCorrect :
     rw [end_ctor_params_nil] at hlen
     exact List.eq_nil_of_length_eq_zero hlen
   by_cases hwv : I.weiValue = ⟨0⟩
-  · have hrd := endCtorInitcodeSuccess
-      (cA := createdAccounts) (gh := genesisBlockHeader) (bl := blocks) (σ := σ_evm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hperm hwv
-    rcases hrd with hOOG | ⟨s, hX, hacc⟩
-    · exact constructorEquivalenceFor.outOfGas
-        (Xi_error_of_X (g := g) (by
-          rw [← hcode] at hOOG
-          simpa [Sat256.ofUInt256] using hOOG))
-    · have hsuccess := Xi_success_of_X (g := g) (by
-        rw [← hcode] at hX
-        simpa [Sat256.ofUInt256] using hX)
-      have hcA : s.createdAccounts = createdAccounts := congrArg Prod.fst hacc
-      have hσ' : s.accountMap =
-          sstoreAccountMap I.codeOwner
-            (sstoreAccountMap I.codeOwner σ_evm (endCtorCallerWardsSlot I) ⟨1⟩) ⟨8⟩ ⟨1⟩ :=
-        congrArg Prod.snd hacc
-      rw [hcA, hσ'] at hsuccess
-      let evm0s :=
-        initState createdAccounts genesisBlockHeader blocks σ_solm σ₀
-          (Sat256.ofUInt256 g) A I
-      let evm1s := endCtorAfterWardsState evm0s
-      let evm2s := endCtorAfterLiveState evm1s
-      refine constructorEquivalenceFor.execution hsuccess
-        (by
-          simpa [evm0s, evm1s, evm2s] using
-            endSolmCtorExecSuccess
-              (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-              (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
-              (g := g) hwv)
-        ?_
-      refine ctorResultEquiv.success rfl rfl ?_ ?_ rfl
-      · simp [endCtorAfterLiveState, endCtorAfterWardsState, storageStore_createdAccounts,
-          initState]
-      · have hslot : wardsSlot (.address I.source) = endCtorCallerWardsSlot I :=
-          endCtorCallerWardsSlot_eq I
-        simpa [evm2s, evm1s, evm0s, endCtorAfterLiveState, endCtorAfterWardsState,
-          storageStore_accountMap, storageStore_executionEnv, initState, hslot] using
-          accountMapEquiv_sstoreAccountMap_two I.codeOwner I.codeOwner
-            (endCtorCallerWardsSlot I) ⟨1⟩ ⟨8⟩ ⟨1⟩ hAccounts
+  · by_cases hperm : I.perm = true
+    · have hrd := endCtorInitcodeSuccess
+        (cA := createdAccounts) (gh := genesisBlockHeader) (bl := blocks) (σ := σ_evm)
+        (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hperm hwv
+      rcases hrd with hOOG | ⟨s, hX, hacc⟩
+      · exact constructorEquivalenceFor.outOfGas
+          (Xi_error_of_X (g := g) (by
+            rw [← hcode] at hOOG
+            simpa [Sat256.ofUInt256] using hOOG))
+      · have hsuccess := Xi_success_of_X (g := g) (by
+          rw [← hcode] at hX
+          simpa [Sat256.ofUInt256] using hX)
+        have hcA : s.createdAccounts = createdAccounts := congrArg Prod.fst hacc
+        have hσ' : s.accountMap =
+            sstoreAccountMap I.codeOwner
+              (sstoreAccountMap I.codeOwner σ_evm (endCtorCallerWardsSlot I) ⟨1⟩) ⟨8⟩ ⟨1⟩ :=
+          congrArg Prod.snd hacc
+        rw [hcA, hσ'] at hsuccess
+        let evm0s :=
+          initState createdAccounts genesisBlockHeader blocks σ_solm σ₀
+            (Sat256.ofUInt256 g) A I
+        let evm1s := endCtorAfterWardsState evm0s
+        let evm2s := endCtorAfterLiveState evm1s
+        refine constructorEquivalenceFor.execution hsuccess
+          (by
+            simpa [evm0s, evm1s, evm2s] using
+              endSolmCtorExecSuccess
+                (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
+                (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+                (g := g) hwv hperm)
+          ?_
+        refine ctorResultEquiv.success rfl rfl ?_ ?_ rfl
+        · simp [endCtorAfterLiveState, endCtorAfterWardsState, storageStore_createdAccounts,
+            initState]
+        · have hslot : wardsSlot (.address I.source) = endCtorCallerWardsSlot I :=
+            endCtorCallerWardsSlot_eq I
+          simpa [evm2s, evm1s, evm0s, endCtorAfterLiveState, endCtorAfterWardsState,
+            storageStore_accountMap, storageStore_executionEnv, initState, hslot] using
+            accountMapEquiv_sstoreAccountMap_two I.codeOwner I.codeOwner
+              (endCtorCallerWardsSlot I) ⟨1⟩ ⟨8⟩ ⟨1⟩ hAccounts
+    · have hp : I.perm = false := by simpa using hperm
+      have hrd := endCtorInitcodeStatic
+        (cA := createdAccounts) (gh := genesisBlockHeader) (bl := blocks) (σ := σ_evm)
+        (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hp hwv
+      rcases hrd with hoog | hstatic
+      · exact .outOfGas (Xi_error_of_X (g := g) (by simpa [hcode] using hoog))
+      · refine constructorEquivalenceFor.execution
+          (Xi_error_of_X (g := g) (by simpa [hcode] using hstatic))
+          (endSolmCtorExecStatic hwv hp) ?_
+        exact .staticModeViolation rfl rfl
   · have hrd := endCtorInitcodeRevert
       (cA := createdAccounts) (gh := genesisBlockHeader) (bl := blocks) (σ := σ_evm)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hwv

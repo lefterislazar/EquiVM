@@ -28,7 +28,8 @@ theorem endDecode_deny_none_short {I : ExecutionEnv}
   simpa [config, denyTransition] using
     decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "usr") hsz4 hshort
 
-theorem endDenyAssign (evm : EVM.State) (I : ExecutionEnv) :
+theorem endDenyAssign (evm : EVM.State) (I : ExecutionEnv)
+    (hperm : evm.executionEnv.perm = true) :
     assignStorageRef? config { contract := contract, locals := endRelyStore I } evm
       .storage (wardsRef (.var "usr")) (.int 0) =
         .ok ({ contract := contract, locals := endRelyStore I }, endDenyPostState evm I) := by
@@ -40,32 +41,59 @@ theorem endDenyAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   simpa [endDenyPostState] using
-    endStorageLocStore_uint256 evm (endRelyUsrStorageSlot I) ⟨0⟩
+    endStorageLocStore_uint256 evm (endRelyUsrStorageSlot I) ⟨0⟩ hperm
 
 theorem endDenyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
     (hauth :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endRelyAuthStorageSlot I) =
-        ⟨1⟩) :
+        ⟨1⟩)
+    (hperm : evm.executionEnv.perm = true) :
     ExecTransitionBody config contract evm (endRelyStore I) denyTransition.body
       (.returned { contract := contract, locals := endRelyStore I }
         (endDenyPostState evm I) none) := by
   refine ExecFuncBody.execBlockOK ?_
-  simpa [denyTransition, nonpayable, auth] using
-    nonpayableRequireAssignStorageBlock
-      (cfg := config)
-      (solm := { contract := contract, locals := endRelyStore I })
-      (evm := evm)
-      (evm' := endDenyPostState evm I)
-      (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
-      (rhs := .intLit 0)
-      (ref := wardsRef (.var "usr"))
-      (value := .int 0)
-      hwv
-      (evalExpr_endRely_auth_true evm I hsrc hauth)
-      (by simp [evalExpr?, pure])
-      (endDenyAssign evm I)
+  unfold denyTransition
+  apply execBlock_append_event
+  · simpa [nonpayable, auth] using
+      nonpayableRequireAssignStorageBlock
+        (cfg := config)
+        (solm := { contract := contract, locals := endRelyStore I })
+        (evm := evm)
+        (evm' := endDenyPostState evm I)
+        (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
+        (rhs := .intLit 0)
+        (ref := wardsRef (.var "usr"))
+        (value := .int 0)
+        hwv
+        (evalExpr_endRely_auth_true evm I hsrc hauth)
+        (by simp [evalExpr?, pure])
+        (endDenyAssign evm I hperm)
+  · simpa [endDenyPostState, storageStore_executionEnv] using hperm
+
+theorem endDenyAssignStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hperm : evm.executionEnv.perm = false) :
+    assignStorageRef? config { contract := contract, locals := endRelyStore I } evm
+      .storage (wardsRef (.var "usr")) (.int 0) = .revert := by
+  exact assignStorageRef_storage_scalar_static
+    (ty := uint256St) (loc := wordLoc (endRelyUsrStorageSlot I))
+    (hbase := endRelyStore_wards I) (her := evalStorageRef_endRely_usr evm I)
+    (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
+    (hloc := by rfl) (hscalar := by trivial) (hp := hperm)
+
+theorem endDenyBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hauth : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+      (endRelyAuthStorageSlot I) = ⟨1⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (endRelyStore I) denyTransition.body .reverted := by
+  apply ExecFuncBody.execBlockRevert
+  apply ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
+  apply ExecBlock.consNormal (ExecStmt.requireTrue (evalExpr_endRely_auth_true evm I hsrc hauth))
+  exact ExecBlock.consRevert (ExecStmt.assignStoreRevert
+    (by simp [evalExpr?, pure]) (endDenyAssignStatic evm I hperm))
 
 theorem endDenyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -81,7 +109,7 @@ theorem endDenyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
       (solm := { contract := contract, locals := endRelyStore I })
       (evm := evm)
       (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
-      (rest := [.assign .storage (wardsRef (.var "usr")) (.intLit 0)])
+      (rest := [.assign .storage (wardsRef (.var "usr")) (.intLit 0), .event])
       hwv
       (evalExpr_endRely_auth_false evm I hsrc hauth)
 
@@ -262,6 +290,71 @@ theorem endDenyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       repeat' first | apply And.intro | native_decide)
     hauthSolc (by simp)
 
+theorem endDenyX_storeStatic {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (hperm : I.perm = false)
+    (h : RD endBytecode I g s0 endDenyStorePc
+      [endRelyUsrMaskedWord I, endRelyReturnPc, sel]
+      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDstatic endBytecode g s0 := by
+  have hstoreSlot :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (ffi.KEC ((endRelyStoreHashMem I).readWithPadding 0 64))) =
+        mapSlot (endRelyUsrMaskedWord I) ⟨0⟩ := by
+    simpa [endRelyStoreHashMem, mapSlot, solcMappingSlot] using
+      twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (endRelyUsrMaskedWord I)
+        (endRelyAuthHashMem_size I)
+  have rdMasked := evm_run h with [
+    raw jumpdest (by native_decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
+    raw shl (by native_decide) (by evm_ov),
+    raw sub (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov),
+    raw and (by native_decide) (by evm_ov)]
+  have hmask :
+      UInt256.land
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
+          (endRelyUsrMaskedWord I)
+        = endRelyUsrMaskedWord I := by
+    rw [u256_land_comm]
+    rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+      solcAddrMask from by decide]
+    exact solcAddrMask_clean (endRelyUsrMaskedWord_canonical I)
+  have hmask' :
+      UInt256.land (endRelyUsrMaskedWord I)
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
+        = endRelyUsrMaskedWord I := by
+    rw [u256_land_comm]
+    exact hmask
+  rw [hmask'] at rdMasked
+  have rdMstoreKeyPrefix := evm_run rdMasked with [
+    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov)]
+  have rdKeyMem := rdMstoreKeyPrefix.mstore 0
+    (wordAt0Mem (endRelyUsrMaskedWord I) (endRelyAuthHashMem I))
+    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (by evm_ov)
+  have rdMstoreSlotPrefix := evm_run rdKeyMem with [
+    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov)]
+  have rdHashMem := rdMstoreSlotPrefix.mstore 0 (endRelyStoreHashMem I)
+    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (by evm_ov)
+  have rdKeccakPrefix := evm_run rdHashMem with [
+    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
+    raw dup1 (by native_decide) (by evm_ov),
+    raw dup3 (by native_decide) (by evm_ov)]
+  have rdSlot := rdKeccakPrefix.keccak256 0 (mapSlot (endRelyUsrMaskedWord I) ⟨0⟩)
+    (UInt256.ofNat 3) (by native_decide) mem_cost hstoreSlot (by native_decide)
+    (by evm_ov)
+  have rdSstorePrefix := evm_run rdSlot with [
+    raw dup3 (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov)]
+  exact rdSstorePrefix.sstoreStatic hperm (by native_decide) (by evm_ov)
+
 theorem endDenyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (h : RD endBytecode I g s0 endDenyStorePc
@@ -391,7 +484,7 @@ theorem endDenyBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = endBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : endRelyAuthWord σ_evm I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
@@ -409,28 +502,42 @@ theorem endDenyBodyCoreOk
       accountMapEquiv_storage_findD hAccounts I.codeOwner (endRelyAuthStorageSlot I) ⟨0⟩
     rw [← hword]
     exact hauth
-  have hbody :
-      ExecTransitionBody config contract evmSolm (endRelyStore I)
-        denyTransition.body
-        (.returned { contract := contract, locals := endRelyStore I }
-          (endDenyPostState evmSolm I) none) := by
-    simpa [evmSolm, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
-      State.lookupAccount] using
-      endDenyBodyReturns evmSolm I
-        (by simp only [evmSolm, initState]; exact hwv)
-        (by simp [evmSolm, initState])
-        hauthWord
-  exact (endX_deny_ok (g := Sat256.ofUInt256 g) hsz36 hsize hperm hauth hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-      (by simp [endDenyPostState, evmSolm, initState, storageStore_createdAccounts])
-      (by
-        simpa [endDenyPostState, evmSolm, initState, storageStore_accountMap] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner (endRelyUsrStorageSlot I) ⟨0⟩
-            hAccounts)
-      (by
-        simpa [denyTransition] using
-          (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-            (dvs := []) rfl (by native_decide) (by native_decide)))
+  by_cases hperm : I.perm = true
+  ·
+    have hbody :
+        ExecTransitionBody config contract evmSolm (endRelyStore I)
+          denyTransition.body
+          (.returned { contract := contract, locals := endRelyStore I }
+            (endDenyPostState evmSolm I) none) := by
+      simpa [evmSolm, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+        State.lookupAccount] using
+        endDenyBodyReturns evmSolm I
+          (by simp only [evmSolm, initState]; exact hwv)
+          (by simp [evmSolm, initState])
+          hauthWord (by simpa [evmSolm, initState] using hperm)
+    exact (endX_deny_ok (g := Sat256.ofUInt256 g) hsz36 hsize hperm hauth hreach)
+      |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+        (by simp [endDenyPostState, evmSolm, initState, storageStore_createdAccounts])
+        (by
+          simpa [endDenyPostState, evmSolm, initState, storageStore_accountMap] using
+            accountMapEquiv_sstoreAccountMap I.codeOwner (endRelyUsrStorageSlot I) ⟨0⟩
+              hAccounts)
+        (by
+          simpa [denyTransition] using
+            (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
+              (dvs := []) rfl (by native_decide) (by native_decide)))
+  · have hp : I.perm = false := by simpa using hperm
+    have hbody : ExecTransitionBody config contract evmSolm (endRelyStore I)
+        denyTransition.body .reverted := by
+      apply endDenyBodyStatic evmSolm I
+      · exact hwv
+      · rfl
+      · simpa [evmSolm, endRelyAuthWord, endSlotWord, initState,
+          Solm.EVM.storageLoad, State.lookupAccount] using hauthWord
+      · exact hp
+    obtain ⟨_, _, hdecoded⟩ := endDenyX_decoded (g := Sat256.ofUInt256 g) hsz36 hsize hreach
+    obtain ⟨_, _, hokPc⟩ := endDenyX_authorized (I := I) hauth hdecoded
+    exact (endDenyX_storeStatic hp hokPc).reEquivExecution hcode hdispatch hdecode hbody
 
 theorem endDenyBodyCoreUnauthorized
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -481,7 +588,7 @@ theorem endDenyBodyCoreDecodeFailed_short
 
 theorem endDenyBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf denyTransition))
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
@@ -496,7 +603,7 @@ theorem endDenyBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     hcode hwv hsz4 hsize hsel'
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hauth : endRelyAuthWord σ_evm I = ⟨1⟩
-    · exact endDenyBodyCoreOk hcode hsize hperm hwv hsz36 hauth hdispatch
+    · exact endDenyBodyCoreOk hcode hsize hwv hsz36 hauth hdispatch
         (endDecode_deny_ok hsz36) hreach hAccounts
     · exact endDenyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
         (endDecode_deny_ok hsz36) hreach hAccounts

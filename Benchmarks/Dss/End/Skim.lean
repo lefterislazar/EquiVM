@@ -3485,6 +3485,65 @@ theorem endSkim_solcErrorStringRevertTail_aw9 {code : ByteArray} {g : Sat256}
     raw swap1 hdSwap4 (by evm_ov),
     raw rev 0 hdRev mem_cost (by evm_ov)]
 
+theorem endSkimX_gapStoreStatic {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+    {sel : UInt256} {vatOut urnOut rdata : ByteArray} {k C : ℕ}
+    (hperm : I.perm = false)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hloVat : 160 ≤ vatOut.size)
+    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7150⟩
+      (endSkimGapNewWord σ' I vatOut urnOut :: endSkimWadWord σ' I vatOut urnOut ::
+        endSkimOweWord σ' I vatOut urnOut :: endFreeUrnArtWord urnOut ::
+        endFreeUrnInkWord urnOut :: endFlowVatIlkRateWord vatOut :: endSkimUrnKey I ::
+        endSkimIlkWord I :: endSkimReturnPc :: sel :: [])
+      (endSkimGapHashMem I vatOut urnOut) (UInt256.ofNat 9) rdata (cA', σ') k C) :
+    RDstatic endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  let key := endSkimIlkWord I
+  let mem0 := endSkimUrnsPostCallMem I vatOut urnOut
+  let mem12 := endSkimTagHashMem I vatOut urnOut
+  let mem13 := endSkimGapHashMem I vatOut urnOut
+  let memStore := endSkimGapStoreHashMem I vatOut urnOut
+  have hslot : endSkimGapSlot I = solcMappingSlot ⟨13⟩ key := by
+    simpa [key] using endSkimGapSlot_eq (I := I) hsz68
+  have hpostSize : mem0.size = 288 := by
+    simpa [mem0] using endSkimUrnsPostCallMem_size I vatOut urnOut hloVat
+  have hmem12Size : mem12.size = mem0.size := by
+    exact endFlow_twoWordHashMem_size_of_ge64 key ⟨12⟩
+      (by rw [hpostSize]; omega)
+  have hmem13Size : mem13.size = mem12.size := by
+    exact endFlow_twoWordHashMem_size_of_ge64 key ⟨13⟩
+      (by rw [hmem12Size, hpostSize]; omega)
+  have hhash :
+      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (memStore.readWithPadding 0 64))) =
+        solcMappingSlot ⟨13⟩ key := by
+    simpa [memStore, endSkimGapStoreHashMem, key, mem13] using
+      endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem13) ⟨13⟩ key
+        (by rw [hmem13Size, hmem12Size, hpostSize]; omega)
+  have rd7154 := evm_run h with [
+    raw jumpdest (by native_decide) (by evm_ov),
+    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
+    raw dup9 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov)]
+  have rd7155 := rd7154.mstore 0 (wordAt0Mem key mem13)
+    (UInt256.ofNat 9) (by native_decide) mem_cost
+    (by simp [wordAt0Mem, key, mem13]) (by native_decide) (by evm_ov)
+  have rd7160pre := evm_run rd7155 with [
+    raw push1 ⟨13⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+  have rd7160 := rd7160pre.mstore 0 memStore (UInt256.ofNat 9)
+    (by native_decide) mem_cost
+    (by
+      change (⟨13⟩ : UInt256).toByteArray.write 0 (wordAt0Mem key mem13) 32 32 =
+        memStore
+      simp [memStore, endSkimGapStoreHashMem, twoWordHashMem, wordAt32Mem, key, mem13])
+    (by native_decide) (by evm_ov)
+  have rd7164 := evm_run rd7160 with [
+    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov)]
+  have rd7165 := rd7164.keccak256 0 (endSkimGapSlot I) (UInt256.ofNat 9)
+    (by native_decide) mem_cost
+    (by simpa [memStore, key, hslot] using hhash) (by native_decide) (by evm_ov)
+  exact rd7165.sstoreStatic hperm (by native_decide) (by evm_ov)
+
 theorem endSkimX_gapStoreAtHash {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {vatOut urnOut rdata : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
@@ -5626,7 +5685,8 @@ theorem endSkimAssignGap {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
     (gapNew : UInt256)
     (hbase : locals.get? "gap" = none)
     (hget : locals.get? "ilk" = some (endFlowIlkValue I))
-    (hsz68 : 68 ≤ I.calldata.size) :
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hp : evm.executionEnv.perm = true) :
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage (gapRef (.var "ilk")) (.int (Int.ofNat gapNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, endSkimPostGapState evm I gapNew) := by
@@ -5639,11 +5699,30 @@ theorem endSkimAssignGap {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   simpa only [endSkimPostGapState] using endStorageLocStore_uint256 evm (endSkimGapSlot I)
-    gapNew
+    gapNew hp
+
+theorem endSkimAssignGapStatic {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
+    (gapNew : UInt256)
+    (hbase : locals.get? "gap" = none)
+    (hget : locals.get? "ilk" = some (endFlowIlkValue I))
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hp : evm.executionEnv.perm = false) :
+    assignStorageRef? config { contract := contract, locals := locals } evm
+      .storage (gapRef (.var "ilk")) (.int (Int.ofNat gapNew.toNat)) =
+        .revert := by
+  have href := evalStorageRef_endFlow_gap_of_get evm I hget (by omega)
+  apply assignStorageRef_storage_scalar_static
+      (ty := uint256St)
+      (loc := wordLoc (endSkimGapSlot I))
+      (hbase := hbase)
+      (her := by simpa [endSkimGapSlot, endFlowGapSlot] using href)
+      (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
+      (hloc := by rfl) (hscalar := by trivial) (hp := hp)
 
 theorem endSkimStmtGapAssign (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (vatOut urnOut : ByteArray)
-    (hsz68 : 68 ≤ I.calldata.size) :
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hp : evm.executionEnv.perm = true) :
     ExecStmt config { contract := contract, locals := endSkimStoreGapNew σ I vatOut urnOut }
       evm (.assign .storage (gapRef (.var "ilk")) (.var "gapNew"))
       (.ok { contract := contract, locals := endSkimStoreGapNew σ I vatOut urnOut }
@@ -5691,8 +5770,60 @@ theorem endSkimStmtGapAssign (evm : EVM.State) (I : ExecutionEnv)
         endSkimStoreRate, store_get_ne _ _ (by native_decide),
         endSkimStoreVatIlk, store_get_ne _ _ (by native_decide),
         endSkimStore, store_get_ne _ _ (by native_decide), store_get_self]
-    exact endSkimAssignGap evm I (endSkimGapNewWord σ I vatOut urnOut) hbase hget hsz68
+    exact endSkimAssignGap evm I (endSkimGapNewWord σ I vatOut urnOut) hbase hget hsz68 hp
   exact ExecStmt.assign hgapNew hassign
+
+theorem endSkimStmtGapAssignStatic (evm : EVM.State) (I : ExecutionEnv)
+    (σ : AccountMap) (vatOut urnOut : ByteArray)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hp : evm.executionEnv.perm = false) :
+    ExecStmt config { contract := contract, locals := endSkimStoreGapNew σ I vatOut urnOut }
+      evm (.assign .storage (gapRef (.var "ilk")) (.var "gapNew"))
+      .reverted := by
+  have hgapNew :
+      evalExpr? config { contract := contract, locals := endSkimStoreGapNew σ I vatOut urnOut }
+        evm (.var "gapNew") =
+          .ok (.int (Int.ofNat (endSkimGapNewWord σ I vatOut urnOut).toNat)) := by
+    simpa [endSkimStoreGapNew] using
+      endEvalExpr_varUInt256 (evm := evm)
+        (locals := endSkimStoreGapNew σ I vatOut urnOut)
+        (name := "gapNew") (value := endSkimGapNewWord σ I vatOut urnOut)
+        (by rw [endSkimStoreGapNew, store_get_self])
+  have hassign :
+      assignStorageRef? config
+        { contract := contract, locals := endSkimStoreGapNew σ I vatOut urnOut }
+        evm .storage (gapRef (.var "ilk"))
+        (.int (Int.ofNat (endSkimGapNewWord σ I vatOut urnOut).toNat)) =
+          .revert := by
+    have hbase : (endSkimStoreGapNew σ I vatOut urnOut).get? "gap" = none := by
+      rw [endSkimStoreGapNew, store_get_ne _ _ (by native_decide),
+        endSkimStoreDiff, store_get_ne _ _ (by native_decide),
+        endSkimStoreWad, store_get_ne _ _ (by native_decide),
+        endSkimStoreOwe, store_get_ne _ _ (by native_decide),
+        endSkimStoreOwe0, store_get_ne _ _ (by native_decide),
+        endSkimStoreArt, store_get_ne _ _ (by native_decide),
+        endSkimStoreInk, store_get_ne _ _ (by native_decide),
+        endSkimStoreVatUrn, store_get_ne _ _ (by native_decide),
+        endSkimStoreRate, store_get_ne _ _ (by native_decide),
+        endSkimStoreVatIlk, store_get_ne _ _ (by native_decide),
+        endSkimStore, store_get_ne _ _ (by native_decide),
+        store_get_ne _ _ (by native_decide)]
+      simp
+    have hget :
+        (endSkimStoreGapNew σ I vatOut urnOut).get? "ilk" = some (endFlowIlkValue I) := by
+      rw [endSkimStoreGapNew, store_get_ne _ _ (by native_decide),
+        endSkimStoreDiff, store_get_ne _ _ (by native_decide),
+        endSkimStoreWad, store_get_ne _ _ (by native_decide),
+        endSkimStoreOwe, store_get_ne _ _ (by native_decide),
+        endSkimStoreOwe0, store_get_ne _ _ (by native_decide),
+        endSkimStoreArt, store_get_ne _ _ (by native_decide),
+        endSkimStoreInk, store_get_ne _ _ (by native_decide),
+        endSkimStoreVatUrn, store_get_ne _ _ (by native_decide),
+        endSkimStoreRate, store_get_ne _ _ (by native_decide),
+        endSkimStoreVatIlk, store_get_ne _ _ (by native_decide),
+        endSkimStore, store_get_ne _ _ (by native_decide), store_get_self]
+    exact endSkimAssignGapStatic evm I (endSkimGapNewWord σ I vatOut urnOut) hbase hget hsz68 hp
+  exact ExecStmt.assignStoreRevert hgapNew hassign
 
 theorem evalExpr_endSkim_wad_afterGapNew (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (vatOut urnOut : ByteArray) :
@@ -6288,7 +6419,8 @@ theorem endSkimTailAfterArtReturns (evm : EVM.State) (I : ExecutionEnv)
       (endSkimGapWord σ I).toNat + (endSkimDiffWord σ I vatOut urnOut).toNat <
         UInt256.size)
     (hwadLimit : (endSkimWadWord σ I vatOut urnOut).toNat ≤ 2 ^ 255)
-    (hartLimit : (endFreeUrnArtWord urnOut).toNat ≤ 2 ^ 255) :
+    (hartLimit : (endFreeUrnArtWord urnOut).toNat ≤ 2 ^ 255)
+    (hp : evm.executionEnv.perm = true) :
     ExecBlock config { contract := contract, locals := endSkimStoreArt I vatOut urnOut } evm
       [ .internalCall "rmul" [.var "art", .var "rate"] "owe0",
         .internalCall "rmul" [.var "owe0", .storage (tagRef (.var "ilk"))] "owe",
@@ -6309,7 +6441,7 @@ theorem endSkimTailAfterArtReturns (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal (endSkimStmtDiffSubReturns evm I σ vatOut urnOut) ?_
   refine ExecBlock.consNormal
     (endSkimStmtGapNewAddReturns evm I σ vatOut urnOut hsz68 hGapLoad hfitGap) ?_
-  refine ExecBlock.consNormal (endSkimStmtGapAssign evm I σ vatOut urnOut hsz68) ?_
+  refine ExecBlock.consNormal (endSkimStmtGapAssign evm I σ vatOut urnOut hsz68 hp) ?_
   exact ExecBlock.consNormal
     (ExecStmt.requireTrue
       (endSkimEvalExpr_intGuard_true
@@ -6401,7 +6533,7 @@ theorem endSkimTailReverts_gapAddOverflow (evm : EVM.State) (I : ExecutionEnv)
   exact ExecBlock.consRevert
     (endSkimStmtGapNewAddReverts evm I σ vatOut urnOut hsz68 hGapLoad hover)
 
-theorem endSkimTailReverts_intGuardWad (evm : EVM.State) (I : ExecutionEnv)
+theorem endSkimTailStatic (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (vatOut urnOut : ByteArray)
     (hsz68 : 68 ≤ I.calldata.size)
     (hTagLoad :
@@ -6419,7 +6551,7 @@ theorem endSkimTailReverts_intGuardWad (evm : EVM.State) (I : ExecutionEnv)
     (hfitGap :
       (endSkimGapWord σ I).toNat + (endSkimDiffWord σ I vatOut urnOut).toNat <
         UInt256.size)
-    (hwad : 2 ^ 255 < (endSkimWadWord σ I vatOut urnOut).toNat) :
+    (hp : evm.executionEnv.perm = false) :
     ExecBlock config { contract := contract, locals := endSkimStoreArt I vatOut urnOut } evm
       [ .internalCall "rmul" [.var "art", .var "rate"] "owe0",
         .internalCall "rmul" [.var "owe0", .storage (tagRef (.var "ilk"))] "owe",
@@ -6439,7 +6571,48 @@ theorem endSkimTailReverts_intGuardWad (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal (endSkimStmtDiffSubReturns evm I σ vatOut urnOut) ?_
   refine ExecBlock.consNormal
     (endSkimStmtGapNewAddReturns evm I σ vatOut urnOut hsz68 hGapLoad hfitGap) ?_
-  refine ExecBlock.consNormal (endSkimStmtGapAssign evm I σ vatOut urnOut hsz68) ?_
+  exact ExecBlock.consRevert (endSkimStmtGapAssignStatic evm I σ vatOut urnOut hsz68 hp)
+
+theorem endSkimTailReverts_intGuardWad (evm : EVM.State) (I : ExecutionEnv)
+    (σ : AccountMap) (vatOut urnOut : ByteArray)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hTagLoad :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endSkimTagSlot I) =
+        endSkimTagWord σ I)
+    (hGapLoad :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endSkimGapSlot I) =
+        endSkimGapWord σ I)
+    (hfitOwe0 :
+      (endFreeUrnArtWord urnOut).toNat * (endFlowVatIlkRateWord vatOut).toNat <
+        UInt256.size)
+    (hfitOwe :
+      (endSkimOwe0Word vatOut urnOut).toNat * (endSkimTagWord σ I).toNat <
+        UInt256.size)
+    (hfitGap :
+      (endSkimGapWord σ I).toNat + (endSkimDiffWord σ I vatOut urnOut).toNat <
+        UInt256.size)
+    (hwad : 2 ^ 255 < (endSkimWadWord σ I vatOut urnOut).toNat)
+    (hp : evm.executionEnv.perm = true) :
+    ExecBlock config { contract := contract, locals := endSkimStoreArt I vatOut urnOut } evm
+      [ .internalCall "rmul" [.var "art", .var "rate"] "owe0",
+        .internalCall "rmul" [.var "owe0", .storage (tagRef (.var "ilk"))] "owe",
+        .internalCall "min" [.var "ink", .var "owe"] "wad",
+        .internalCall "sub" [.var "owe", .var "wad"] "diff",
+        .internalCall "add" [.storage (gapRef (.var "ilk")), .var "diff"] "gapNew",
+        .assign .storage (gapRef (.var "ilk")) (.var "gapNew"),
+        .require
+          (.binary .and
+            (.binary .le (.var "wad") (.intLit int256Limit))
+            (.binary .le (.var "art") (.intLit int256Limit))) ]
+      .reverted := by
+  refine ExecBlock.consNormal (endSkimStmtOwe0RmulReturns evm I vatOut urnOut hfitOwe0) ?_
+  refine ExecBlock.consNormal
+    (endSkimStmtOweRmulReturns evm I σ vatOut urnOut hsz68 hTagLoad hfitOwe) ?_
+  refine ExecBlock.consNormal (endSkimStmtWadMinReturns evm I σ vatOut urnOut) ?_
+  refine ExecBlock.consNormal (endSkimStmtDiffSubReturns evm I σ vatOut urnOut) ?_
+  refine ExecBlock.consNormal
+    (endSkimStmtGapNewAddReturns evm I σ vatOut urnOut hsz68 hGapLoad hfitGap) ?_
+  refine ExecBlock.consNormal (endSkimStmtGapAssign evm I σ vatOut urnOut hsz68 hp) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse
       (endSkimEvalExpr_intGuard_false_wad
@@ -6465,7 +6638,8 @@ theorem endSkimTailReverts_intGuardArt (evm : EVM.State) (I : ExecutionEnv)
       (endSkimGapWord σ I).toNat + (endSkimDiffWord σ I vatOut urnOut).toNat <
         UInt256.size)
     (hwad : (endSkimWadWord σ I vatOut urnOut).toNat ≤ 2 ^ 255)
-    (hart : 2 ^ 255 < (endFreeUrnArtWord urnOut).toNat) :
+    (hart : 2 ^ 255 < (endFreeUrnArtWord urnOut).toNat)
+    (hp : evm.executionEnv.perm = true) :
     ExecBlock config { contract := contract, locals := endSkimStoreArt I vatOut urnOut } evm
       [ .internalCall "rmul" [.var "art", .var "rate"] "owe0",
         .internalCall "rmul" [.var "owe0", .storage (tagRef (.var "ilk"))] "owe",
@@ -6485,7 +6659,7 @@ theorem endSkimTailReverts_intGuardArt (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal (endSkimStmtDiffSubReturns evm I σ vatOut urnOut) ?_
   refine ExecBlock.consNormal
     (endSkimStmtGapNewAddReturns evm I σ vatOut urnOut hsz68 hGapLoad hfitGap) ?_
-  refine ExecBlock.consNormal (endSkimStmtGapAssign evm I σ vatOut urnOut hsz68) ?_
+  refine ExecBlock.consNormal (endSkimStmtGapAssign evm I σ vatOut urnOut hsz68 hp) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse
       (endSkimEvalExpr_intGuard_false_art
@@ -6543,7 +6717,8 @@ theorem endSkimBodyReverts_afterArtTailReverted {I} {vatOut urnOut : ByteArray}
       ExecBlock config { contract := contract, locals := endSkimStore I } evm0
         skimTransition.body .reverted := by
     have hseq := execBlock_append hprefixArt htailWithGrab
-    simpa [skimTransition, grabTail, List.append_assoc] using hseq
+    simpa [skimTransition, grabTail, List.append_assoc] using
+      (execBlock_append_term (s2 := [.event]) hseq (by intros; intro h; cases h))
   exact ExecFuncBody.execBlockRevert hblock
 
 theorem endSkimBodyReverts_afterArtTailGrabReverted {I σLoc}
@@ -6611,7 +6786,8 @@ theorem endSkimBodyReverts_afterArtTailGrabReverted {I σLoc}
       ExecBlock config { contract := contract, locals := endSkimStore I } evm0
         skimTransition.body .reverted := by
     have hseq := execBlock_append hprefixArt htailWithGrab
-    simpa [skimTransition, grabTail, List.append_assoc] using hseq
+    simpa [skimTransition, grabTail, List.append_assoc] using
+      (execBlock_append_term (s2 := [.event]) hseq (by intros; intro h; cases h))
   exact ExecFuncBody.execBlockRevert hblock
 
 theorem endSkimBodyReturns_afterArtTailGrabSuccess {I σLoc}
@@ -6652,7 +6828,8 @@ theorem endSkimBodyReturns_afterArtTailGrabSuccess {I σLoc}
             .unary .neg (asInt256 (.var "art"))]
           "_grab")
         (.ok { contract := contract, locals := endSkimStoreGrab σLoc I vatOut urnOut }
-          evmGrab)) :
+          evmGrab))
+    (hp : evmGrab.executionEnv.perm = true) :
     ExecTransitionBody config contract evm0 (endSkimStore I) skimTransition.body
       (.returned { contract := contract, locals := endSkimStoreGrab σLoc I vatOut urnOut }
         evmGrab none) := by
@@ -6684,7 +6861,7 @@ theorem endSkimBodyReturns_afterArtTailGrabSuccess {I σLoc}
         (.ok { contract := contract, locals := endSkimStoreGrab σLoc I vatOut urnOut }
           evmGrab) := by
     have hseq := execBlock_append hprefixArt htailWithGrab
-    simpa [skimTransition, grabTail, List.append_assoc] using hseq
+    simpa [skimTransition, grabTail, List.append_assoc] using execBlock_append_event hseq hp
   exact ExecFuncBody.execBlockOK hblock
 
 theorem endSkimBodyReverts_vatIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -6766,7 +6943,8 @@ theorem endSkimBodyReverts_vatIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-    simpa [List.append_assoc] using hvatWithTail
+    simpa [List.append_assoc] using
+      (execBlock_append_term (s2 := [.event]) hvatWithTail (by intros; intro h; cases h))
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
 
 theorem endSkimBodyReverts_vatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -6936,7 +7114,8 @@ theorem endSkimBodyReverts_afterRateUrnsBlock {I} {vatOut : ByteArray}
       ExecBlock config { contract := contract, locals := endSkimStore I } evm0
         skimTransition.body .reverted := by
     have hseq := execBlock_append hprefix hurnsWithTail
-    simpa [skimTransition, afterUrns, List.append_assoc] using hseq
+    simpa [skimTransition, afterUrns, List.append_assoc] using
+      (execBlock_append_term (s2 := [.event]) hseq (by intros; intro h; cases h))
   exact ExecFuncBody.execBlockRevert hblock
 
 theorem endSkimBodyReverts_tagZero {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -6981,7 +7160,7 @@ theorem endSkimBodyReverts_tagZero {cA gh bl σ σ₀ A I} {g : UInt256}
         checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
           [.var "ilk", .var "urn", thisAddr, vowAddr,
            .unary .neg (asInt256 (.var "wad")), .unary .neg (asInt256 (.var "art"))]
-          "_grab")
+          "_grab" ++ [.event])
       (by simp only [evm0, initState]; exact hwv)
       hguard
 
@@ -7021,7 +7200,7 @@ theorem endSkimBodyCoreDecodeFailed_short
 
 theorem endSkimBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf skimTransition))
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
@@ -7136,7 +7315,7 @@ theorem endSkimBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (callPerm := true)
               hdepthNe htgtVat
               (endSkimVatIlksEncode_eq I hsz68)
-              (by simpa [initState, hperm] using hΘVatEq)
+              (by simpa [initState, Bool.and_true] using hΘVatEq)
               (by simpa [initState] using hAccounts)
               (by simp [evmSolm, initState])
               (by simp [evmSolm, initState])
@@ -7293,7 +7472,7 @@ theorem endSkimBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (by simpa [evmVatEvm, initState] using hdepthNe)
                     htgtUrns
                     (endSkimUrnsEncode_eq I vatOut hsz68 hloVat)
-                    (by simpa [evmVatEvm, initState, hperm] using hΘUrnsEq)
+                    (by simpa [evmVatEvm, initState, Bool.and_true] using hΘUrnsEq)
                     (by simpa [evmVatEvm, evmVatSolm] using hAccountsVat)
                     (by simp [evmVatEvm, evmVatSolm, evmSolm, initState])
                     (by simp [evmVatEvm, evmVatSolm, evmSolm, initState])
@@ -7657,6 +7836,19 @@ theorem endSkimBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           obtain ⟨_, _, rd7150⟩ :=
                             endSkimX_gapAddReturns (g := Sat256.ofUInt256 g)
                               hsz68 hloVat hfitGap rd7113
+                          by_cases hperm : I.perm = true
+                          case neg =>
+                            have hp : I.perm = false := by simpa using hperm
+                            have hpUrns : evmUrnsSolm.executionEnv.perm = false := by
+                              simpa [evmUrnsSolm, evmVatSolm, evmSolm, initState] using hp
+                            have htail := endSkimTailStatic evmUrnsSolm I σ_urns_solm
+                              vatOut urnOut hsz68 hTagLoadSolm hGapLoadSolm
+                              hfitOwe0 hfitOweSolm hfitGapSolm hpUrns
+                            have hbody := endSkimBodyReverts_afterArtTailReverted hprefixArt htail
+                            exact (endSkimX_gapStoreStatic hp hsz68 hloVat rd7150).reEquivExecution
+                              hcode hdispatch hdecode hbody
+                          have hpUrns : evmUrnsSolm.executionEnv.perm = true := by
+                            simpa [evmUrnsSolm, evmVatSolm, evmSolm, initState] using hperm
                           by_cases hwadLimit :
                               (endSkimWadWord σ_urns I vatOut urnOut).toNat ≤ 2 ^ 255
                           · by_cases hartLimit :
@@ -7670,7 +7862,7 @@ theorem endSkimBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 endSkimX_gapStoreIntGuardOk (g := Sat256.ofUInt256 g)
                                   hperm hsz68 hloVat hwadLimit hartLimit rd7150
                               have htailOk :=
-                                endSkimTailAfterArtReturns evmUrnsSolm I σ_urns_solm
+                                endSkimTailAfterArtReturns (hp := hpUrns) evmUrnsSolm I σ_urns_solm
                                   vatOut urnOut hsz68 hTagLoadSolm hGapLoadSolm
                                   hfitOwe0 hfitOweSolm hfitGapSolm hwadLimitSolm
                                   hartLimit
@@ -7833,7 +8025,7 @@ theorem endSkimBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         endSkim_storageStore_genesisBlockHeader,
                                         endSkim_storageStore_blocks, σ_post,
                                         endSkimPostGapAccountMap, evmUrnsEvm, evmVatEvm,
-                                        initState, hperm] using hΘGrabEq)
+                                        initState, Bool.and_true] using hΘGrabEq)
                                       hStatePost.accountMap
                                       (by simp [evmPostEvm, evmPostSolm, endSkimPostGapState,
                                         endSkim_storageStore_σ₀,
@@ -7968,6 +8160,8 @@ theorem endSkimBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                             evmGrabSolm none) := by
                                       exact endSkimBodyReturns_afterArtTailGrabSuccess
                                         hprefixArt htailOk hgrab
+                                        (by simpa [evmGrabSolm, evmPostSolm, endSkimPostGapState,
+                                          storageStore_executionEnv, evmUrnsSolm, evmVatSolm, evmSolm, initState] using hperm)
                                     exact hretEvm.reEquivExecutionGenEVMStateEquiv
                                       (evm'_evm := evmGrabEvm)
                                       (evm'_solm := evmGrabSolm)
@@ -8055,7 +8249,7 @@ theorem endSkimBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 simpa [hTagCoupleUrns, endSkimWadWord, endSkimOweWord]
                                   using hwadLimit
                               have htail :=
-                                endSkimTailReverts_intGuardArt evmUrnsSolm I
+                                endSkimTailReverts_intGuardArt (hp := hpUrns) evmUrnsSolm I
                                   σ_urns_solm vatOut urnOut hsz68 hTagLoadSolm
                                   hGapLoadSolm hfitOwe0 hfitOweSolm hfitGapSolm
                                   hwadLimitSolm hartOverflow
@@ -8077,7 +8271,7 @@ theorem endSkimBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               simpa [hTagCoupleUrns, endSkimWadWord, endSkimOweWord]
                                 using hwadOverflow
                             have htail :=
-                              endSkimTailReverts_intGuardWad evmUrnsSolm I
+                              endSkimTailReverts_intGuardWad (hp := hpUrns) evmUrnsSolm I
                                 σ_urns_solm vatOut urnOut hsz68 hTagLoadSolm
                                 hGapLoadSolm hfitOwe0 hfitOweSolm hfitGapSolm
                                 hwadOverflowSolm

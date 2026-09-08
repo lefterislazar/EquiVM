@@ -4970,6 +4970,74 @@ theorem endSnipX_artAddOverflow {cA cA' gh bl σ σmem σpost σ₀ A I}
     (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
+theorem endSnipX_artStoreStatic {cA cA' gh bl σ σmem σpost σ₀ A I} {g : Sat256}
+    {sel : UInt256} {dogOut vatOut saleOut ret : ByteArray} {k C : ℕ}
+    (hperm : I.perm = false)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
+    (hloSale : 192 ≤ saleOut.size)
+    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2391⟩
+      (endSnipArtNewWord σpost I vatOut saleOut :: endSnipArtWord vatOut saleOut ::
+        endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
+        endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
+        endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
+        endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
+      (endSnipArtHashMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
+      ret (cA', σpost) k C) :
+    RDstatic endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+  let key := endSnipIlkWord I
+  let mem14 := endSnipArtHashMem σmem I dogOut vatOut saleOut
+  let memStore := endSnipArtStoreHashMem σmem I dogOut vatOut saleOut
+  have hslot : endSnipArtSlot I = solcMappingSlot ⟨14⟩ key := by
+    simpa [endSnipArtSlot, endSnipIlkKey, key] using
+      endFlowArtSlot_eq (I := I) (by omega)
+  have hpostSize :
+      (endSnipYankPostCallMem σmem I dogOut vatOut saleOut ByteArray.empty).size = 320 := by
+    simpa [endSnipYankPostCallMem_eq] using
+      endSnipYankCalldataMem_size σmem I dogOut vatOut saleOut hloDog hloVat hloSale
+  have hmem14SizeEq :
+      mem14.size =
+        (endSnipYankPostCallMem σmem I dogOut vatOut saleOut ByteArray.empty).size := by
+    simpa [mem14, endSnipArtHashMem] using
+      endFlow_twoWordHashMem_size_of_ge64 key ⟨14⟩ (by rw [hpostSize]; omega)
+  have hmem14Size : mem14.size = 320 := by
+    rw [hmem14SizeEq, hpostSize]
+  have hhash :
+      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (memStore.readWithPadding 0 64))) =
+        solcMappingSlot ⟨14⟩ key := by
+    simpa [memStore, endSnipArtStoreHashMem, key, mem14] using
+      endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem14) ⟨14⟩ key
+        (by rw [hmem14Size]; omega)
+  have rd2396 := evm_run h with [
+    raw jumpdest (by native_decide) (by evm_ov),
+    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
+    raw dup11 (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov)]
+  have rd2396' := rd2396.mstore 0 (wordAt0Mem key mem14) (UInt256.ofNat 10)
+    (by native_decide) mem_cost (by simp [wordAt0Mem, key, mem14])
+    (by native_decide) (by evm_ov)
+  have rd2401 := evm_run rd2396' with [
+    raw push1 ⟨14⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+  have rd2401' := rd2401.mstore 0 memStore (UInt256.ofNat 10)
+    (by native_decide) mem_cost
+    (by
+      change (⟨14⟩ : UInt256).toByteArray.write 0 (wordAt0Mem key mem14) 32 32 =
+        memStore
+      simp [memStore, endSnipArtStoreHashMem, twoWordHashMem, wordAt32Mem, key, mem14])
+    (by native_decide) (by evm_ov)
+  have rd2405 := evm_run rd2401' with [
+    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov)]
+  have rd2406 := rd2405.keccak256 0 (endSnipArtSlot I) (UInt256.ofNat 10)
+    (by native_decide) mem_cost (by simpa [key, hslot] using hhash)
+    (by native_decide) (by evm_ov)
+  have rd2409 := evm_run rd2406 with [
+    raw swap2 (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov),
+    raw swap2 (by native_decide) (by evm_ov)]
+  exact rd2409.sstoreStatic hperm (by native_decide) (by evm_ov)
+
 theorem endSnipX_artStoreAtHash {cA cA' gh bl σ σmem σpost σ₀ A I} {g : Sat256}
     {sel : UInt256} {dogOut vatOut saleOut ret : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
@@ -6343,7 +6411,8 @@ theorem endSnipBodyReverts_dogIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-    simpa [checkedExternalCallStmts, List.append_assoc] using hdogWithTail
+    simpa [checkedExternalCallStmts, List.append_assoc] using
+      (execBlock_append_term (s2 := [.event]) hdogWithTail (by intros; intro h; cases h))
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
 
 theorem endSnipBodyReverts_dogIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -6764,7 +6833,8 @@ theorem endSnipBodyReverts_afterClipVatIlksBlock {I} {dogOut : ByteArray}
       ExecBlock config { contract := contract, locals := endSnipStore I } evm0
         snipTransition.body .reverted := by
     have hseq := execBlock_append hprefix hvatWithTail
-    simpa [snipTransition, afterVat, List.append_assoc] using hseq
+    simpa [snipTransition, afterVat, List.append_assoc] using
+      (execBlock_append_term (s2 := [.event]) hseq (by intros; intro h; cases h))
   exact ExecFuncBody.execBlockRevert hblock
 
 theorem endSnipSalesReceiver_afterRate {I dogOut vatOut evm} :
@@ -7645,7 +7715,8 @@ theorem endSnipAssignArt {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
     (artNew : UInt256)
     (hbase : locals.get? "Art" = none)
     (hget : locals.get? "ilk" = some (endFlowIlkValue I))
-    (hsz68 : 68 ≤ I.calldata.size) :
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hp : evm.executionEnv.perm = true) :
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage (ArtRef (.var "ilk")) (.int (Int.ofNat artNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, endSnipPostArtState evm I artNew) := by
@@ -7658,11 +7729,30 @@ theorem endSnipAssignArt {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   simpa only [endSnipPostArtState] using
-    endStorageLocStore_uint256 evm (endSnipArtSlot I) artNew
+    endStorageLocStore_uint256 evm (endSnipArtSlot I) artNew hp
+
+theorem endSnipAssignArtStatic {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
+    (artNew : UInt256)
+    (hbase : locals.get? "Art" = none)
+    (hget : locals.get? "ilk" = some (endFlowIlkValue I))
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hp : evm.executionEnv.perm = false) :
+    assignStorageRef? config { contract := contract, locals := locals } evm
+      .storage (ArtRef (.var "ilk")) (.int (Int.ofNat artNew.toNat)) =
+        .revert := by
+  have href := evalStorageRef_endFlow_Art_of_get evm I hget (by omega)
+  apply assignStorageRef_storage_scalar_static
+      (ty := uint256St)
+      (loc := wordLoc (endSnipArtSlot I))
+      (hbase := hbase)
+      (her := by simpa [endSnipArtSlot, endFlowArtSlot, endSnipIlkKey, endFlowIlkKey] using href)
+      (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
+      (hloc := by rfl) (hscalar := by trivial) (hp := hp)
 
 theorem endSnipStmtArtAssign (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (dogOut vatOut saleOut : ByteArray)
-    (hsz68 : 68 ≤ I.calldata.size) :
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hp : evm.executionEnv.perm = true) :
     ExecStmt config { contract := contract, locals := endSnipStoreArtNew σ I dogOut vatOut saleOut }
       evm (.assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"))
       (.ok { contract := contract, locals := endSnipStoreArtNew σ I dogOut vatOut saleOut }
@@ -7693,8 +7783,43 @@ theorem endSnipStmtArtAssign (evm : EVM.State) (I : ExecutionEnv)
           some (endFlowIlkValue I) := by
       rw [endSnipStoreArtNew, store_get_ne _ _ (by native_decide)]
       exact endSnipStoreArt_get_ilk I dogOut vatOut saleOut
-    exact endSnipAssignArt evm I (endSnipArtNewWord σ I vatOut saleOut) hbase hget hsz68
+    exact endSnipAssignArt evm I (endSnipArtNewWord σ I vatOut saleOut) hbase hget hsz68 hp
   exact ExecStmt.assign hArtNew hassign
+
+theorem endSnipStmtArtAssignStatic (evm : EVM.State) (I : ExecutionEnv)
+    (σ : AccountMap) (dogOut vatOut saleOut : ByteArray)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hp : evm.executionEnv.perm = false) :
+    ExecStmt config { contract := contract, locals := endSnipStoreArtNew σ I dogOut vatOut saleOut }
+      evm (.assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"))
+      .reverted := by
+  have hArtNew :
+      evalExpr? config { contract := contract, locals := endSnipStoreArtNew σ I dogOut vatOut saleOut }
+        evm (.var "ArtNew") =
+        .ok (.int (Int.ofNat (endSnipArtNewWord σ I vatOut saleOut).toNat)) := by
+    simpa [endSnipStoreArtNew] using
+      endEvalExpr_varUInt256 (evm := evm)
+        (locals := endSnipStoreArtNew σ I dogOut vatOut saleOut)
+        (name := "ArtNew") (value := endSnipArtNewWord σ I vatOut saleOut)
+        (by rw [endSnipStoreArtNew, store_get_self])
+  have hassign :
+      assignStorageRef? config
+        { contract := contract, locals := endSnipStoreArtNew σ I dogOut vatOut saleOut }
+        evm .storage (ArtRef (.var "ilk"))
+        (.int (Int.ofNat (endSnipArtNewWord σ I vatOut saleOut).toNat)) =
+          .revert := by
+    have hbase : (endSnipStoreArtNew σ I dogOut vatOut saleOut).get? "Art" = none := by
+      simp [endSnipStoreArtNew, endSnipStoreArt, endSnipStoreYank, endSnipStoreSuck,
+        endSnipStoreUsr, endSnipStoreLot, endSnipStoreTab, endSnipStoreClipSale,
+        endSnipStoreRate, endSnipStoreVatIlk, endSnipStoreClip, endSnipStoreDogIlk,
+        endSnipStore]
+    have hget :
+        (endSnipStoreArtNew σ I dogOut vatOut saleOut).get? "ilk" =
+          some (endFlowIlkValue I) := by
+      rw [endSnipStoreArtNew, store_get_ne _ _ (by native_decide)]
+      exact endSnipStoreArt_get_ilk I dogOut vatOut saleOut
+    exact endSnipAssignArtStatic evm I (endSnipArtNewWord σ I vatOut saleOut) hbase hget hsz68 hp
+  exact ExecStmt.assignStoreRevert hArtNew hassign
 
 theorem endSnipEvalExpr_intLimit (evm : EVM.State) {locals : Store} :
     evalExpr? config { contract := contract, locals := locals } evm (.intLit int256Limit) =
@@ -8152,7 +8277,8 @@ theorem endSnipTailAfterUsrReturns {I σLoc}
         evmSuck
         (checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank")
         (.ok { contract := contract, locals := endSnipStoreYank I dogOut vatOut saleOut }
-          evmYank)) :
+          evmYank))
+    (hp : evmYank.executionEnv.perm = true) :
     ExecBlock config { contract := contract, locals := endSnipStoreUsr I dogOut vatOut saleOut }
       evmUsr
       (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
@@ -8183,7 +8309,7 @@ theorem endSnipTailAfterUsrReturns {I σLoc}
     refine ExecBlock.consNormal
       (endSnipStmtArtNewAddReturns evmYank I σLoc dogOut vatOut saleOut hsz68 hArtLoad hfit) ?_
     refine ExecBlock.consNormal
-      (endSnipStmtArtAssign evmYank I σLoc dogOut vatOut saleOut hsz68) ?_
+      (endSnipStmtArtAssign evmYank I σLoc dogOut vatOut saleOut hsz68 hp) ?_
     exact ExecBlock.consNormal
       (ExecStmt.requireTrue
         (endSnipEvalExpr_intGuard_true
@@ -8360,6 +8486,63 @@ theorem endSnipTailReverts_artAddOverflow {I σLoc}
    execBlock_append hsuck
       (Reasoning.Theory.execBlock_append hyank hartBlock)
 
+theorem endSnipTailStatic {I σLoc}
+    {dogOut vatOut saleOut : ByteArray} {evmUsr evmSuck evmYank : EVM.State}
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hArtLoad :
+      Solm.EVM.storageLoad evmYank evmYank.executionEnv.codeOwner (endSnipArtSlot I) =
+        endSnipArtOldWord σLoc I)
+    (hrate : endFlowVatIlkRateWord vatOut ≠ ⟨0⟩)
+    (hfit :
+      (endSnipArtOldWord σLoc I).toNat + (endSnipArtWord vatOut saleOut).toNat <
+        UInt256.size)
+    (hsuck :
+      ExecBlock config { contract := contract, locals := endSnipStoreUsr I dogOut vatOut saleOut }
+        evmUsr
+        (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
+          [vowAddr, vowAddr, .var "tab"] "_suck")
+        (.ok { contract := contract, locals := endSnipStoreSuck I dogOut vatOut saleOut }
+          evmSuck))
+    (hyank :
+      ExecBlock config { contract := contract, locals := endSnipStoreSuck I dogOut vatOut saleOut }
+        evmSuck
+        (checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank")
+        (.ok { contract := contract, locals := endSnipStoreYank I dogOut vatOut saleOut }
+          evmYank))
+    (hp : evmYank.executionEnv.perm = false) :
+    ExecBlock config { contract := contract, locals := endSnipStoreUsr I dogOut vatOut saleOut }
+      evmUsr
+      (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
+          [vowAddr, vowAddr, .var "tab"] "_suck" ++
+        checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
+        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+          .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
+          .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
+          .require
+            (.binary .and
+              (.binary .lt (.var "lot") (.intLit int256Limit))
+              (.binary .lt (.var "art") (.intLit int256Limit))) ])
+      .reverted := by
+  have hartBlock :
+      ExecBlock config { contract := contract, locals := endSnipStoreYank I dogOut vatOut saleOut }
+        evmYank
+        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+          .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
+          .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
+          .require
+            (.binary .and
+              (.binary .lt (.var "lot") (.intLit int256Limit))
+              (.binary .lt (.var "art") (.intLit int256Limit))) ]
+        .reverted := by
+    refine ExecBlock.consNormal (endSnipStmtArt evmYank I dogOut vatOut saleOut hrate) ?_
+    refine ExecBlock.consNormal
+      (endSnipStmtArtNewAddReturns evmYank I σLoc dogOut vatOut saleOut hsz68 hArtLoad hfit) ?_
+    exact ExecBlock.consRevert
+      (endSnipStmtArtAssignStatic evmYank I σLoc dogOut vatOut saleOut hsz68 hp)
+  simpa [List.append_assoc] using
+   execBlock_append hsuck
+      (Reasoning.Theory.execBlock_append hyank hartBlock)
+
 theorem endSnipTailReverts_intGuardLot {I σLoc}
     {dogOut vatOut saleOut : ByteArray} {evmUsr evmSuck evmYank : EVM.State}
     (hsz68 : 68 ≤ I.calldata.size)
@@ -8383,7 +8566,8 @@ theorem endSnipTailReverts_intGuardLot {I σLoc}
         evmSuck
         (checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank")
         (.ok { contract := contract, locals := endSnipStoreYank I dogOut vatOut saleOut }
-          evmYank)) :
+          evmYank))
+    (hp : evmYank.executionEnv.perm = true) :
     ExecBlock config { contract := contract, locals := endSnipStoreUsr I dogOut vatOut saleOut }
       evmUsr
       (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
@@ -8412,7 +8596,7 @@ theorem endSnipTailReverts_intGuardLot {I σLoc}
     refine ExecBlock.consNormal
       (endSnipStmtArtNewAddReturns evmYank I σLoc dogOut vatOut saleOut hsz68 hArtLoad hfit) ?_
     refine ExecBlock.consNormal
-      (endSnipStmtArtAssign evmYank I σLoc dogOut vatOut saleOut hsz68) ?_
+      (endSnipStmtArtAssign evmYank I σLoc dogOut vatOut saleOut hsz68 hp) ?_
     exact ExecBlock.consRevert
       (ExecStmt.requireFalse
         (endSnipEvalExpr_intGuard_false_lot
@@ -8446,7 +8630,8 @@ theorem endSnipTailReverts_intGuardArt {I σLoc}
         evmSuck
         (checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank")
         (.ok { contract := contract, locals := endSnipStoreYank I dogOut vatOut saleOut }
-          evmYank)) :
+          evmYank))
+    (hp : evmYank.executionEnv.perm = true) :
     ExecBlock config { contract := contract, locals := endSnipStoreUsr I dogOut vatOut saleOut }
       evmUsr
       (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
@@ -8475,7 +8660,7 @@ theorem endSnipTailReverts_intGuardArt {I σLoc}
     refine ExecBlock.consNormal
       (endSnipStmtArtNewAddReturns evmYank I σLoc dogOut vatOut saleOut hsz68 hArtLoad hfit) ?_
     refine ExecBlock.consNormal
-      (endSnipStmtArtAssign evmYank I σLoc dogOut vatOut saleOut hsz68) ?_
+      (endSnipStmtArtAssign evmYank I σLoc dogOut vatOut saleOut hsz68 hp) ?_
     exact ExecBlock.consRevert
       (ExecStmt.requireFalse
         (endSnipEvalExpr_intGuard_false_art
@@ -8542,7 +8727,8 @@ theorem endSnipBodyReverts_afterUsrTailReverted {I} {dogOut vatOut saleOut : Byt
       ExecBlock config { contract := contract, locals := endSnipStore I } evm0
         snipTransition.body .reverted := by
     have hseq := execBlock_append hprefixUsr htailWithGrab
-    simpa [snipTransition, grabTail, List.append_assoc] using hseq
+    simpa [snipTransition, grabTail, List.append_assoc] using
+      (execBlock_append_term (s2 := [.event]) hseq (by intros; intro h; cases h))
   exact ExecFuncBody.execBlockRevert hblock
 
 theorem endSnipBodyReverts_afterUsrTailGrabReverted {I σLoc}
@@ -8611,7 +8797,8 @@ theorem endSnipBodyReverts_afterUsrTailGrabReverted {I σLoc}
       ExecBlock config { contract := contract, locals := endSnipStore I } evm0
         snipTransition.body .reverted := by
     have hseq := execBlock_append hprefixUsr htailWithGrab
-    simpa [snipTransition, grabTail, List.append_assoc] using hseq
+    simpa [snipTransition, grabTail, List.append_assoc] using
+      (execBlock_append_term (s2 := [.event]) hseq (by intros; intro h; cases h))
   exact ExecFuncBody.execBlockRevert hblock
 
 theorem endSnipBodyReturns_afterUsrTailGrabSuccess {I σLoc}
@@ -8656,7 +8843,8 @@ theorem endSnipBodyReturns_afterUsrTailGrabSuccess {I σLoc}
           [.var "ilk", .var "usr", thisAddr, vowAddr, asInt256 (.var "lot"),
             asInt256 (.var "art")] "_grab")
         (.ok { contract := contract, locals := endSnipStoreGrab σLoc I dogOut vatOut saleOut }
-          evmGrab)) :
+          evmGrab))
+    (hp : evmGrab.executionEnv.perm = true) :
     ExecTransitionBody config contract evm0 (endSnipStore I) snipTransition.body
       (.returned { contract := contract, locals := endSnipStoreGrab σLoc I dogOut vatOut saleOut }
         evmGrab none) := by
@@ -8686,7 +8874,7 @@ theorem endSnipBodyReturns_afterUsrTailGrabSuccess {I σLoc}
         (.ok { contract := contract, locals := endSnipStoreGrab σLoc I dogOut vatOut saleOut }
           evmGrab) := by
     have hseq := execBlock_append hprefixUsr htailWithGrab
-    simpa [snipTransition, grabTail, List.append_assoc] using hseq
+    simpa [snipTransition, grabTail, List.append_assoc] using execBlock_append_event hseq hp
   exact ExecFuncBody.execBlockOK hblock
 
 theorem endSnipBodyReverts_afterRateSalesBlock {I} {dogOut vatOut : ByteArray}
@@ -8736,7 +8924,8 @@ theorem endSnipBodyReverts_afterRateSalesBlock {I} {dogOut vatOut : ByteArray}
       ExecBlock config { contract := contract, locals := endSnipStore I } evm0
         snipTransition.body .reverted := by
     have hseq := execBlock_append hprefix hsalesWithTail
-    simpa [snipTransition, afterSales, List.append_assoc] using hseq
+    simpa [snipTransition, afterSales, List.append_assoc] using
+      (execBlock_append_term (s2 := [.event]) hseq (by intros; intro h; cases h))
   exact ExecFuncBody.execBlockRevert hblock
 
 theorem endSnipBodyReverts_tagZero {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -8784,7 +8973,7 @@ theorem endSnipBodyReverts_tagZero {cA gh bl σ σ₀ A I} {g : UInt256}
               (.binary .lt (.var "art") (.intLit int256Limit))) ] ++
         checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
           [.var "ilk", .var "usr", thisAddr, vowAddr, asInt256 (.var "lot"),
-            asInt256 (.var "art")] "_grab")
+            asInt256 (.var "art")] "_grab" ++ [.event])
       (by simp only [evm0, initState]; exact hwv)
       hguard
 
@@ -8824,7 +9013,7 @@ theorem endSnipBodyCoreDecodeFailed_short
 
 theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf snipTransition))
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
@@ -8943,7 +9132,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (callPerm := true)
               hdepthNe htgtDog
               (endSnipDogIlksEncode_eq I hsz68 (endSnipDogIlksBaseMem_size I))
-              (by simpa [initState, hperm] using hΘDogEq)
+              (by simpa [initState, Bool.and_true] using hΘDogEq)
               (by simpa [initState] using hAccounts)
               (by simp [evmSolm, initState])
               (by simp [evmSolm, initState])
@@ -9098,7 +9287,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (by simpa [evmDogEvm, initState] using hdepthNe)
                     htgtVat
                     (endSnipVatIlksEncode_eq I dogOut hsz68 hloDog)
-                    (by simpa [evmDogEvm, initState, hperm] using hΘVatEq)
+                    (by simpa [evmDogEvm, initState, Bool.and_true] using hΘVatEq)
                     (by simpa [evmDogEvm, evmDogSolm] using hAccountsDog)
                     (by rfl)
                     (by simpa using hStateDog.createdAccounts.symm)
@@ -9498,7 +9687,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 (endSnipSuckEncode_eq σ_sales I dogOut vatOut saleOut
                                   hloDog hloVat hloSale)
                                 (by simpa [evmSalesEvm, evmVatEvm, evmDogEvm, initState,
-                                  hperm] using hΘSuckEq)
+                                  Bool.and_true] using hΘSuckEq)
                                 (by simpa [evmSalesEvm, evmSalesSolm] using hAccountsSales)
                                 (by rfl)
                                 (by simpa using hStateSales.createdAccounts.symm)
@@ -9664,7 +9853,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     (endSnipYankEncode_eq σ_sales I dogOut vatOut saleOut
                                       hloDog hloVat hloSale)
                                     (by simpa [evmSuckEvm, evmSalesEvm, evmVatEvm,
-                                      evmDogEvm, initState, hperm] using hΘYankEq)
+                                      evmDogEvm, initState, Bool.and_true] using hΘYankEq)
                                     (by simpa [evmSuckEvm, evmSuckSolm] using
                                       hAccountsSuck)
                                     (by rfl)
@@ -9824,6 +10013,18 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         endSnipX_artAddReturns
                                           (g := Sat256.ofUInt256 g) (σmem := σ_sales)
                                           (σpost := σ_yank) hfit rd10092
+                                      by_cases hperm : I.perm = true
+                                      case neg =>
+                                        have hp : I.perm = false := by simpa using hperm
+                                        have hpYank : evmYankSolm.executionEnv.perm = false := by
+                                          simpa [evmYankSolm, evmSuckSolm, evmSalesSolm, evmVatSolm, evmDogSolm, evmSolm, initState] using hp
+                                        have htail := endSnipTailStatic hsz68 hArtLoadSolm hrateNE hfitSolm
+                                          hsuckBlock hyankBlock hpYank
+                                        have hbody := endSnipBodyReverts_afterUsrTailReverted hprefixUsr htail
+                                        exact (endSnipX_artStoreStatic hp hsz68 hloDog hloVat hloSale rd2391).reEquivExecution
+                                          hcode hdispatch hdecode hbody
+                                      have hpYank : evmYankSolm.executionEnv.perm = true := by
+                                        simpa [evmYankSolm, evmSuckSolm, evmSalesSolm, evmVatSolm, evmDogSolm, evmSolm, initState] using hperm
                                       let int256Bound : Nat :=
                                         57896044618658097711785492504343953926634992332820282019728792003956564819968
                                       have hint256Bound : int256Bound = 2 ^ 255 := by
@@ -9847,7 +10048,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                               hperm hsz68 hloDog hloVat hloSale hlot
                                               hart rd2391
                                           have htailOk :=
-                                            endSnipTailAfterUsrReturns hsz68
+                                            endSnipTailAfterUsrReturns (hp := hpYank) hsz68
                                               hArtLoadSolm hrateNE hfitSolm hlot hart
                                               hsuckBlock hyankBlock
                                           let σ_post :=
@@ -10032,7 +10233,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                   endSnip_storageStore_blocks, σ_post,
                                                   endSnipPostArtAccountMap, evmYankEvm,
                                                   evmSuckEvm, evmSalesEvm, evmVatEvm,
-                                                  evmDogEvm, initState, hperm] using
+                                                  evmDogEvm, initState, Bool.and_true] using
                                                   hΘGrabEq)
                                                 hStatePost.accountMap
                                                 (by simp [evmPostEvm, evmPostSolm,
@@ -10191,6 +10392,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                 exact
                                                   endSnipBodyReturns_afterUsrTailGrabSuccess
                                                     hprefixUsr htailOk hgrab
+                                                    (by simpa [evmGrabSolm, evmPostSolm, endSnipPostArtState, storageStore_executionEnv, evmYankSolm, evmSuckSolm, evmSalesSolm, evmVatSolm, evmDogSolm, evmSolm, initState] using hperm)
                                               exact hretEvm.reEquivExecutionGenEVMStateEquiv
                                                 (evm'_evm := evmGrabEvm)
                                                 (evm'_solm := evmGrabSolm)
@@ -10216,7 +10418,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                 (endSnipArtWord vatOut saleOut).toNat := by
                                             simpa [hint256Bound] using hartOverflowBound
                                           have htail :=
-                                            endSnipTailReverts_intGuardArt hsz68
+                                            endSnipTailReverts_intGuardArt (hp := hpYank) hsz68
                                               hArtLoadSolm hrateNE hfitSolm hlot
                                               hartOverflow hsuckBlock hyankBlock
                                           have hbody :
@@ -10242,7 +10444,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                               (endSnipSaleLotWord saleOut).toNat := by
                                           simpa [hint256Bound] using hlotOverflowBound
                                         have htail :=
-                                          endSnipTailReverts_intGuardLot hsz68
+                                          endSnipTailReverts_intGuardLot (hp := hpYank) hsz68
                                             hArtLoadSolm hrateNE hfitSolm hlotOverflow
                                             hsuckBlock hyankBlock
                                         have hbody :

@@ -5,7 +5,8 @@ import Solm.SolidityLayout
 # MakerDAO/Sky DSS End benchmark spec
 
 Faithful Solm benchmark spec for upstream `dss/src/end.sol` (global settlement engine).
-Events are omitted, matching the existing event-bearing DSS benchmarks.
+Each event is represented by `.event`, which only enforces the static-call restriction.
+Event payloads and logs are abstracted away.
 
 Two modelling notes, both behaviour-preserving:
 * `u256 e = .inRange uint256Int e` reverts on overflow, so the DSS `add/sub/mul` checks are
@@ -262,7 +263,7 @@ def constructorDecl : ConstructorDecl :=
     body :=
       nonpayable ++
       [ .assign .storage (wardsRef sender) (.intLit 1),
-        .assign .storage liveRef (.intLit 1) ] }
+        .assign .storage liveRef (.intLit 1) ] ++ [.event] }
 
 def addFunction : FunctionDecl :=
   { name := "add"
@@ -402,13 +403,13 @@ def relyTransition : TransitionDecl :=
   { name := "rely"
     params := [{ name := "usr", ty := addr }]
     returnType := []
-    body := nonpayable ++ auth ++ [ .assign .storage (wardsRef (.var "usr")) (.intLit 1) ] }
+    body := nonpayable ++ auth ++ [ .assign .storage (wardsRef (.var "usr")) (.intLit 1) ] ++ [.event] }
 
 def denyTransition : TransitionDecl :=
   { name := "deny"
     params := [{ name := "usr", ty := addr }]
     returnType := []
-    body := nonpayable ++ auth ++ [ .assign .storage (wardsRef (.var "usr")) (.intLit 0) ] }
+    body := nonpayable ++ auth ++ [ .assign .storage (wardsRef (.var "usr")) (.intLit 0) ] ++ [.event] }
 
 def fileAddressTransition : TransitionDecl :=
   { name := "file"
@@ -424,7 +425,7 @@ def fileAddressTransition : TransitionDecl :=
         [ .ite (.binary .eq (.var "what") potLit) [ .assign .storage potRef (.var "data") ]
         [ .ite (.binary .eq (.var "what") spotLit) [ .assign .storage spotRef (.var "data") ]
         [ .ite (.binary .eq (.var "what") cureLit) [ .assign .storage cureRef (.var "data") ]
-        [ .require (.boolLit false) ] ] ] ] ] ] ] ] }
+        [ .require (.boolLit false) ] ] ] ] ] ] ] ] ++ [.event] }
 
 def fileUintTransition : TransitionDecl :=
   { name := "file"
@@ -434,7 +435,7 @@ def fileUintTransition : TransitionDecl :=
       nonpayable ++ auth ++
       [ .require (.binary .eq (.storage liveRef) (.intLit 1)),
         .ite (.binary .eq (.var "what") waitLit) [ .assign .storage waitRef (.var "data") ]
-        [ .require (.boolLit false) ] ] }
+        [ .require (.boolLit false) ] ] ++ [.event] }
 
 /-! ## Settlement -/
 
@@ -453,7 +454,7 @@ def cageTransition : TransitionDecl :=
       checkedExternalCallStmts (.storage vowRef) "cage" (.intLit 0) [] "_vowCage" ++
       checkedExternalCallStmts (.storage spotRef) "cage" (.intLit 0) [] "_spotCage" ++
       checkedExternalCallStmts (.storage potRef) "cage" (.intLit 0) [] "_potCage" ++
-      checkedExternalCallStmts (.storage cureRef) "cage" (.intLit 0) [] "_cureCage" }
+      checkedExternalCallStmts (.storage cureRef) "cage" (.intLit 0) [] "_cureCage" ++ [.event] }
 
 def cageIlkTransition : TransitionDecl :=
   { name := "cage"
@@ -471,7 +472,7 @@ def cageIlkTransition : TransitionDecl :=
       checkedExternalCallStmts (.storage spotRef) "par" (.intLit 0) [] "parV" (perm := false) ++
       checkedExternalCallStmts (.var "pip") "read" (.intLit 0) [] "pipRead" (perm := false) ++
       [ .internalCall "wdiv" [.var "parV", .cast (.var "pipRead") uint256St] "tagV",
-        .assign .storage (tagRef (.var "ilk")) (.var "tagV") ] }
+        .assign .storage (tagRef (.var "ilk")) (.var "tagV") ] ++ [.event] }
 
 def snipTransition : TransitionDecl :=
   { name := "snip"
@@ -502,7 +503,7 @@ def snipTransition : TransitionDecl :=
             (.binary .lt (.var "art") (.intLit int256Limit))) ] ++
       checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
         [.var "ilk", .var "usr", thisAddr, vowAddr, asInt256 (.var "lot"), asInt256 (.var "art")]
-        "_grab" }
+        "_grab" ++ [.event] }
 
 def skipTransition : TransitionDecl :=
   { name := "skip"
@@ -537,7 +538,7 @@ def skipTransition : TransitionDecl :=
             (.binary .lt (.var "art") (.intLit int256Limit))) ] ++
       checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
         [.var "ilk", .var "usr", thisAddr, vowAddr, asInt256 (.var "lot"), asInt256 (.var "art")]
-        "_grab" }
+        "_grab" ++ [.event] }
 
 def skimTransition : TransitionDecl :=
   { name := "skim"
@@ -565,7 +566,7 @@ def skimTransition : TransitionDecl :=
       checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
         [.var "ilk", .var "urn", thisAddr, vowAddr,
          .unary .neg (asInt256 (.var "wad")), .unary .neg (asInt256 (.var "art"))]
-        "_grab" }
+        "_grab" ++ [.event] }
 
 def freeTransition : TransitionDecl :=
   { name := "free"
@@ -581,7 +582,7 @@ def freeTransition : TransitionDecl :=
         .require (.binary .le (.var "ink") (.intLit int256Limit)) ] ++
       checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
         [.var "ilk", sender, sender, vowAddr, .unary .neg (asInt256 (.var "ink")), .intLit 0]
-        "_grab" }
+        "_grab" ++ [.event] }
 
 def thawTransition : TransitionDecl :=
   { name := "thaw"
@@ -600,7 +601,7 @@ def thawTransition : TransitionDecl :=
       checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
         (perm := false) ++
       [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
-        .assign .storage debtRef (.var "debtNew") ] }
+        .assign .storage debtRef (.var "debtNew") ] ++ [.event] }
 
 def flowTransition : TransitionDecl :=
   { name := "flow"
@@ -618,7 +619,7 @@ def flowTransition : TransitionDecl :=
         .internalCall "mul" [.var "num0", .intLit RAY] "num",
         .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
         .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
-        .assign .storage (fixRef (.var "ilk")) (.var "fixV") ] }
+        .assign .storage (fixRef (.var "ilk")) (.var "fixV") ] ++ [.event] }
 
 def packTransition : TransitionDecl :=
   { name := "pack"
@@ -631,7 +632,7 @@ def packTransition : TransitionDecl :=
       checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
         [sender, vowAddr, .var "amt"] "_move" ++
       [ .internalCall "add" [.storage (bagRef sender), .var "wad"] "bagNew",
-        .assign .storage (bagRef sender) (.var "bagNew") ] }
+        .assign .storage (bagRef sender) (.var "bagNew") ] ++ [.event] }
 
 def cashTransition : TransitionDecl :=
   { name := "cash"
@@ -646,7 +647,7 @@ def cashTransition : TransitionDecl :=
       [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
         .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
         .require
-          (.binary .le (.var "outNew") (.storage (bagRef sender))) ] }
+          (.binary .le (.var "outNew") (.storage (bagRef sender))) ] ++ [.event] }
 
 def transitions : List TransitionDecl :=
   [ wardsTransition, vatTransition, catTransition, dogTransition, vowTransition, potTransition,

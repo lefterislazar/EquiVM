@@ -261,7 +261,7 @@ theorem endCageCallMadeBridge {evmE evmS : EVM.State} {slot : UInt256}
           callGas (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((endCageCallCalldataMem (endRelyAuthHashMem evmE.executionEnv)).readWithPadding
             endCageCallOutPtr.toNat endCageCallInSize.toNat)
-          (evmE.executionEnv.depth + 1) evmE.executionEnv.header true)
+          (evmE.executionEnv.depth + 1) evmE.executionEnv.header (evmE.executionEnv.perm && true))
     (hAccounts : accountMapEquiv evmE.accountMap evmS.accountMap)
     (hOriginalAccounts : evmE.σ₀ = evmS.σ₀)
     (hCreated : evmS.createdAccounts = evmE.createdAccounts)
@@ -689,7 +689,22 @@ theorem evalExpr_endCage_timestamp (evm : EVM.State) :
       .ok (.int (Int.ofNat (endCageTimestampWord evm).toNat)) := by
   simp [nowT, evalExpr?, envValue, endCageTimestampWord, pure]
 
-theorem endCageAssignLive (evm : EVM.State) :
+theorem endCageAssignLiveStatic (evm : EVM.State)
+    (hperm : evm.executionEnv.perm = false) :
+    assignStorageRef? config { contract := contract, locals := ∅ } evm
+      .storage liveRef (.int 0) =
+        .revert := by
+  apply assignStorageRef_storage_scalar_static
+      (ty := uint256St)
+      (er := endLiveEvaledRef)
+      (loc := wordLoc ⟨8⟩)
+      (hbase := by simp [liveRef])
+      (her := evalStorageRef_endCage_live evm)
+      (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
+      (hloc := by rfl) (hscalar := by trivial) (hp := hperm)
+
+theorem endCageAssignLive (evm : EVM.State)
+    (hperm : evm.executionEnv.perm = true) :
     assignStorageRef? config { contract := contract, locals := ∅ } evm
       .storage liveRef (.int 0) =
         .ok ({ contract := contract, locals := ∅ },
@@ -702,9 +717,10 @@ theorem endCageAssignLive (evm : EVM.State) :
       (her := evalStorageRef_endCage_live evm)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-  simpa using endStorageLocStore_uint256 evm ⟨8⟩ ⟨0⟩
+  simpa using endStorageLocStore_uint256 evm ⟨8⟩ ⟨0⟩ hperm
 
-theorem endCageAssignWhen (evm : EVM.State) :
+theorem endCageAssignWhen (evm : EVM.State)
+    (hperm : evm.executionEnv.perm = true) :
     assignStorageRef? config { contract := contract, locals := ∅ }
       (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨8⟩ ⟨0⟩)
       .storage whenRef (.int (Int.ofNat (endCageTimestampWord evm).toNat)) =
@@ -721,7 +737,20 @@ theorem endCageAssignWhen (evm : EVM.State) :
   simpa [endCagePostStoresState, endCageTimestampWord, storageStore_executionEnv] using
     endStorageLocStore_uint256
       (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨8⟩ ⟨0⟩) ⟨9⟩
-      (endCageTimestampWord evm)
+      (endCageTimestampWord evm) (by simpa [storageStore_executionEnv] using hperm)
+
+theorem endCageX_storeStatic {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (hperm : I.perm = false)
+    (h : RD endBytecode I g s0 endCageStorePc [endCageReturnPc, sel]
+      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDstatic endBytecode g s0 := by
+  have rdStoreLiveCursor := evm_run h with [
+    raw jumpdest (by native_decide) (by evm_ov),
+    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
+    raw push1 ⟨8⟩ (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov)]
+  exact rdStoreLiveCursor.sstoreStatic hperm (by native_decide) (by evm_ov)
 
 theorem endCageX_storePrefix {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
@@ -2890,7 +2919,8 @@ theorem endCageX_finish {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt256}
 theorem endCageSourceStoresPrefix {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩) :
+    (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (hperm : I.perm = true) :
     let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
     let evmStores := endCagePostStoresState evm0
     ExecBlock config { contract := contract, locals := ∅ } evm0
@@ -2916,7 +2946,7 @@ theorem endCageSourceStoresPrefix {cA gh bl σ σ₀ A I} {g : UInt256}
       assignStorageRef? config { contract := contract, locals := ∅ } evm0
         .storage liveRef (.int 0) =
           .ok ({ contract := contract, locals := ∅ }, evmLive) := by
-    simpa [evmLive] using endCageAssignLive evm0
+    simpa [evmLive] using endCageAssignLive evm0 hperm
   have htimestamp :
       evalExpr? config { contract := contract, locals := ∅ } evmLive nowT =
         .ok (.int (Int.ofNat (endCageTimestampWord evm0).toNat)) := by
@@ -2926,7 +2956,7 @@ theorem endCageSourceStoresPrefix {cA gh bl σ σ₀ A I} {g : UInt256}
       assignStorageRef? config { contract := contract, locals := ∅ } evmLive
         .storage whenRef (.int (Int.ofNat (endCageTimestampWord evm0).toNat)) =
           .ok ({ contract := contract, locals := ∅ }, evmStores) := by
-    simpa [evmLive, evmStores] using endCageAssignWhen evm0
+    simpa [evmLive, evmStores] using endCageAssignWhen evm0 hperm
   simp only [nonpayable, auth, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp only [evm0, initState]; exact hwv)
@@ -2934,6 +2964,32 @@ theorem endCageSourceStoresPrefix {cA gh bl σ σ₀ A I} {g : UInt256}
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
   refine ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassignLive) ?_
   exact ExecBlock.consNormal (ExecStmt.assign htimestamp hassignWhen) ExecBlock.nil
+
+theorem endCageSourceStatic {cA gh bl σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : endRelyAuthWord σ I = ⟨1⟩)
+    (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (hp : I.perm = false) :
+    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 ∅ cageTransition.body .reverted := by
+  intro evm0
+  have hguardAuth :
+      evalExpr? config { contract := contract, locals := ∅ } evm0
+        (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
+    simpa [evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+      State.lookupAccount] using
+      evalExpr_endCage_auth_true evm0 I (by simp [evm0, initState]) hauth
+  have hguardLive :
+      evalExpr? config { contract := contract, locals := ∅ } evm0
+        (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
+    simpa [evm0, endSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
+      evalExpr_endCage_live_true evm0 hlive
+  apply ExecFuncBody.execBlockRevert
+  apply ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
+  apply ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth)
+  apply ExecBlock.consNormal (ExecStmt.requireTrue hguardLive)
+  exact ExecBlock.consRevert (ExecStmt.assignStoreRevert
+    (by simp [evalExpr?, pure]) (endCageAssignLiveStatic evm0 hp))
 
 theorem evalExpr_endCage_storageAddr {evm : EVM.State} {locals : Store}
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -3112,7 +3168,7 @@ abbrev endCageSourceCallStmts : List Stmt :=
     endCageSourceCureStmts
 
 theorem endCageSourceBody_eq :
-    cageTransition.body = endCageSourceStorePrefixStmts ++ endCageSourceCallStmts := by
+    cageTransition.body = endCageSourceStorePrefixStmts ++ endCageSourceCallStmts ++ [.event] := by
   simp [cageTransition, endCageSourceStorePrefixStmts, endCageSourceCallStmts,
     endCageSourceVatStmts, endCageSourceCatStmts, endCageSourceDogStmts,
     endCageSourceVowStmts, endCageSourceSpotStmts, endCageSourcePotStmts,
@@ -3159,7 +3215,7 @@ theorem endCageSourceAuthReverts {cA gh bl σ σ₀ A I} {g : UInt256}
         checkedExternalCallStmts (.storage vowRef) "cage" (.intLit 0) [] "_vowCage" ++
         checkedExternalCallStmts (.storage spotRef) "cage" (.intLit 0) [] "_spotCage" ++
         checkedExternalCallStmts (.storage potRef) "cage" (.intLit 0) [] "_potCage" ++
-        checkedExternalCallStmts (.storage cureRef) "cage" (.intLit 0) [] "_cureCage")
+        checkedExternalCallStmts (.storage cureRef) "cage" (.intLit 0) [] "_cureCage" ++ [.event])
       (by simp [evm0, initState]; exact hwv)
       hguard
 
@@ -3193,7 +3249,7 @@ theorem endCageSourceLiveReverts {cA gh bl σ σ₀ A I} {g : UInt256}
 
 theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf cageTransition))
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
@@ -3226,6 +3282,13 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         rw [← hword]
         exact hlive
       obtain ⟨_, _, hStorePc⟩ := endCageX_live hlive hLivePc
+      by_cases hperm : I.perm = true
+      case neg =>
+        have hp : I.perm = false := by simpa using hperm
+        have hbody := endCageSourceStatic
+          (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+          (A := A) (I := I) (g := g) hwv hauthSolm hliveSolm hp
+        exact (endCageX_storeStatic hp hStorePc).reEquivExecution hcode hdispatch hdecode hbody
       obtain ⟨_, _, hVatStart⟩ := endCageX_storePrefix hperm hStorePc
       let evmS0 := endCagePostStoresState evmSolm
       let evmE0 := endCagePostStoresState
@@ -3245,7 +3308,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         simpa [evmSolm, evmS0, endCageSourceStorePrefixStmts] using
           endCageSourceStoresPrefix (cA := cA) (gh := gh) (bl := bl)
             (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-            hwv hauthSolm hliveSolm
+            hwv hauthSolm hliveSolm hperm
       have hAccounts0 : accountMapEquiv evmE0.accountMap evmS0.accountMap := by
         simpa [evmE0, evmS0, evmSolm, endCagePostStoresState, initState,
           storageStore_accountMap, endCageStoredAccountMap] using
@@ -3303,7 +3366,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             (s2 := endCageSourceVatStmts)
             (tail := endCageSourceCatStmts ++ endCageSourceDogStmts ++
               endCageSourceVowStmts ++ endCageSourceSpotStmts ++
-              endCageSourcePotStmts ++ endCageSourceCureStmts)
+              endCageSourcePotStmts ++ endCageSourceCureStmts ++ [.event])
             hSrc0 (by simpa [l0] using hVatBlock)
             (by simp [endCageSourceBody_eq, endCageSourceCallStmts, List.append_assoc])
         exact (endCageX_vatNoCode hVatStart
@@ -3352,7 +3415,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   ((endCageCallCalldataMem
                     (endRelyAuthHashMem evmE0.executionEnv)).readWithPadding
                       endCageCallOutPtr.toNat endCageCallInSize.toNat)
-                  (evmE0.executionEnv.depth + 1) evmE0.executionEnv.header true := by
+                  (evmE0.executionEnv.depth + 1) evmE0.executionEnv.header (evmE0.executionEnv.perm && true) := by
             simpa [evmE0, endCagePostStoresState, initState, storageStore_accountMap,
               storageStore_createdAccounts, storageStore_executionEnv, endCageStoredAccountMap,
               hperm] using hΘ1eq
@@ -3396,7 +3459,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 (s2 := endCageSourceVatStmts)
                 (tail := endCageSourceCatStmts ++ endCageSourceDogStmts ++
                   endCageSourceVowStmts ++ endCageSourceSpotStmts ++
-                  endCageSourcePotStmts ++ endCageSourceCureStmts)
+                  endCageSourcePotStmts ++ endCageSourceCureStmts ++ [.event])
                 hSrc0 (by simpa [l0] using hVatBlock)
                 (by simp [endCageSourceBody_eq, endCageSourceCallStmts, List.append_assoc])
             exact (endCageX_vatCallFailed rdVatFail hout1)
@@ -3464,7 +3527,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   (s2 := endCageSourceCatStmts)
                   (tail := endCageSourceDogStmts ++ endCageSourceVowStmts ++
                     endCageSourceSpotStmts ++ endCageSourcePotStmts ++
-                    endCageSourceCureStmts)
+                    endCageSourceCureStmts ++ [.event])
                   hSrcVat hCatBlock
                   (by simp [endCageSourceBody_eq, endCageSourceCallStmts, List.append_assoc])
               exact (endCageX_catNoCode hCatStart
@@ -3504,7 +3567,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       ((endCageCallCalldataMem
                         (endRelyAuthHashMem evmE1.executionEnv)).readWithPadding
                           endCageCallOutPtr.toNat endCageCallInSize.toNat)
-                      (evmE1.executionEnv.depth + 1) evmE1.executionEnv.header true := by
+                      (evmE1.executionEnv.depth + 1) evmE1.executionEnv.header (evmE1.executionEnv.perm && true) := by
                 simpa [evmE1, evmE0, endCagePostStoresState, initState,
                   storageStore_accountMap, storageStore_createdAccounts,
                   storageStore_executionEnv, endCageStoredAccountMap, endCageTimestampWord, hperm] using hΘ2eq
@@ -3551,7 +3614,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (s2 := endCageSourceCatStmts)
                     (tail := endCageSourceDogStmts ++ endCageSourceVowStmts ++
                       endCageSourceSpotStmts ++ endCageSourcePotStmts ++
-                      endCageSourceCureStmts)
+                      endCageSourceCureStmts ++ [.event])
                     hSrcVat hCatBlock
                     (by simp [endCageSourceBody_eq, endCageSourceCallStmts,
                       List.append_assoc])
@@ -3622,7 +3685,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         endCageSourceCatStmts)
                       (s2 := endCageSourceDogStmts)
                       (tail := endCageSourceVowStmts ++ endCageSourceSpotStmts ++
-                        endCageSourcePotStmts ++ endCageSourceCureStmts)
+                        endCageSourcePotStmts ++ endCageSourceCureStmts ++ [.event])
                       hSrcCat hDogBlock
                       (by simp [endCageSourceBody_eq, endCageSourceCallStmts,
                         List.append_assoc])
@@ -3666,7 +3729,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           ((endCageCallCalldataMem
                             (endRelyAuthHashMem evmE2.executionEnv)).readWithPadding
                               endCageCallOutPtr.toNat endCageCallInSize.toNat)
-                          (evmE2.executionEnv.depth + 1) evmE2.executionEnv.header true := by
+                          (evmE2.executionEnv.depth + 1) evmE2.executionEnv.header (evmE2.executionEnv.perm && true) := by
                     simpa [evmE2, evmE1, evmE0, endCagePostStoresState, initState,
                       storageStore_accountMap, storageStore_createdAccounts,
                       storageStore_executionEnv, endCageStoredAccountMap, endCageTimestampWord, hperm] using hΘ3eq
@@ -3712,7 +3775,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           endCageSourceCatStmts)
                         (s2 := endCageSourceDogStmts)
                         (tail := endCageSourceVowStmts ++ endCageSourceSpotStmts ++
-                          endCageSourcePotStmts ++ endCageSourceCureStmts)
+                          endCageSourcePotStmts ++ endCageSourceCureStmts ++ [.event])
                         hSrcCat hDogBlock
                         (by simp [endCageSourceBody_eq, endCageSourceCallStmts,
                           List.append_assoc])
@@ -3783,7 +3846,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             endCageSourceCatStmts ++ endCageSourceDogStmts)
                           (s2 := endCageSourceVowStmts)
                           (tail := endCageSourceSpotStmts ++ endCageSourcePotStmts ++
-                            endCageSourceCureStmts)
+                            endCageSourceCureStmts ++ [.event])
                           hSrcDog hVowBlock
                           (by simp [endCageSourceBody_eq, endCageSourceCallStmts,
                             List.append_assoc])
@@ -3829,8 +3892,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               ((endCageCallCalldataMem
                                 (endRelyAuthHashMem evmE3.executionEnv)).readWithPadding
                                   endCageCallOutPtr.toNat endCageCallInSize.toNat)
-                              (evmE3.executionEnv.depth + 1) evmE3.executionEnv.header
-                              true := by
+                              (evmE3.executionEnv.depth + 1) evmE3.executionEnv.header (evmE3.executionEnv.perm && true) := by
                         simpa [evmE3, evmE2, evmE1, evmE0, endCagePostStoresState,
                           initState, storageStore_accountMap, storageStore_createdAccounts,
                           storageStore_executionEnv, endCageStoredAccountMap, endCageTimestampWord, hperm] using
@@ -3878,7 +3940,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               endCageSourceDogStmts)
                             (s2 := endCageSourceVowStmts)
                             (tail := endCageSourceSpotStmts ++ endCageSourcePotStmts ++
-                              endCageSourceCureStmts)
+                              endCageSourceCureStmts ++ [.event])
                             hSrcDog hVowBlock
                             (by simp [endCageSourceBody_eq, endCageSourceCallStmts,
                               List.append_assoc])
@@ -3951,7 +4013,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 endCageSourceVatStmts ++ endCageSourceCatStmts ++
                                 endCageSourceDogStmts ++ endCageSourceVowStmts)
                               (s2 := endCageSourceSpotStmts)
-                              (tail := endCageSourcePotStmts ++ endCageSourceCureStmts)
+                              (tail := endCageSourcePotStmts ++ endCageSourceCureStmts ++ [.event])
                               hSrcVow hSpotBlock
                               (by simp [endCageSourceBody_eq, endCageSourceCallStmts,
                                 List.append_assoc])
@@ -3997,8 +4059,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   ((endCageCallCalldataMem
                                     (endRelyAuthHashMem evmE4.executionEnv)).readWithPadding
                                       endCageCallOutPtr.toNat endCageCallInSize.toNat)
-                                  (evmE4.executionEnv.depth + 1) evmE4.executionEnv.header
-                                  true := by
+                                  (evmE4.executionEnv.depth + 1) evmE4.executionEnv.header (evmE4.executionEnv.perm && true) := by
                             simpa [evmE4, evmE3, evmE2, evmE1, evmE0,
                               endCagePostStoresState, initState, storageStore_accountMap,
                               storageStore_createdAccounts, storageStore_executionEnv,
@@ -4050,7 +4111,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   endCageSourceVatStmts ++ endCageSourceCatStmts ++
                                   endCageSourceDogStmts ++ endCageSourceVowStmts)
                                 (s2 := endCageSourceSpotStmts)
-                                (tail := endCageSourcePotStmts ++ endCageSourceCureStmts)
+                                (tail := endCageSourcePotStmts ++ endCageSourceCureStmts ++ [.event])
                                 hSrcVow hSpotBlock
                                 (by simp [endCageSourceBody_eq, endCageSourceCallStmts,
                                   List.append_assoc])
@@ -4129,7 +4190,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     endCageSourceDogStmts ++ endCageSourceVowStmts ++
                                     endCageSourceSpotStmts)
                                   (s2 := endCageSourcePotStmts)
-                                  (tail := endCageSourceCureStmts)
+                                  (tail := endCageSourceCureStmts ++ [.event])
                                   hSrcSpot hPotBlock
                                   (by simp [endCageSourceBody_eq, endCageSourceCallStmts,
                                     List.append_assoc])
@@ -4178,7 +4239,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                           evmE5.executionEnv)).readWithPadding
                                           endCageCallOutPtr.toNat endCageCallInSize.toNat)
                                       (evmE5.executionEnv.depth + 1)
-                                      evmE5.executionEnv.header true := by
+                                      evmE5.executionEnv.header (evmE5.executionEnv.perm && true) := by
                                 simpa [evmE5, evmE4, evmE3, evmE2, evmE1, evmE0,
                                   endCagePostStoresState, initState, storageStore_accountMap,
                                   storageStore_createdAccounts, storageStore_executionEnv,
@@ -4236,7 +4297,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       endCageSourceDogStmts ++ endCageSourceVowStmts ++
                                       endCageSourceSpotStmts)
                                     (s2 := endCageSourcePotStmts)
-                                    (tail := endCageSourceCureStmts)
+                                    (tail := endCageSourceCureStmts ++ [.event])
                                     hSrcSpot hPotBlock
                                     (by simp [endCageSourceBody_eq, endCageSourceCallStmts,
                                       List.append_assoc])
@@ -4322,7 +4383,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         endCageSourceDogStmts ++ endCageSourceVowStmts ++
                                         endCageSourceSpotStmts ++ endCageSourcePotStmts)
                                       (s2 := endCageSourceCureStmts)
-                                      (tail := [])
+                                      (tail := [] ++ [.event])
                                       hSrcPot hCureBlock
                                       (by simp [endCageSourceBody_eq,
                                         endCageSourceCallStmts, List.append_assoc])
@@ -4376,7 +4437,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                               endCageCallOutPtr.toNat
                                               endCageCallInSize.toNat)
                                           (evmE6.executionEnv.depth + 1)
-                                          evmE6.executionEnv.header true := by
+                                          evmE6.executionEnv.header (evmE6.executionEnv.perm && true) := by
                                     simpa [evmE6, evmE5, evmE4, evmE3, evmE2, evmE1,
                                       evmE0, endCagePostStoresState, initState,
                                       storageStore_accountMap, storageStore_createdAccounts,
@@ -4442,7 +4503,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                           endCageSourceSpotStmts ++
                                           endCageSourcePotStmts)
                                         (s2 := endCageSourceCureStmts)
-                                        (tail := [])
+                                        (tail := [] ++ [.event])
                                         hSrcPot hCureBlock
                                         (by simp [endCageSourceBody_eq,
                                           endCageSourceCallStmts, List.append_assoc])
@@ -4506,7 +4567,9 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                               evmS7) := by
                                         simpa [endCageSourceBody_eq,
                                           endCageSourceCallStmts, List.append_assoc] using
-                                          hSrcCure
+                                          (execBlock_append_event hSrcCure (by
+                                            simpa [evmS7, evmS6, evmS5, evmS4, evmS3, evmS2, evmS1,
+                                              evmS0, evmSolm, endCagePostStoresState, storageStore_executionEnv, initState] using hperm))
                                       simpa [ExecTransitionBody] using
                                         ExecFuncBody.execBlockOK hblock
                                     have hret := endCageX_finish hperm rd6300
@@ -4576,7 +4639,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (s2 := endCageSourceVatStmts)
               (tail := endCageSourceCatStmts ++ endCageSourceDogStmts ++
                 endCageSourceVowStmts ++ endCageSourceSpotStmts ++
-                endCageSourcePotStmts ++ endCageSourceCureStmts)
+                endCageSourcePotStmts ++ endCageSourceCureStmts ++ [.event])
               hSrc0 (by simpa [l0] using hVatBlock)
               (by simp [endCageSourceBody_eq, endCageSourceCallStmts, List.append_assoc])
           exact (endCageX_vatCallFailed rdVatDepth (by native_decide))

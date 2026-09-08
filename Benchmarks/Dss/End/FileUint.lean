@@ -361,7 +361,23 @@ theorem evalExpr_endFileUint_live_false (evm : EVM.State) (I : ExecutionEnv)
 def endFileUintPostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨10⟩ (endFileUintData I)
 
-theorem endFileUintAssignWait (evm : EVM.State) (I : ExecutionEnv) :
+theorem endFileUintAssignWaitStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hp : evm.executionEnv.perm = false) :
+    assignStorageRef? config { contract := contract, locals := endFileUintLocals I } evm
+      .storage waitRef (.int (Int.ofNat (endFileUintData I).toNat)) =
+        .revert := by
+  apply assignStorageRef_storage_scalar_static
+      (ty := uint256St)
+      (er := ({ base := "wait", steps := [] } : EvaledStorageRef))
+      (loc := wordLoc ⟨10⟩)
+      (hbase := endFileUintLocals_get_wait I)
+      (her := by simp [waitRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind,
+        pure, bind])
+      (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
+      (hloc := by rfl) (hscalar := by trivial) (hp := hp)
+
+theorem endFileUintAssignWait (evm : EVM.State) (I : ExecutionEnv)
+    (hperm : evm.executionEnv.perm = true) :
     assignStorageRef? config { contract := contract, locals := endFileUintLocals I } evm
       .storage waitRef (.int (Int.ofNat (endFileUintData I).toNat)) =
         .ok ({ contract := contract, locals := endFileUintLocals I },
@@ -375,13 +391,14 @@ theorem endFileUintAssignWait (evm : EVM.State) (I : ExecutionEnv) :
         pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-  simpa [endFileUintPostState] using endStorageLocStore_uint256 evm ⟨10⟩ (endFileUintData I)
+  simpa [endFileUintPostState] using endStorageLocStore_uint256 evm ⟨10⟩ (endFileUintData I) hperm
 
 theorem endFileUintSourceWaitOk {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
     (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (hwhat : endFileUintWhat I = endFileUintWaitBytes) :
+    (hwhat : endFileUintWhat I = endFileUintWaitBytes)
+    (hperm : I.perm = true) :
     let locals := endFileUintLocals I
     let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := endFileUintPostState evm0 I
@@ -416,7 +433,7 @@ theorem endFileUintSourceWaitOk {cA gh bl σ σ₀ A I} {g : UInt256}
       assignStorageRef? config { contract := contract, locals := locals } evm0
         .storage waitRef (.int (Int.ofNat (endFileUintData I).toNat)) =
           .ok ({ contract := contract, locals := locals }, evm1) := by
-    simpa [locals, evm1] using endFileUintAssignWait evm0 I
+    simpa [locals, evm1] using endFileUintAssignWait evm0 I hperm
   have hthen :
       ExecBlock config { contract := contract, locals := locals } evm0
         [.assign .storage waitRef (.var "data")]
@@ -429,8 +446,66 @@ theorem endFileUintSourceWaitOk {cA gh bl σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen) ExecBlock.nil
+    exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen)
+      (ExecBlock.consNormal (ExecStmt.event (by
+        simpa [evm1, evm0, endFileUintPostState, storageStore_executionEnv, initState] using hperm)) ExecBlock.nil)
   simpa [ExecTransitionBody, locals, evm0, evm1] using ExecFuncBody.execBlockOK hblock
+
+theorem endFileUintSourceWaitStatic {cA gh bl σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : endRelyAuthWord σ I = ⟨1⟩)
+    (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (hwhat : endFileUintWhat I = endFileUintWaitBytes)
+    (hp : I.perm = false) :
+    let locals := endFileUintLocals I
+    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm1 := endFileUintPostState evm0 I
+    ExecTransitionBody config contract evm0 locals fileUintTransition.body
+      .reverted := by
+  intro locals evm0 evm1
+  have hguardAuth :
+      evalExpr? config { contract := contract, locals := locals } evm0
+        (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
+    simpa [locals, evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+      State.lookupAccount] using
+      evalExpr_endFileUint_auth_true evm0 I (by simp [evm0, initState]) hauth
+  have hguardLive :
+      evalExpr? config { contract := contract, locals := locals } evm0
+        (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
+    simpa [locals, evm0, endSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
+      using evalExpr_endFileUint_live_true evm0 I hlive
+  have hcond :
+      evalExpr? config { contract := contract, locals := locals } evm0
+        (.binary .eq (.var "what") waitLit) = .ok (.bool true) := by
+    simpa [waitLit, endFileUintWaitBytes, locals] using
+      (evalExpr_endFileUintWhatEq_true (evm := evm0) (I := I) (locals := locals)
+        (bs := endFileUintWaitBytes) (by simpa [locals] using endFileUintLocals_get_what I)
+        hwhat)
+  have hdata :
+      evalExpr? config { contract := contract, locals := locals } evm0 (.var "data") =
+        .ok (.int (Int.ofNat (endFileUintData I).toNat)) := by
+    simpa [locals] using
+      evalExpr_endFileUintData (evm := evm0) (I := I) (locals := locals)
+        (by simp [locals])
+  have hassign :
+      assignStorageRef? config { contract := contract, locals := locals } evm0
+        .storage waitRef (.int (Int.ofNat (endFileUintData I).toNat)) =
+          .revert := by
+    simpa [locals, evm1] using endFileUintAssignWaitStatic evm0 I hp
+  have hthen :
+      ExecBlock config { contract := contract, locals := locals } evm0
+        [.assign .storage waitRef (.var "data")]
+        .reverted := by
+    exact ExecBlock.consRevert (ExecStmt.assignStoreRevert hdata hassign)
+  have hblock :
+      ExecBlock config { contract := contract, locals := locals } evm0 fileUintTransition.body
+        .reverted := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
+    exact ExecBlock.consRevert (ExecStmt.iteTrue hcond hthen)
+  simpa [ExecTransitionBody, locals, evm0, evm1] using ExecFuncBody.execBlockRevert hblock
 
 theorem endFileUintSourceAuthReverts {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -457,7 +532,7 @@ theorem endFileUintSourceAuthReverts {cA gh bl σ σ₀ A I} {g : UInt256}
         .ite (.binary .eq (.var "what") waitLit)
           [ .assign .storage waitRef (.var "data") ]
           [ .require (.boolLit false) ]
-      ] : List Stmt))
+      ] : List Stmt) ++ [.event])
       (by simp [evm0, initState]; exact hwv)
       hguard
 
@@ -916,6 +991,33 @@ theorem endFileUintX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact RD.stop rd563 (by native_decide) (by evm_ov)
 
 set_option maxHeartbeats 3000000 in
+theorem endFileUintX_wait_static {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (hperm : I.perm = false)
+    (hwhatWord : calldataWord I.calldata 4 = ABI.bytesToWord endFileUintWaitBytes)
+    (h : RD endBytecode I g s0 endFileUintSwitchPc
+      [endFileUintData I, calldataWord I.calldata 4, endRelyReturnPc, sel]
+      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDstatic endBytecode g s0 := by
+  have rd1476pre := evm_run h with [
+    raw jumpdest (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov)]
+  have rd1481 := rd1476pre.pushConst (⟨0x1dd85a5d⟩ : UInt256)
+    (width := 4) (op := .PUSH4) (by decide) (by native_decide) (by evm_ov)
+  have rd1484pre := evm_run rd1481 with [
+    raw push1 ⟨226⟩ (by native_decide) (by evm_ov),
+    raw shl (by native_decide) (by evm_ov),
+    raw eq (by native_decide) (by evm_ov)]
+  rw [hwhatWord, endFileUintWaitBytes_word, u256_eq_refl] at rd1484pre
+  have rd1490pre := evm_run rd1484pre with [
+    raw iszero (by native_decide) (by evm_ov),
+    raw push2 endFileUintUnrecognizedPc (by native_decide) (by evm_ov),
+    raw jumpiNT (by native_decide) rfl (by evm_ov)]
+  have rd1494pre := evm_run rd1490pre with [
+    raw push1 ⟨10⟩ (by native_decide) (by evm_ov),
+    raw dup2 (by native_decide) (by evm_ov),
+    raw swap1 (by native_decide) (by evm_ov)]
+  exact rd1494pre.sstoreStatic hperm (by native_decide) (by evm_ov)
+
 theorem endFileUintX_wait_ok {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (hwhatWord : calldataWord I.calldata 4 = ABI.bytesToWord endFileUintWaitBytes)
@@ -1053,7 +1155,7 @@ theorem endFileUintX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
 
 theorem endFileUintBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf fileUintTransition))
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
@@ -1090,26 +1192,34 @@ theorem endFileUintBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · have hwaitWord :
               calldataWord I.calldata 4 = ABI.bytesToWord endFileUintWaitBytes := by
             rw [← endFileUintWhatWord_eq (I := I) hsz36, hwait]
-          have hbody :
-              ExecTransitionBody config contract evmSolm (endFileUintLocals I)
-                fileUintTransition.body
-                (.returned { contract := contract, locals := endFileUintLocals I }
-                  (endFileUintPostState evmSolm I) none) := by
-            simpa [evmSolm] using
-              endFileUintSourceWaitOk (cA := cA) (gh := gh) (bl := bl)
-                (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-                hwv hauthSolm hliveSolm hwait
-          exact (endFileUintX_wait_ok hperm hwaitWord hswitch)
-            |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-              (by simp [endFileUintPostState, evmSolm, initState, storageStore_createdAccounts])
-              (by
-                simpa [endFileUintPostState, evmSolm, initState, storageStore_accountMap] using
-                  accountMapEquiv_sstoreAccountMap I.codeOwner ⟨10⟩ (endFileUintData I)
-                    hAccounts)
-              (by
-                simpa [fileUintTransition] using
-                  (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-                    (dvs := []) rfl (by native_decide) (by native_decide)))
+          by_cases hperm : I.perm = true
+          ·
+            have hbody :
+                ExecTransitionBody config contract evmSolm (endFileUintLocals I)
+                  fileUintTransition.body
+                  (.returned { contract := contract, locals := endFileUintLocals I }
+                    (endFileUintPostState evmSolm I) none) := by
+              simpa [evmSolm] using
+                endFileUintSourceWaitOk (cA := cA) (gh := gh) (bl := bl)
+                  (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                  hwv hauthSolm hliveSolm hwait hperm
+            exact (endFileUintX_wait_ok hperm hwaitWord hswitch)
+              |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+                (by simp [endFileUintPostState, evmSolm, initState, storageStore_createdAccounts])
+                (by
+                  simpa [endFileUintPostState, evmSolm, initState, storageStore_accountMap] using
+                    accountMapEquiv_sstoreAccountMap I.codeOwner ⟨10⟩ (endFileUintData I)
+                      hAccounts)
+                (by
+                  simpa [fileUintTransition] using
+                    (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
+                      (dvs := []) rfl (by native_decide) (by native_decide)))
+          · have hp : I.perm = false := by simpa using hperm
+            have hbody := endFileUintSourceWaitStatic
+              (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+              (A := A) (I := I) (g := g) hwv hauthSolm hliveSolm hwait hp
+            exact (endFileUintX_wait_static hp hwaitWord hswitch).reEquivExecution
+              hcode hdispatch hdecode hbody
         · have hnotWaitWord :
               calldataWord I.calldata 4 ≠ ABI.bytesToWord endFileUintWaitBytes :=
             endFileUintWhatWord_ne_of_bytes_ne hsz36 hwait endFileUintWaitBytes_length

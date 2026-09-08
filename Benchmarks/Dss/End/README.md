@@ -54,6 +54,8 @@ runtime.hex              sha256 1b7d4c9cf21f0c8716e4725aa4202528b6c29c1b57efad3c
 Scaffold notes:
 
 - This file was generated as part of the DSS coverage expansion pass on 2026-07-06.
-- Events are intentionally omitted from the Solm specs, matching the existing event-bearing DSS
-  benchmarks whose equivalence relation ignores logs/substate.
+- Each event emission is represented by `event()`: it preserves state in writable execution
+  and reverts in static execution. Event payloads and logs remain abstracted away.
+- The correctness theorem covers both values of `I.perm`; storage writes and events are
+  rejected in static execution, and external calls inherit the caller’s permission.
 - Proof status is tracked by `endContractCorrect` in `Correct.lean`.
