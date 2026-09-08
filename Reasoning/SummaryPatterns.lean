@@ -886,7 +886,7 @@ theorem RD.solcSummaryMappingHashKeyFirst
       (k + 10)
       (C + (27 + memExpansionCost aw ⟨0⟩ ⟨32⟩ +
         memExpansionCost aw1 ⟨32⟩ ⟨32⟩ + memExpansionCost aw2 ⟨0⟩ ⟨64⟩ +
-        (GasConstants.Gkeccak256 + GasConstants.Gkeccak256word *
+        (30 + 6 *
           (((⟨64⟩ : UInt256).toNat + 31) / 32)))) := by
   rcases hwf with ⟨h, h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, hov⟩
   have r1 := h.push1 ⟨0⟩ h0 (by evm_ov)
@@ -945,7 +945,7 @@ theorem RD.solcSummaryMappingHashSlotFirst
       (k + 10)
       (C + (27 + memExpansionCost aw ⟨32⟩ ⟨32⟩ +
         memExpansionCost aw1 ⟨0⟩ ⟨32⟩ + memExpansionCost aw2 ⟨0⟩ ⟨64⟩ +
-        (GasConstants.Gkeccak256 + GasConstants.Gkeccak256word *
+        (30 + 6 *
           (((⟨64⟩ : UInt256).toNat + 31) / 32)))) := by
   rcases hwf with ⟨h, h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, hov⟩
   have r1 := h.push1 slot h0 (by evm_ov)
@@ -1016,7 +1016,7 @@ theorem RD.solcSummaryNestedMappingInnerHash
       (twoWordHashMemSlotFirst owner slot mem) aw3 rdata acc (k + 14)
       (C + (37 + memExpansionCost aw ⟨32⟩ ⟨32⟩ +
         memExpansionCost aw1 ⟨0⟩ ⟨32⟩ + memExpansionCost aw2 ⟨0⟩ ⟨64⟩ +
-        (GasConstants.Gkeccak256 + GasConstants.Gkeccak256word *
+        (30 + 6 *
           (((⟨64⟩ : UInt256).toNat + 31) / 32)))) := by
   rcases hwf with ⟨h, hw, hov⟩
   rcases hw with
@@ -1075,7 +1075,7 @@ theorem RD.solcSummaryNestedMappingOuterHash
       aw3 rdata acc (k + 8)
       (C + (21 + memExpansionCost aw ⟨32⟩ ⟨32⟩ +
         memExpansionCost aw1 ⟨0⟩ ⟨32⟩ + memExpansionCost aw2 ⟨0⟩ ⟨64⟩ +
-        (GasConstants.Gkeccak256 + GasConstants.Gkeccak256word *
+        (30 + 6 *
           (((⟨64⟩ : UInt256).toNat + 31) / 32)))) := by
   rcases hwf with ⟨h, h0, h1, h2, h3, h4, h5, h6, h7, hov⟩
   have r1 := h.swap1 h0 (by evm_ov)

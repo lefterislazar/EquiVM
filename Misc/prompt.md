@@ -10,11 +10,9 @@ You are given a working directory, which is named after the contract
 
 - The EVM bytecode (file `Bytecode.lean`).
 
-- Proved RD block summaries
-  (normally in `Blocks.lean`, possibly with a small index or generation
-  manifest). These summaries will be provided. Treat them as proof inputs:
-  inspect their statements and compose them, but do not regenerate them or
-  replace them with hand-written opcode traces.
+- Proved RD block summaries in generated `RuntimeBlocks_*.lean` and
+  `CreationBlocks_*.lean` shards. Treat them as proof inputs: inspect their
+  statements and compose them, but do not regenerate or edit them.
 
 - The source it was compiled from (e.g., `<Name>.sol`), plus the exact
   compiler and options used to produce it. The bytecode can be of
@@ -42,6 +40,23 @@ runtimeEquivalence <config> <runtimeBytecode> <contract>
 Your goal is to complete the proof. The proof must be correct,
 modular, fast enough to work on, and axiom-clean except for the
 accepted trusted base below.
+
+### Generated RD block summaries
+
+Use the generated summaries before writing a bytecode trace by hand:
+
+- Search the generated files for `_block_<pc>` to locate the theorem for a
+  block's entry program counter, then import the shard containing it.
+- Read the theorem's stack, memory, account-map, and side-condition binders;
+  generated summaries start from a symbolic `RD` cursor and may require facts
+  such as stack capacity, jump-destination membership, permissions, or branch
+  conditions.
+- A `_taken` or `_fallthrough` suffix identifies the corresponding `JUMPI`
+  branch. Terminal summaries conclude with `RDret`, `RDrev`, or `RDinvalid`.
+- An `Unsupported instruction boundary` or `Execution split boundary` comment
+  means no transition is asserted across that opcode. Continue that part of
+  the trace with an applicable library lemma or a local proved helper.
+
 
 Be forthcoming with blocking issues. Never bypass a problem to move on
 to the next proof, and never circumvent it. If you suspect something
