@@ -178,19 +178,15 @@ class SequencePatternTests(unittest.TestCase):
             self.assertEqual("selector_condition",
                              rd.match_sequence(instructions(width_code), 0).name)
 
-    def test_migrated_patterns_match_primitive_symbolic_results(self) -> None:
+    def test_migrated_patterns_are_fully_disabled_in_primitive_mode(self) -> None:
         for name, code in MIGRATED_CASES.items():
             with self.subTest(name):
-                if name.startswith("mapping_hash_"):
-                    continue
                 block = instructions(code)
                 enabled = rd.simulate(block, None, True)
                 disabled = rd.simulate(block, None, False)
-                for field in ("stack_in", "stack_out", "mem", "aw", "world_map", "pc",
-                              "existential_counters", "terminal", "extra_hypotheses",
-                              "max_stack_prefix", "existential_words"):
-                    self.assertEqual(getattr(disabled, field), getattr(enabled, field), field)
-                self.assertEqual(rd.block_cost(disabled.costs), rd.block_cost(enabled.costs))
+                self.assertIn("solcSummary", "\n".join(enabled.proof))
+                self.assertNotIn("solcSummary", "\n".join(disabled.proof))
+                self.assertEqual(len(block), len(disabled.proof))
 
     def test_migrated_patterns_stay_inside_segments_and_shards(self) -> None:
         for name, code in MIGRATED_CASES.items():
@@ -217,27 +213,15 @@ class SequencePatternTests(unittest.TestCase):
         self.assertNotIn("solcSummaryNestedMapping", "\n".join(disabled.proof))
         self.assertIn("RD.keccak256", "\n".join(disabled.proof))
 
-    def test_next_four_symbolic_effects_match_primitive_mode(self) -> None:
+    def test_next_four_patterns_are_fully_disabled_in_primitive_mode(self) -> None:
         for name, code in NEXT_CASES.items():
             with self.subTest(name):
                 block = instructions(code)
                 enabled = rd.simulate(block, None, True)
                 disabled = rd.simulate(block, None, False)
-                fields = ("stack_in", "world_map", "existential_counters", "terminal",
-                          "extra_hypotheses", "max_stack_prefix", "existential_words")
-                if enabled.terminal is None:
-                    fields += ("stack_out", "mem", "aw", "pc")
-                for field in fields:
-                    self.assertEqual(getattr(disabled, field), getattr(enabled, field), field)
-                if enabled.terminal is None:
-                    self.assertEqual(rd.block_cost(disabled.costs), rd.block_cost(enabled.costs))
-
-        mask_raw = rd.simulate(instructions(NEXT_CASES["address_mask"]), None, False)
-        error_raw = rd.simulate(instructions(NEXT_CASES["error_selector_store"]), None, False)
-        self.assertEqual(["solcAddrMask"], mask_raw.stack_out)
-        self.assertIn("solcErrorStringSelector", error_raw.mem)
-        self.assertIn("r5Raw", "\n".join(mask_raw.proof))
-        self.assertIn("r3Raw", "\n".join(error_raw.proof))
+                self.assertIn("solcSummary", "\n".join(enabled.proof))
+                self.assertNotIn("solcSummary", "\n".join(disabled.proof))
+                self.assertEqual(len(block), len(disabled.proof))
 
     def test_push_constants_are_exact(self) -> None:
         for code in ("60013560e01c", "60003560df1c", "3d6001803e3d6000fd"):
@@ -281,7 +265,7 @@ class SequencePatternTests(unittest.TestCase):
                 self.assertNotIn("solcSummaryMapping", "\n".join(disabled.proof))
                 self.assertIn("RD.keccak256", "\n".join(disabled.proof))
 
-    def test_pattern_mode_preserves_theorem_statements(self) -> None:
+    def test_opt_out_avoids_all_registered_sequence_theorems(self) -> None:
         # Add STOP after selector loads so those blocks have terminal statements;
         # revert patterns already terminate themselves.
         code = bytes.fromhex("608060405200" + "5f3560e01c0060003560e01c00" +
@@ -296,7 +280,8 @@ class SequencePatternTests(unittest.TestCase):
                                     use_sequence_patterns=True)
         disabled = rd.generate_units(code, "same", "code", keep_metadata=True,
                                      use_sequence_patterns=False)
-        self.assertEqual(theorem_headers(disabled), theorem_headers(enabled))
+        self.assertIn("RD.solcSummary", "\n".join(enabled))
+        self.assertNotIn("RD.solcSummary", "\n".join(disabled))
 
 
 if __name__ == "__main__":

@@ -1008,49 +1008,57 @@ def simulate(block: list[Instruction], branch: str | None,
             value = u256_nat(ins.argument)
             stack.insert(0, value)
             normalization: str | None = None
-            if ends_with(((0x5B, None), (0x61, None), (0x60, 4), (0x80, None),
+            if use_sequence_patterns and ends_with(
+                    ((0x5B, None), (0x61, None), (0x60, 4), (0x80, None),
                           (0x36, None), (0x03, None), (0x60, None), (0x81, None),
                           (0x10, None), (0x15, None), (0x61, None)), index):
                 need = block[index - 4].argument
                 size = "(UInt256.ofNat ee.calldata.size)"
                 stack[1] = f"(solcStaticArgsSufficientWord {size} {u256_nat(need)})"
                 normalization = "solcStaticArgsSufficientWord"
-            elif ends_with(((0x5B, None), (0x80, None), (0x82, None), (0x01, None),
+            elif use_sequence_patterns and ends_with(
+                    ((0x5B, None), (0x80, None), (0x82, None), (0x01, None),
                             (0x82, None), (0x81, None), (0x10, None), (0x15, None),
                             (0x61, None)), index):
                 b, a = stack_snapshots[index - 8][:2]
                 stack[1] = f"(solcCheckedAddOkWord {a} {b})"
                 normalization = "solcCheckedAddOkWord"
-            elif ends_with(((0x5B, None), (0x80, None), (0x82, None), (0x03, None),
+            elif use_sequence_patterns and ends_with(
+                    ((0x5B, None), (0x80, None), (0x82, None), (0x03, None),
                             (0x82, None), (0x81, None), (0x11, None), (0x15, None),
                             (0x61, None)), index):
                 b, a = stack_snapshots[index - 8][:2]
                 stack[1] = f"(solcCheckedSubOkWord {a} {b})"
                 normalization = "solcCheckedSubOkWord"
-            elif ends_with(((0x80, None), (0x63, None), (0x14, None),
+            elif use_sequence_patterns and ends_with(
+                    ((0x80, None), (0x63, None), (0x14, None),
                           (ANY_PUSH, None)), index):
                 actual = stack[2]
                 expected = block[index - 2].argument
                 stack[1] = f"(solcSelectorMatches {u256_nat(expected)} {actual})"
                 normalization = "solcSelectorMatches"
-            elif ends_with(((0x80, None), (0x63, None), (0x11, None),
+            elif use_sequence_patterns and ends_with(
+                    ((0x80, None), (0x63, None), (0x11, None),
                             (ANY_PUSH, None)), index):
                 actual = stack[2]
                 pivot = block[index - 2].argument
                 stack[1] = f"(solcSelectorBelowPivot {u256_nat(pivot)} {actual})"
                 normalization = "solcSelectorBelowPivot"
-            elif ends_with(((0x15, None), (0x80, None), (0x15, None),
+            elif use_sequence_patterns and ends_with(
+                    ((0x15, None), (0x80, None), (0x15, None),
                             (ANY_PUSH, None)), index):
                 source = stack_snapshots[index - 3][0]
                 stack[1] = f"(solcCallSucceededWord {source})"
                 stack[2] = f"(solcCallFailedWord {source})"
                 normalization = "solcCallSucceededWord, solcCallFailedWord, solcBoolWord"
-            elif ends_with(((0x60, 4), (0x36, None), (0x10, None),
+            elif use_sequence_patterns and ends_with(
+                    ((0x60, 4), (0x36, None), (0x10, None),
                             (ANY_PUSH, None)), index):
                 size = "(UInt256.ofNat ee.calldata.size)"
                 stack[1] = f"(solcCalldataTooShortWord {size})"
                 normalization = "solcCalldataTooShortWord"
-            elif ends_with(((0x3D, None), (0x60, 32), (0x81, None), (0x10, None),
+            elif use_sequence_patterns and ends_with(
+                    ((0x3D, None), (0x60, 32), (0x81, None), (0x10, None),
                             (0x15, None), (0x61, None)), index):
                 size = "(UInt256.ofNat rdata.size)"
                 stack[1] = f"(solcReturnWordAvailableWord {size})"
@@ -1085,19 +1093,21 @@ def simulate(block: list[Instruction], branch: str | None,
             a, b = stack.pop(0), stack.pop(0)
             stack.insert(0, BINOPS[op](a, b))
             normalization: str | None = None
-            if op == 0x03 and ends_with(ADDRESS_MASK_INSTRUCTIONS, index):
+            if (use_sequence_patterns and op == 0x03 and
+                    ends_with(ADDRESS_MASK_INSTRUCTIONS, index)):
                 stack[0] = "solcAddrMask"
                 normalization = "solcAddrMask"
-            elif op == 0x03 and ends_with(
+            elif use_sequence_patterns and op == 0x03 and ends_with(
                     ((0x60, 1), (0x60, 1), (0x60, None), (0x1B, None), (0x03, None)),
                     index):
                 bits = block[index - 2].argument
                 stack[0] = f"(solcLowMask {u256_nat(bits)})"
                 normalization = "solcLowMask"
-            elif op == 0x1B and ends_with(ERROR_SELECTOR_BUILD_INSTRUCTIONS, index):
+            elif (use_sequence_patterns and op == 0x1B and
+                  ends_with(ERROR_SELECTOR_BUILD_INSTRUCTIONS, index)):
                 stack[0] = "solcErrorStringSelector"
                 normalization = "solcErrorStringSelector"
-            elif op == 0x1B and ends_with(
+            elif use_sequence_patterns and op == 0x1B and ends_with(
                     ((0x63, 0xFFFFFFFF), (0x16, None), (0x60, 224), (0x1B, None)),
                     index):
                 source = stack_snapshots[index - 3][0]
@@ -1115,12 +1125,13 @@ def simulate(block: list[Instruction], branch: str | None,
             a = stack.pop(0)
             stack.insert(0, f"(UInt256.isZero {a})")
             normalization = None
-            if ends_with(((0x15, None), (0x15, None)), index):
+            if use_sequence_patterns and ends_with(((0x15, None), (0x15, None)), index):
                 prefix = "(UInt256.isZero "
                 word = a[len(prefix):-1] if a.startswith(prefix) else a
                 stack[0] = f"(solcBoolWord {word})"
                 normalization = "solcBoolWord"
-            elif ends_with(((0x34, None), (0x80, None), (0x15, None)), index):
+            elif use_sequence_patterns and ends_with(
+                    ((0x34, None), (0x80, None), (0x15, None)), index):
                 stack[0] = "(solcCallFailedWord ee.weiValue)"
                 normalization = "solcCallFailedWord"
             call = f"{before}.iszero {decode} {ov}"
@@ -1132,7 +1143,7 @@ def simulate(block: list[Instruction], branch: str | None,
         elif op == 0x19:
             a = stack.pop(0)
             normalization = None
-            if ends_with(((0x60, 0), (0x19, None)), index):
+            if use_sequence_patterns and ends_with(((0x60, 0), (0x19, None)), index):
                 stack.insert(0, "solcUintMax")
                 normalization = "solcUintMax"
             else:
