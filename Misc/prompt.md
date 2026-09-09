@@ -5,12 +5,14 @@ specification. You goal is to complete the proof of the top-level theorem
 in `Correct.lean` with no `sorry` and no added axioms, except for the 
 accepted trusted base below.
 
-```lean
-
 You are given a working directory, which is named after the contract
 (`<Name>/`) and includes:
 
 - The EVM bytecode (file `Bytecode.lean`).
+
+- Proved RD block summaries in generated `Blocks.lean`
+  Treat them as proof inputs: inspect their
+  statements and compose them, but do not regenerate or edit them.
 
 - The source it was compiled from (e.g., `<Name>.sol`), plus the exact
   compiler and options used to produce it. The bytecode can be of
@@ -23,13 +25,7 @@ You are given a working directory, which is named after the contract
 - A correctness file stating the top-level theorem with a `sorry`
   placeholder. (file `Correct.lean`)
 
-The top-level theorem bundles the correctness of the constructor:
-
-```lean
-constructorEquivalence <config> <initcode> <contract> <runtimeBytecode>
-```
-
-and the correctness of the runtime code:
+The top-level theorem expresses the correctness of the runtime code:
 
 ```lean
 runtimeEquivalence <config> <runtimeBytecode> <contract>
@@ -38,6 +34,23 @@ runtimeEquivalence <config> <runtimeBytecode> <contract>
 Your goal is to complete the proof. The proof must be correct,
 modular, fast enough to work on, and axiom-clean except for the
 accepted trusted base below.
+
+### Generated RD block summaries
+
+Use the generated summaries before writing a bytecode trace by hand:
+
+- Search the generated files for `_block_<pc>` to locate the theorem for a
+  block's entry program counter, then import the shard containing it.
+- Read the theorem's stack, memory, account-map, and side-condition binders;
+  generated summaries start from a symbolic `RD` cursor and may require facts
+  such as stack capacity, jump-destination membership, permissions, or branch
+  conditions.
+- A `_taken` or `_fallthrough` suffix identifies the corresponding `JUMPI`
+  branch. Terminal summaries conclude with `RDret`, `RDrev`, or `RDinvalid`.
+- An `Unsupported instruction boundary` or `Execution split boundary` comment
+  means no transition is asserted across that opcode. Continue that part of
+  the trace with an applicable library lemma or a local proved helper.
+
 
 Be forthcoming with blocking issues. Never bypass a problem to move on
 to the next proof, and never circumvent it. If you suspect something
@@ -100,11 +113,8 @@ machinery drivers for dispatching (e.g., `solcDispatchReachBody`).
    a `sorry`. That `…BodyCore` should be defined in that function's
    own file `<Fn>.lean`.
 
-3. Create a `…BodyCore` lemma for the constructor in
-   `Constructor.lean` file.
-
-4. The skeleton of the proof should now route every function and the
-   constructor correctly through the main top-level dispatch.
+4. The skeleton of the proof should now route every function
+   correctly through the main top-level dispatch.
 
 *Hard rule*: You should set up the dispatch skeleton and the per ABI 
 function theorems (initially with `sorry`) in their own files before 
@@ -143,10 +153,11 @@ The proof of each function follows, roughly, four phases:
    branches early.
 
 4. EVM reachability. Thread the bytecode trace from the body entry PC
-   to `RDret` (success) or `RDrev` (revert) using `evm_run … with [ …
-   ]` cooked-step chains and factored `RD.*` routine lemmas. Never
-   write one giant `evm_run`; split into named `have`s, one per
-   phase/routine.
+   the body entry PC to `RDret` (success) or `RDrev` (revert) using
+   mainly the provided block summaries and factored `RD.*` routine
+   lemmas, and in exceptional cases were partial decoding of a block
+   is semantically useful, manual `evm_run … with [ …
+   ]` cooked-step chains. 
 
 5. Connect. `reEquivExecution` / `reEquivDecodingFailed` /
    `reEquivNoDispatch` / `reEquivElim` glue the source result, the
@@ -155,15 +166,10 @@ The proof of each function follows, roughly, four phases:
 
 ---
 
-### Phase 3: Prove the constructor
-
-In a similar manner, prove correct the constructor body.
-
----
 
 ### Phase 4: Finish the proof
 
-After you have proved all the functions and the constructor, verify
+After you have proved all the functions, verify
 that the top-level theorem complies with no added axioms and no
 `sorry`/`admit`. Report the axiom footprint.
 
@@ -203,10 +209,10 @@ The proof of a contract `<Name>` goes in a directory `<Name>/`:
 | `<Name>.sol` | the Solidity source + the exact compiler invocation used. |
 | `Spec.lean` | the Solm `ContractDecl`, storage layout, `Config`. |
 | `Bytecode.lean` | runtime bytecode + selector/jump-dest trusted facts. |
+| `Blocks.lean` | provided proved RD summaries, especially for call-bearing paths; do not regenerate or edit. |
 | `Common.lean` | contract-wide ABI / memory / selector / return / other helpers shared by ≥2 functions. |
-| `Storage.lean` | contract-wide storage load/store + RBMap preservation + bool-return facts (only if it has storage). |
+| `CallTraces.lean` | optional contract-specific composition of provided summaries around call boundaries, status paths, and return decoders. |
 | `<Fn>.lean` | one file per interface (public/external) function — its decode, source body, EVM trace, and `…BodyCore` refinement. |
-| `Constructor.lean` | the equivalence proof of the contract's constructor. |
 | `Correct.lean` | thin top-level: dispatcher driver + per-function routing + revert paths + constructor packaging + the final `theorem <name>Correct`. |
 
 
@@ -408,6 +414,8 @@ Function calls should be proven modularly. In particular:
   the invariant over the loop counter, prove a single reusable
   body-step lemma, and close the loop by induction on the remaining
   iterations, on both the Solm side and the bytecode trace.
+  Take care to not copy the `evm_run` approach instaed of the summaries,
+  if there is no very good reason.
 ---
 
 ## 7. Build discipline, tactics, proof engineering, efficiency
@@ -438,7 +446,9 @@ Function calls should be proven modularly. In particular:
   into its proper file and delete the scratch.
 
 - Decode obligations use `native_decide`, not `decide` (~20× faster on
-  big bytecode). `evm_run` cooked steps auto-supply it; raw steps
+  big bytecode). 
+  big bytecode). The block summaries as well as `evm_run` cooked steps
+  auto-supply it; raw steps
   write `(by native_decide)` for decode, `(by decide)` for small side
   conditions, `(by jump_dest)` for jump-dest membership, `(by evm_ov)`
   for stack-overflow bounds. Keep these — the resulting `native_decide`
@@ -451,8 +461,27 @@ Function calls should be proven modularly. In particular:
 
 ## 8. Routine-lemma discipline
 
+
+Use the supplied `Blocks.lean` summaries as
+the primary EVM stepping interface. The summary-generation work has
+already been done. Do not re-prove a covered block with `evm_run`, and
+do not regenerate or edit the summaries. Compose them into
+contract-specific path lemmas for reaching call, gas, decoder, loop,
+and continuation boundaries. If a required bytecode edge is not
+covered, first verify that it is genuinely absent from the supplied
+summaries and report the gap.
+
+Keep large summary gas-accounting terms opaque unless the proof needs
+their exact values. To hide accumulated counter expressions, use
+`obtain ⟨kNext, CNext, rdNext⟩ := RD.pack rdNext` and let subsequent
+lemmas infer the counters. Preserve actual gas words produced by
+`GAS`, bound to source locals, or passed to calls: these affect
+execution. Retain explicit counter formulas when proving gas bounds.
+
+
 Every repeated bytecode segment becomes one `RD`-combinator lemma,
-proved once, applied many times:
+proved once and applied many times. This guidance applies to
+genuine gaps outside the provided summaries:
 
 - A straight-line bytecode segment `pc_in → pc_out` over a stack tail
   `R` becomes a theorem of the form `RD code … pc_in (args ++ R) … → ∃

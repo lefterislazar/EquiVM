@@ -1,3 +1,4 @@
+import Examples.NestedCaller.Spec
 import Ethereum.Semantics
 import Reasoning.JumpDest
 
@@ -68,6 +69,11 @@ def nestedCallerBytecode : ByteArray :=
 end NestedCaller
 
 namespace NestedCaller
+
+/-- `keccak("run(address,uint256)")[0:4] = 0x381fd190`. -/
+axiom nestedCallerRunSelectorBytes :
+    (ffi.KEC (String.toByteArray (Solm.transitionSigStr runTransition))).extract 0 4
+      = ⟨#[0x38, 0x1f, 0xd1, 0x90]⟩
 
 @[valid_jumps] theorem nestedCallerValidJumps :
     Ethereum.EVM.D_J nestedCallerBytecode 0 = #[⟨15⟩, ⟨41⟩, ⟨45⟩, ⟨66⟩, ⟨71⟩, ⟨84⟩, ⟨93⟩, ⟨107⟩, ⟨116⟩, ⟨135⟩, ⟨150⟩, ⟨164⟩, ⟨169⟩, ⟨180⟩, ⟨191⟩, ⟨215⟩, ⟨272⟩, ⟨300⟩, ⟨336⟩, ⟨340⟩, ⟨346⟩, ⟨350⟩, ⟨381⟩, ⟨391⟩, ⟨398⟩, ⟨407⟩, ⟨417⟩, ⟨420⟩, ⟨434⟩, ⟨440⟩, ⟨449⟩, ⟨458⟩, ⟨468⟩, ⟨471⟩, ⟨485⟩, ⟨491⟩, ⟨512⟩, ⟨513⟩, ⟨526⟩, ⟨543⟩, ⟨553⟩, ⟨562⟩, ⟨568⟩, ⟨587⟩, ⟨593⟩, ⟨607⟩, ⟨613⟩, ⟨633⟩, ⟨634⟩, ⟨647⟩] := by
