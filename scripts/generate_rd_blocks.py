@@ -16,6 +16,7 @@ every maximal supported segment on either side.
 Example:
   scripts/generate_rd_blocks.py contract.hex --name runtime \
     --code-term My.bytecode --bytecode-import My.Bytecode --output RuntimeBlocks.lean
+  This also writes a compact theorem index to RuntimeBlocks.index by default.
 
 For creation bytecode, ``--creation-code`` treats ``--code-term`` as the fixed
 compiler-produced prefix.  Every summary quantifies an arbitrary ``tail`` and
@@ -582,6 +583,38 @@ def render_final_value_defs(base_name: str, summary: Summary, effective_code_ter
         stack_ref,
         memory_ref,
     )
+
+
+def summary_name(prefix: str, block: list[Instruction], branch: str | None) -> str:
+    suffix = ""
+    if branch == "taken":
+        suffix = "_taken"
+    elif branch == "fallthrough":
+        suffix = "_fallthrough"
+    return f"{prefix}_block_{block[0].pc}{suffix}"
+
+
+@dataclass(frozen=True)
+class GeneratedUnit:
+    text: str
+    theorem_names: tuple[str, ...] = ()
+    pcs: tuple[int, ...] = ()
+
+
+@dataclass(frozen=True)
+class IndexEntry:
+    theorem: str
+    file: str
+    start_line: int
+    end_line: int
+    pcs: tuple[int, ...]
+
+
+Unit = str | GeneratedUnit
+
+
+def unit_text(unit: Unit) -> str:
+    return unit.text if isinstance(unit, GeneratedUnit) else unit
 
 
 # (minimum stack depth before the opcode, pop count, push count)
@@ -1482,12 +1515,7 @@ def simulate(block: list[Instruction], branch: str | None,
 def render_summary(prefix: str, code_term: str, block: list[Instruction], summary: Summary,
                    creation_code: bool = False,
                    creation_code_size: int | None = None) -> str:
-    suffix = ""
-    if summary.branch == "taken":
-        suffix = "_taken"
-    elif summary.branch == "fallthrough":
-        suffix = "_fallthrough"
-    name = f"{prefix}_block_{block[0].pc}{suffix}"
+    name = summary_name(prefix, block, summary.branch)
     xs = " ".join(summary.stack_in)
     xbinder = f" {{{xs} : UInt256}}" if xs else ""
     tail_param = "{tail : ByteArray} " if creation_code else ""
@@ -1536,7 +1564,8 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
     lines = []
     if final_defs is not None:
         lines.extend(final_defs.lines)
-        lines.append("")
+        if final_defs.lines:
+            lines.append("")
     lines.extend([
         f"/-- Automatically generated RD summary for bytecode block at pc {block[0].pc}. -/",
         f"theorem {name} {params}",
@@ -1622,12 +1651,12 @@ def unsupported_boundary_comment(ins: Instruction, code_size: int) -> str:
     )
 
 
-def generate_units(code: bytes, prefix: str, code_term: str,
-                   fail_on_unsupported: bool = False, keep_metadata: bool = False,
-                   max_summary_instructions: int = MAX_SUMMARY_INSTRUCTIONS,
-                   use_sequence_patterns: bool = True,
-                   creation_code: bool = False) -> list[str]:
-    """Generate theorem/comment units without a Lean module wrapper."""
+def generate_unit_records(code: bytes, prefix: str, code_term: str,
+                          fail_on_unsupported: bool = False, keep_metadata: bool = False,
+                          max_summary_instructions: int = MAX_SUMMARY_INSTRUCTIONS,
+                          use_sequence_patterns: bool = True,
+                          creation_code: bool = False) -> list[GeneratedUnit]:
+    """Generate theorem/comment units with index metadata and no module wrapper."""
     prefix = lean_ident(prefix)
     analyzed_code = code if keep_metadata else strip_solidity_metadata(code)
     discovered_blocks = blocks(disassemble(analyzed_code))
@@ -1640,17 +1669,18 @@ def generate_units(code: bytes, prefix: str, code_term: str,
         )
         raise ValueError(f"unsupported instructions: {listing}")
 
-    units: list[str] = []
+    units: list[GeneratedUnit] = []
     for block in discovered_blocks:
         for piece in bounded_supported_segments(
             block, max_summary_instructions, use_sequence_patterns
         ):
             if isinstance(piece, Instruction):
-                units.append(unsupported_boundary_comment(piece, len(analyzed_code)))
+                units.append(GeneratedUnit(unsupported_boundary_comment(piece, len(analyzed_code))))
                 continue
             branches: list[str | None] = (
                 ["taken", "fallthrough"] if piece[-1].opcode == 0x57 else [None]
             )
+            pcs = tuple(ins.pc for ins in piece)
             for branch in branches:
                 decode_proof = "(by native_decide)"
                 creation_prefix = None
@@ -1662,12 +1692,32 @@ def generate_units(code: bytes, prefix: str, code_term: str,
                     )
                 summary = simulate(piece, branch, use_sequence_patterns,
                                    decode_proof, creation_prefix)
-                units.append(render_summary(prefix, code_term, piece, summary, creation_code,
-                                            len(code) if creation_code else None))
+                name = summary_name(prefix, piece, branch)
+                theorem_names = (name,) if summary.terminal else (name, f"{name}_packed")
+                units.append(GeneratedUnit(
+                    render_summary(prefix, code_term, piece, summary, creation_code,
+                                   len(code) if creation_code else None),
+                    theorem_names,
+                    pcs,
+                ))
     return units
 
 
-def render_module(prefix: str, imports: list[str], units: list[str],
+def generate_units(code: bytes, prefix: str, code_term: str,
+                   fail_on_unsupported: bool = False, keep_metadata: bool = False,
+                   max_summary_instructions: int = MAX_SUMMARY_INSTRUCTIONS,
+                   use_sequence_patterns: bool = True,
+                   creation_code: bool = False) -> list[str]:
+    """Generate theorem/comment units without a Lean module wrapper."""
+    return [
+        unit.text for unit in generate_unit_records(
+            code, prefix, code_term, fail_on_unsupported, keep_metadata,
+            max_summary_instructions, use_sequence_patterns, creation_code
+        )
+    ]
+
+
+def render_module(prefix: str, imports: list[str], units: list[Unit],
                   creation_code: bool = False,
                   code_term: str | None = None) -> str:
     """Wrap generated units as an independently elaboratable Lean module."""
@@ -1688,7 +1738,7 @@ def render_module(prefix: str, imports: list[str], units: list[str],
             "",
         ]
     for unit in units:
-        output += [unit, ""]
+        output += [unit_text(unit), ""]
     output += [f"end {prefix}Blocks", ""]
     return "\n".join(output)
 
@@ -1704,15 +1754,75 @@ def generate(code: bytes, prefix: str, code_term: str, imports: list[str],
     return render_module(prefix, imports, units, creation_code, code_term)
 
 
-def shard_units(units: list[str], shard_size: int) -> list[list[str]]:
+def top_level_item_start(line: str) -> bool:
+    return (
+        line.startswith("/--")
+        or line.startswith("/- Unsupported")
+        or line.startswith("def ")
+        or line.startswith("noncomputable def ")
+        or line.startswith("theorem ")
+        or line.startswith("end ")
+    )
+
+
+def theorem_span(lines: list[str], theorem: str) -> tuple[int, int]:
+    start = next(
+        index for index, line in enumerate(lines)
+        if re.match(rf"^theorem {re.escape(theorem)}\b", line)
+    )
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        if top_level_item_start(lines[index]):
+            end = index
+            break
+    while end > start + 1 and lines[end - 1] == "":
+        end -= 1
+    return start + 1, end
+
+
+def find_unit_start(lines: list[str], unit: Unit, cursor: int) -> tuple[int, int]:
+    unit_lines = unit_text(unit).splitlines()
+    first_line = unit_lines[0]
+    start = next(index for index in range(cursor, len(lines)) if lines[index] == first_line)
+    return start + 1, start + len(unit_lines)
+
+
+def module_index_entries(file_name: str, module_text: str,
+                         units: list[Unit]) -> list[IndexEntry]:
+    lines = module_text.splitlines()
+    entries: list[IndexEntry] = []
+    cursor = 0
+    for unit in units:
+        unit_start, cursor = find_unit_start(lines, unit, cursor)
+        if not isinstance(unit, GeneratedUnit):
+            continue
+        for theorem in unit.theorem_names:
+            _, end = theorem_span(lines, theorem)
+            entries.append(IndexEntry(theorem, file_name, unit_start, end, unit.pcs))
+    return entries
+
+
+def render_index(entries: list[IndexEntry]) -> str:
+    return "\n".join(
+        f"{entry.theorem}\t{entry.file}:{entry.start_line}-{entry.end_line}\t"
+        f"{' '.join(str(pc) for pc in entry.pcs)}"
+        for entry in entries
+    ) + ("\n" if entries else "")
+
+
+def default_index_output(output: Path) -> Path:
+    return output.with_suffix(".index")
+
+
+def shard_units(units: list[Unit], shard_size: int) -> list[list[Unit]]:
     """Group units with at most ``shard_size`` summary theorems per group."""
     if shard_size <= 0:
         raise ValueError("shard size must be positive")
-    shards: list[list[str]] = []
-    current: list[str] = []
+    shards: list[list[Unit]] = []
+    current: list[Unit] = []
     summaries = 0
     for unit in units:
-        is_summary = "/-- Automatically generated RD summary" in unit
+        is_summary = "/-- Automatically generated RD summary" in unit_text(unit)
         if is_summary and summaries == shard_size:
             shards.append(current)
             current = []
@@ -1724,12 +1834,17 @@ def shard_units(units: list[str], shard_size: int) -> list[list[str]]:
     return shards
 
 
-def write_outputs(output: Path, prefix: str, imports: list[str], units: list[str],
+def write_outputs(output: Path, prefix: str, imports: list[str], units: list[Unit],
                   shard_size: int | None, creation_code: bool = False,
-                  code_term: str | None = None) -> list[Path]:
+                  code_term: str | None = None,
+                  index_output: Path | None = None) -> list[Path]:
+    index_entries: list[IndexEntry] = []
     if shard_size is None:
-        output.write_text(
-            render_module(prefix, imports, units, creation_code, code_term), encoding="utf-8"
+        module_text = render_module(prefix, imports, units, creation_code, code_term)
+        output.write_text(module_text, encoding="utf-8")
+        index_entries.extend(module_index_entries(output.name, module_text, units))
+        (index_output or default_index_output(output)).write_text(
+            render_index(index_entries), encoding="utf-8"
         )
         return [output]
 
@@ -1739,10 +1854,13 @@ def write_outputs(output: Path, prefix: str, imports: list[str], units: list[str
     paths: list[Path] = []
     for index, shard in enumerate(shards, 1):
         path = output.with_name(f"{output.stem}_{index:0{width}d}{suffix}")
-        path.write_text(
-            render_module(prefix, imports, shard, creation_code, code_term), encoding="utf-8"
-        )
+        module_text = render_module(prefix, imports, shard, creation_code, code_term)
+        path.write_text(module_text, encoding="utf-8")
+        index_entries.extend(module_index_entries(path.name, module_text, shard))
         paths.append(path)
+    (index_output or default_index_output(output)).write_text(
+        render_index(index_entries), encoding="utf-8"
+    )
     return paths
 
 
@@ -1760,6 +1878,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="additional Lean module import")
     parser.add_argument("--output", "-o", type=Path, required=True,
                         help="output .lean file; its stem is used for sharded filenames")
+    parser.add_argument("--index-output", type=Path,
+                        help="sidecar theorem index path (default: OUTPUT with .index suffix)")
     parser.add_argument("--shard-size", type=int,
                         help="maximum summary theorems per output file")
     parser.add_argument("--fail-on-unsupported", action="store_true",
@@ -1781,12 +1901,14 @@ def main(argv: list[str] | None = None) -> int:
     try:
         code = (parse_bytecode_text(args.hex_bytecode) if args.hex_bytecode is not None
                 else read_bytecode(args.bytecode, args.code_term))
-        units = generate_units(code, args.name, args.code_term, args.fail_on_unsupported,
-                               args.keep_metadata, args.max_summary_instructions,
-                               not args.no_sequence_patterns, args.creation_code)
+        units = generate_unit_records(code, args.name, args.code_term,
+                                      args.fail_on_unsupported, args.keep_metadata,
+                                      args.max_summary_instructions,
+                                      not args.no_sequence_patterns, args.creation_code)
         paths = write_outputs(args.output, args.name,
                               [args.bytecode_import, *args.imports], units,
-                              args.shard_size, args.creation_code, args.code_term)
+                              args.shard_size, args.creation_code, args.code_term,
+                              args.index_output)
     except (OSError, ValueError) as error:
         parser.error(str(error))
     if args.shard_size is not None:

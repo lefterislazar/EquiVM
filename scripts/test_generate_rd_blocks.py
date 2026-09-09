@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -206,6 +207,72 @@ class SequencePatternTests(unittest.TestCase):
             ": List UInt256 :=",
             generated_line("\n".join(namespaced_units), "def creation_block_0_stack"),
         )
+
+    def test_write_outputs_emits_compact_theorem_index(self) -> None:
+        records = rd.generate_unit_records(
+            bytes.fromhex("526001"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "RuntimeBlocks.lean"
+            rd.write_outputs(output, "runtime", ["RuntimeBytecode"], records, None)
+            index = output.with_suffix(".index").read_text(encoding="utf-8").splitlines()
+            rendered = output.read_text(encoding="utf-8").splitlines()
+
+        self.assertEqual(2, len(index))
+        self.assertEqual(["runtime_block_0", "runtime_block_0_packed"],
+                         [line.split("\t")[0] for line in index])
+        for line in index:
+            theorem, location, pcs = line.split("\t")
+            file_name, span = location.split(":")
+            start, end = (int(part) for part in span.split("-"))
+            self.assertEqual("RuntimeBlocks.lean", file_name)
+            self.assertEqual("0 1", pcs)
+            ranged = rendered[start - 1:end]
+            self.assertTrue(any(line.startswith(f"theorem {theorem} ") for line in ranged))
+            self.assertTrue(ranged[0].startswith("/-- Final stack"))
+            self.assertTrue(any(line.startswith("/-- Final memory") for line in ranged))
+            self.assertGreaterEqual(end, start)
+
+    def test_sharded_outputs_emit_one_index_with_actual_shard_names(self) -> None:
+        records = rd.generate_unit_records(
+            bytes.fromhex("5b5b"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "RuntimeBlocks.lean"
+            rd.write_outputs(output, "runtime", ["RuntimeBytecode"], records, 1)
+            index = output.with_suffix(".index").read_text(encoding="utf-8")
+
+        self.assertIn("runtime_block_0\tRuntimeBlocks_001.lean:", index)
+        self.assertIn("\t0", index)
+        self.assertIn("runtime_block_1\tRuntimeBlocks_002.lean:", index)
+        self.assertIn("\t1", index)
+
+    def test_write_outputs_honors_explicit_index_path(self) -> None:
+        records = rd.generate_unit_records(
+            bytes.fromhex("5b"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "RuntimeBlocks.lean"
+            index_output = Path(temp) / "RuntimeBlocks.tsv"
+            rd.write_outputs(output, "runtime", ["RuntimeBytecode"], records, None,
+                             index_output=index_output)
+            self.assertTrue(index_output.exists())
+            self.assertFalse(output.with_suffix(".index").exists())
+
+    def test_write_outputs_emits_empty_index_for_no_theorems(self) -> None:
+        records = rd.generate_unit_records(
+            bytes.fromhex("f1"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "RuntimeBlocks.lean"
+            rd.write_outputs(output, "runtime", ["RuntimeBytecode"], records, None)
+            index_output = output.with_suffix(".index")
+            self.assertTrue(index_output.exists())
+            self.assertEqual("", index_output.read_text(encoding="utf-8"))
 
     def test_terminal_blocks_do_not_emit_packed_summaries(self) -> None:
         units = rd.generate_units(
