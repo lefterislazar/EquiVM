@@ -100,8 +100,7 @@ theorem skimSecondBalanceCalldataMem_read64
 theorem skimSecondBalanceCalldataMem_mload64
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (skimSecondBalanceCalldataMem self o toWord value).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 13 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (skimSecondBalanceCalldataMem self o toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondBalanceCalldataMem self o toWord value).readWithPadding
@@ -207,8 +206,7 @@ theorem skimSecondBalanceStaticcallMem_mload64_of_size_ge
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out.size) (houtSize : out.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (skimSecondBalanceStaticcallMem self o toWord value out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 13 * ⟨32⟩ then ⟨0⟩
+          (skimSecondBalanceStaticcallMem self o toWord value out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondBalanceStaticcallMem self o toWord value out).readWithPadding
@@ -267,8 +265,7 @@ theorem skimSecondBalanceStaticcallMem_mload64_of_size_lt
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hshort : out.size < 32) (houtSize : out.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (skimSecondBalanceStaticcallMem self o toWord value out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 13 * ⟨32⟩ then ⟨0⟩
+          (skimSecondBalanceStaticcallMem self o toWord value out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondBalanceStaticcallMem self o toWord value out).readWithPadding
@@ -299,8 +296,7 @@ theorem skimSecondBalanceStaticcallMem_mload292_of_size_ge
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out.size) (houtSize : out.size < UInt256.size) :
     (if (⟨292⟩ : UInt256).toNat ≥
-          (skimSecondBalanceStaticcallMem self o toWord value out).size
-        ∨ (⟨292⟩ : UInt256) ≥ UInt256.ofNat 13 * ⟨32⟩ then ⟨0⟩
+          (skimSecondBalanceStaticcallMem self o toWord value out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondBalanceStaticcallMem self o toWord value out).readWithPadding

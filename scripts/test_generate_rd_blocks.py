@@ -3,8 +3,12 @@
 
 from __future__ import annotations
 
+import sys
+import tempfile
 import unittest
+from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import generate_rd_blocks as rd
 
 
@@ -49,6 +53,10 @@ def instructions(hex_code: str) -> list[rd.Instruction]:
 
 def theorem_headers(units: list[str]) -> list[str]:
     return [unit.split(":= by", 1)[0] for unit in units if ":= by" in unit]
+
+
+def generated_line(rendered: str, prefix: str) -> str:
+    return next(line for line in rendered.splitlines() if line.startswith(prefix))
 
 
 class SequencePatternTests(unittest.TestCase):
@@ -125,6 +133,189 @@ class SequencePatternTests(unittest.TestCase):
         self.assertNotIn("{tail : ByteArray}", rendered)
         self.assertNotIn("decode_append_left_of_decode", rendered)
         self.assertIn("RD runtimeBytecode", rendered)
+
+    def test_packed_summary_hides_final_counters_and_active_words(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("6001"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        rendered = "\n".join(units)
+        self.assertIn("def runtime_block_0_stack {R : List UInt256}", rendered)
+        self.assertIn("theorem runtime_block_0_packed", rendered)
+        self.assertIn("∃ (aw' : UInt256) (k' C' : ℕ), RD runtimeBytecode", rendered)
+        self.assertNotIn("def runtime_block_0_memory", rendered)
+        self.assertIn("(runtime_block_0_stack (R := R)) mem aw' rdata", rendered)
+        self.assertIn("RD.pack (runtime_block_0 hstack h)", rendered)
+
+    def test_final_value_definitions_scan_needed_parameters(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("35"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        rendered = "\n".join(units)
+        self.assertEqual(
+            "def runtime_block_0_stack {ee : ExecutionEnv} {x0 : UInt256} "
+            "{R : List UInt256} : List UInt256 :=",
+            generated_line(rendered, "def runtime_block_0_stack"),
+        )
+        self.assertNotIn("def runtime_block_0_memory", rendered)
+        self.assertIn(
+            "(runtime_block_0_stack (ee := ee) (x0 := x0) (R := R)) mem",
+            rendered,
+        )
+
+    def test_trivial_final_values_do_not_emit_definitions(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("5b"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        rendered = "\n".join(units)
+        self.assertNotIn("def runtime_block_0_stack", rendered)
+        self.assertNotIn("def runtime_block_0_memory", rendered)
+        self.assertIn("RD runtimeBytecode ee g s0 (UInt256.ofNat 1) R mem aw", rendered)
+
+    def test_final_memory_definition_scans_stack_input_parameters(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("52"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        rendered = "\n".join(units)
+        self.assertEqual(
+            "def runtime_block_0_memory {mem : ByteArray} {x0 : UInt256} "
+            "{x1 : UInt256} : ByteArray :=",
+            generated_line(rendered, "def runtime_block_0_memory"),
+        )
+        self.assertIn(
+            "(runtime_block_0_memory (mem := mem) (x0 := x0) (x1 := x1))",
+            rendered,
+        )
+
+    def test_final_stack_definition_scans_existential_word_parameters(self) -> None:
+        summary = rd.Summary(
+            ["x0"], ["gasWord0", "x0"], "mem", "aw", "σ", "0", [], [],
+            True, None, [], None, 1, ["gasWord0"], "r0",
+        )
+        rendered = "\n".join(
+            rd.render_final_value_defs(
+                "runtime_block_0", summary, "runtimeBytecode", False,
+            ).lines
+        )
+        self.assertEqual(
+            "def runtime_block_0_stack {x0 : UInt256} "
+            "{R : List UInt256} {gasWord0 : UInt256} : List UInt256 :=",
+            generated_line(rendered, "def runtime_block_0_stack"),
+        )
+        self.assertIn(
+            "gasWord0 :: x0 :: R",
+            rendered,
+        )
+
+    def test_packed_summary_repackages_existential_counter_blocks(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("600054"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        rendered = "\n".join(units)
+        self.assertIn("theorem runtime_block_0_packed", rendered)
+        self.assertIn("obtain ⟨k0, C0, h0⟩ := runtime_block_0 hstack h", rendered)
+        self.assertIn("obtain ⟨k', C', h'⟩ := RD.pack h0", rendered)
+
+    def test_creation_packed_summary_lifts_code_terms_inside_symbolic_results(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("38"), "creation", "creationBytecode",
+            keep_metadata=True, creation_code=True,
+        )
+        rendered = "\n".join(units)
+        self.assertEqual(
+            "def creation_block_0_stack {tail : ByteArray} {R : List UInt256} "
+            ": List UInt256 :=",
+            generated_line(rendered, "def creation_block_0_stack"),
+        )
+        self.assertIn("(UInt256.ofNat (creationBytecode ++ tail).size)", rendered)
+        self.assertNotIn("__CODE__", rendered)
+
+        namespaced_units = rd.generate_units(
+            bytes.fromhex("38"), "creation", "Creation.C.bytecode",
+            keep_metadata=True, creation_code=True,
+        )
+        self.assertEqual(
+            "def creation_block_0_stack {tail : ByteArray} {R : List UInt256} "
+            ": List UInt256 :=",
+            generated_line("\n".join(namespaced_units), "def creation_block_0_stack"),
+        )
+
+    def test_write_outputs_emits_compact_theorem_index(self) -> None:
+        records = rd.generate_unit_records(
+            bytes.fromhex("526001"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "RuntimeBlocks.lean"
+            rd.write_outputs(output, "runtime", ["RuntimeBytecode"], records, None)
+            index = output.with_suffix(".index").read_text(encoding="utf-8").splitlines()
+            rendered = output.read_text(encoding="utf-8").splitlines()
+
+        self.assertEqual(2, len(index))
+        self.assertEqual(["runtime_block_0", "runtime_block_0_packed"],
+                         [line.split("\t")[0] for line in index])
+        for line in index:
+            theorem, location, pcs = line.split("\t")
+            file_name, span = location.split(":")
+            start, end = (int(part) for part in span.split("-"))
+            self.assertEqual("RuntimeBlocks.lean", file_name)
+            self.assertEqual("0 1", pcs)
+            ranged = rendered[start - 1:end]
+            self.assertTrue(any(line.startswith(f"theorem {theorem} ") for line in ranged))
+            self.assertTrue(ranged[0].startswith("/-- Final stack"))
+            self.assertTrue(any(line.startswith("/-- Final memory") for line in ranged))
+            self.assertGreaterEqual(end, start)
+
+    def test_sharded_outputs_emit_one_index_with_actual_shard_names(self) -> None:
+        records = rd.generate_unit_records(
+            bytes.fromhex("5b5b"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "RuntimeBlocks.lean"
+            rd.write_outputs(output, "runtime", ["RuntimeBytecode"], records, 1)
+            index = output.with_suffix(".index").read_text(encoding="utf-8")
+
+        self.assertIn("runtime_block_0\tRuntimeBlocks_001.lean:", index)
+        self.assertIn("\t0", index)
+        self.assertIn("runtime_block_1\tRuntimeBlocks_002.lean:", index)
+        self.assertIn("\t1", index)
+
+    def test_write_outputs_honors_explicit_index_path(self) -> None:
+        records = rd.generate_unit_records(
+            bytes.fromhex("5b"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "RuntimeBlocks.lean"
+            index_output = Path(temp) / "RuntimeBlocks.tsv"
+            rd.write_outputs(output, "runtime", ["RuntimeBytecode"], records, None,
+                             index_output=index_output)
+            self.assertTrue(index_output.exists())
+            self.assertFalse(output.with_suffix(".index").exists())
+
+    def test_write_outputs_emits_empty_index_for_no_theorems(self) -> None:
+        records = rd.generate_unit_records(
+            bytes.fromhex("f1"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "RuntimeBlocks.lean"
+            rd.write_outputs(output, "runtime", ["RuntimeBytecode"], records, None)
+            index_output = output.with_suffix(".index")
+            self.assertTrue(index_output.exists())
+            self.assertEqual("", index_output.read_text(encoding="utf-8"))
+
+    def test_terminal_blocks_do_not_emit_packed_summaries(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("600100"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        self.assertNotIn("_packed", "\n".join(units))
 
     def test_dynamic_gas_constants_emit_as_numerals(self) -> None:
         for code in ("60006000602039", "6000602020", "600060206001a1"):

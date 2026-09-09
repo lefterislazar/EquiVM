@@ -69,8 +69,7 @@ theorem skimSecondSafeTransferReturnDataMem_mload64
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferReturnDataMem self o toWord prevValue out2 value out).size
-        ∨ (⟨64⟩ : UInt256) ≥ skimSecondSafeTransferReturnDataActiveWords out * ⟨32⟩ then
+          (skimSecondSafeTransferReturnDataMem self o toWord prevValue out2 value out).size then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -145,8 +144,7 @@ theorem skimSecondSafeTransferReturnDataMem_mload456
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255) :
     (if (⟨456⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferReturnDataMem self o toWord prevValue out2 value out).size
-        ∨ (⟨456⟩ : UInt256) ≥ skimSecondSafeTransferReturnDataActiveWords out * ⟨32⟩ then
+          (skimSecondSafeTransferReturnDataMem self o toWord prevValue out2 value out).size then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -192,8 +190,7 @@ theorem skimSecondSafeTransferReturnDataMem_mload488
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size)
     (hout32 : 32 ≤ out.size) (houtSize : out.size < 2 ^ 255) :
     (if (⟨488⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferReturnDataMem self o toWord prevValue out2 value out).size
-        ∨ (⟨488⟩ : UInt256) ≥ skimSecondSafeTransferReturnDataActiveWords out * ⟨32⟩ then
+          (skimSecondSafeTransferReturnDataMem self o toWord prevValue out2 value out).size then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -597,7 +594,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyFailureReverts {g : Sat256} {s0 : S
   let mem0 := skimSecondSafeTransferCallMem2 self o toWord prevValue out2 value
   let aw0 : UInt256 := UInt256.ofNat 18
   let fp0 : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ mem0.size ∨ (⟨64⟩ : UInt256) ≥ aw0 * ⟨32⟩ then
+    if (⟨64⟩ : UInt256).toNat ≥ mem0.size then
       ⟨0⟩
     else UInt256.ofNat (fromByteArrayBigEndian (mem0.readWithPadding 64 32))
   let aw1 : UInt256 := UInt256.ofNat (MachineState.M aw0.toNat (⟨64⟩ : UInt256).toNat 32)
@@ -664,7 +661,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyFailureReverts {g : Sat256} {s0 : S
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd6763 := evm_run rd6762 with [swap1]
   let fp1 : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ err3.size ∨ (⟨64⟩ : UInt256) ≥ aw5 * ⟨32⟩ then
+    if (⟨64⟩ : UInt256).toNat ≥ err3.size then
       ⟨0⟩
     else UInt256.ofNat (fromByteArrayBigEndian (err3.readWithPadding 64 32))
   let aw6 : UInt256 := UInt256.ofNat (MachineState.M aw5.toNat (⟨64⟩ : UInt256).toNat 32)

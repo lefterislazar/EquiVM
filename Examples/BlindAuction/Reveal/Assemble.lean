@@ -30,7 +30,7 @@ theorem scratch_revealLoopAdvance_secretStore_continue {I} {g : Sat256}
     (hawNext : 3 ≤ awNext.toNat)
     (hawNextSmall : awNext.toNat * 32 < UInt256.size)
     (hfpNext :
-      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size ∨ (⟨64⟩ : UInt256) ≥ awNext * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memNext.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -253,8 +253,7 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
         (slot := (⟨4⟩ : UInt256)) (data := revealScratchBidsLengthSlot I)
         a.hfpRead a.hmem96
   have hfpSlot :
-      (if (⟨64⟩ : UInt256).toNat ≥ memSlot3.size ∨
-          (⟨64⟩ : UInt256) ≥ a.aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memSlot3.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memSlot3.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -737,8 +736,7 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidNonzero_pendi
     rw [hsizePB]
     exact hgapNext
   have hfpPB :
-      (if (⟨64⟩ : UInt256).toNat ≥ (scratch_placeBidPendingHashMem memNext key).size ∨
-            (⟨64⟩ : UInt256) ≥ awPB3 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (scratch_placeBidPendingHashMem memNext key).size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian

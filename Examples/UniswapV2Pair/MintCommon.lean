@@ -139,8 +139,7 @@ theorem feeToSelectorMem_mload64_of_rebuiltStaticcallMem
     (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (feeToSelectorMem (balanceOfThisRebuiltStaticcallMem self oPrev o)).size
-        ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+          (feeToSelectorMem (balanceOfThisRebuiltStaticcallMem self oPrev o)).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((feeToSelectorMem (balanceOfThisRebuiltStaticcallMem self oPrev o)).readWithPadding
@@ -150,7 +149,6 @@ theorem feeToSelectorMem_mload64_of_rebuiltStaticcallMem
     (by
       rw [feeToSelectorMem_size_of_rebuiltStaticcallMem self oPrev o hprevlo hprevhi hlo hhi]
       decide)
-    (by decide)
     (feeToSelectorMem_read64_of_rebuiltStaticcallMem self oPrev o hprevlo hprevhi hlo hhi)
 
 theorem uniswapMintFeeToTypedCall_source
@@ -321,20 +319,18 @@ theorem feeToStaticcallMem_mload64_of_size_ge
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size)
     (houtlo : 32 ≤ outFee.size) (houthi : outFee.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (feeToStaticcallMem (balanceOfThisRebuiltStaticcallMem self oPrev o) outFee).size
-        ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+          (feeToStaticcallMem (balanceOfThisRebuiltStaticcallMem self oPrev o) outFee).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         (ByteArray.readWithPadding
           (feeToStaticcallMem (balanceOfThisRebuiltStaticcallMem self oPrev o) outFee)
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ :=
-  mloadFreePtrValue (aw := feeToStaticcallActiveWords)
+  mloadFreePtrValue
     (by
       rw [feeToStaticcallMem_size_of_size_ge self oPrev o outFee hprevlo hprevhi hlo hhi
         houtlo houthi]
       decide)
-    (by decide)
     (feeToStaticcallMem_read64_of_size_ge self oPrev o outFee hprevlo hprevhi hlo hhi
       houtlo houthi)
 
@@ -383,20 +379,18 @@ theorem feeToStaticcallMem_mload64_of_size_lt
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size)
     (houtshort : outFee.size < 32) (houthi : outFee.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (feeToStaticcallMem (balanceOfThisRebuiltStaticcallMem self oPrev o) outFee).size
-        ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+          (feeToStaticcallMem (balanceOfThisRebuiltStaticcallMem self oPrev o) outFee).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         (ByteArray.readWithPadding
           (feeToStaticcallMem (balanceOfThisRebuiltStaticcallMem self oPrev o) outFee)
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ :=
-  mloadFreePtrValue (aw := feeToStaticcallActiveWords)
+  mloadFreePtrValue
     (by
       rw [feeToStaticcallMem_size_of_size_lt self oPrev o outFee hprevlo hprevhi hlo hhi
         houtshort houthi]
       decide)
-    (by decide)
     (feeToStaticcallMem_read64_of_size_lt self oPrev o outFee hprevlo hprevhi hlo hhi
       houtshort houthi)
 
@@ -420,8 +414,7 @@ theorem feeToStaticcallMem_mload128_of_size_ge
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size)
     (houtlo : 32 ≤ outFee.size) (houthi : outFee.size < UInt256.size) :
     (if (⟨128⟩ : UInt256).toNat ≥
-          (feeToStaticcallMem (balanceOfThisRebuiltStaticcallMem self oPrev o) outFee).size
-        ∨ (⟨128⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+          (feeToStaticcallMem (balanceOfThisRebuiltStaticcallMem self oPrev o) outFee).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         (ByteArray.readWithPadding

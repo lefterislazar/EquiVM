@@ -1581,8 +1581,7 @@ theorem currentLengthPayloadMem_read64 (len header : UInt256) :
 
 theorem currentLengthPayloadMem_mload64 (len header freePtr : UInt256)
     (hfree : currentLengthFreePtr len = freePtr) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (currentLengthPayloadMem len header).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (currentLengthPayloadMem len header).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((currentLengthPayloadMem len header).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -1591,8 +1590,7 @@ theorem currentLengthPayloadMem_mload64 (len header freePtr : UInt256)
     (UInt256.ofNat 6) hfree (by decide)
 
 theorem currentLengthPayloadMem_mload128 (len header : UInt256) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (currentLengthPayloadMem len header).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (currentLengthPayloadMem len header).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((currentLengthPayloadMem len header).readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
@@ -1611,8 +1609,7 @@ theorem currentLengthPayloadReturnMem_read64 (len header : UInt256) :
 
 theorem currentLengthPayloadReturnMem_mload64 (len header freePtr : UInt256)
     (hfree : currentLengthFreePtr len = freePtr) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (currentLengthPayloadReturnMem len header).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (currentLengthPayloadReturnMem len header).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((currentLengthPayloadReturnMem len header).readWithPadding
@@ -1743,8 +1740,7 @@ theorem currentLengthZeroMem_read64 :
     ← readWithPadding_eq_extract _ _ (by have := currentLengthZeroAllocMem_size; omega),
     currentLengthZeroAllocMem_read64]
 theorem currentLengthZeroMem_mload128 :
-    (if (⟨128⟩ : UInt256).toNat ≥ currentLengthZeroMem.size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ currentLengthZeroMem.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           (currentLengthZeroMem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) = ⟨0⟩ := by
@@ -1756,8 +1752,7 @@ theorem currentLengthZeroMem_mload128 :
       currentLengthZeroMem_read128)
 
 theorem currentLengthZeroMem_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ currentLengthZeroMem.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ currentLengthZeroMem.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           (currentLengthZeroMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨160⟩ := by
@@ -1791,8 +1786,7 @@ theorem currentLengthZeroReturnMem_read64 :
   exact currentLengthZeroMem_read64
 
 theorem currentLengthZeroReturnMem_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ currentLengthZeroReturnMem.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ currentLengthZeroReturnMem.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           (currentLengthZeroReturnMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨160⟩ := by
@@ -1827,8 +1821,7 @@ theorem currentLengthZeroReturnMem_read128 :
   exact currentLengthZeroMem_read128
 
 theorem currentLengthZeroReturnMem_mload128 :
-    (if (⟨128⟩ : UInt256).toNat ≥ currentLengthZeroReturnMem.size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ currentLengthZeroReturnMem.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           (currentLengthZeroReturnMem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) = ⟨0⟩ := by
@@ -1862,8 +1855,7 @@ theorem setEmptyReturnMem_read64 :
   exact currentLengthZeroReturnMem_read64
 
 theorem setEmptyReturnMem_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ setEmptyReturnMem.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ setEmptyReturnMem.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           (setEmptyReturnMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨160⟩ := by
@@ -3024,8 +3016,7 @@ def setHelperPayloadAw (len : UInt256) : UInt256 :=
 
 noncomputable def setHelperPayloadWord
     (cd : ByteArray) (len payloadStart : UInt256) : UInt256 :=
-  if (⟨160⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size ∨
-      (⟨160⟩ : UInt256) ≥ setHelperEntryAw len * ⟨32⟩ then
+  if (⟨160⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size then
     ⟨0⟩
   else
     UInt256.ofNat (fromByteArrayBigEndian
@@ -3620,8 +3611,7 @@ theorem setPaddedMem_mload128_short_nonzero
     (hnz : len.toNat ≠ 0)
     (hshort : len.toNat < 32)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size
-        ∨ (⟨128⟩ : UInt256) ≥ setHelperEntryAw len * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((setPaddedMem cd len payloadStart).readWithPadding
@@ -3644,8 +3634,7 @@ theorem setPaddedMem_mload128_nonzero_u64
     (hnz : len.toNat ≠ 0)
     (hlenMax : len.toNat ≤ ABI.solcMaxU64)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size
-        ∨ (⟨128⟩ : UInt256) ≥ setHelperEntryAw len * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((setPaddedMem cd len payloadStart).readWithPadding
@@ -3668,8 +3657,7 @@ theorem setPaddedMem_mload64_short_nonzero
     (hnz : len.toNat ≠ 0)
     (hshort : len.toNat < 32)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size
-        ∨ (⟨64⟩ : UInt256) ≥ setHelperPayloadAw len * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((setPaddedMem cd len payloadStart).readWithPadding
@@ -3695,8 +3683,7 @@ theorem setPaddedMem_mload64_nonzero_u64
     (hnz : len.toNat ≠ 0)
     (hlenMax : len.toNat ≤ ABI.solcMaxU64)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size
-        ∨ (⟨64⟩ : UInt256) ≥ setHelperEntryAw len * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((setPaddedMem cd len payloadStart).readWithPadding
@@ -3720,8 +3707,7 @@ theorem setPaddedMem_mload128_short_nonzero_payloadAw
     (hnz : len.toNat ≠ 0)
     (hshort : len.toNat < 32)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size
-        ∨ (⟨128⟩ : UInt256) ≥ setHelperPayloadAw len * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((setPaddedMem cd len payloadStart).readWithPadding
@@ -3769,8 +3755,7 @@ theorem setShortReturnMem_mload64
     (hnz : len.toNat ≠ 0)
     (hshort : len.toNat < 32)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (setShortReturnMem cd len payloadStart).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (setShortReturnMem cd len payloadStart).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((setShortReturnMem cd len payloadStart).readWithPadding

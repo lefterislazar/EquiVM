@@ -122,8 +122,7 @@ theorem permitNonceHashMem_read64 (I : ExecutionEnv) :
     solcFreePtrMem_read64
 
 theorem permitNonceHashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (permitNonceHashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (permitNonceHashMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitNonceHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))

@@ -138,8 +138,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
           (data := revealScratchBidsLengthSlot I)
           a.hfpRead a.hmem96
     have hfpSlot :
-        (if (⟨64⟩ : UInt256).toNat ≥ memSlot3.size ∨
-            (⟨64⟩ : UInt256) ≥ (awOf a) * ⟨32⟩
+        (if (⟨64⟩ : UInt256).toNat ≥ memSlot3.size
          then ⟨0⟩
          else UInt256.ofNat
           (fromByteArrayBigEndian

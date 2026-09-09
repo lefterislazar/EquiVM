@@ -374,26 +374,25 @@ theorem solcFreePtrMem_read64 : solcFreePtrMem.readWithPadding 64 32 = UInt256.t
         (by rw [ByteArray.size_append, zeroes_ofNat_size _ (by norm_num), toByteArray_size]; rfl)]
 
 /-- The value pushed by a solc-style `MLOAD 0x40` when memory still stores free pointer `0x80`. -/
-theorem mloadFreePtrValue {mem : ByteArray} {aw : UInt256}
-    (hmem : 64 < mem.size) (haw : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩)
+theorem mloadFreePtrValue {mem : ByteArray}
+    (hmem : 64 < mem.size)
     (hread : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
-  exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := aw) (v := (⟨128⟩ : UInt256))
-    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hmem)
-    haw
-    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hread)
+  rw [if_neg (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
+    Nat.not_le.mpr hmem)]
+  rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hread,
+    fromByteArrayBigEndian_toByteArray, u256_ofNat_toNat]
 
 /-- `MLOAD 0x40` over the initial solc free-pointer memory pushes `0x80`. -/
 theorem solcFreePtrMem_mload64 :
     (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+        then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian (solcFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide) solcFreePtrMem_read64
+  mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) solcFreePtrMem_read64
 
 theorem solcFreePtrMem_pad_size :
     (solcFreePtrMem ++ ffi.ByteArray.zeroes 32).size = 128 := by
@@ -424,11 +423,11 @@ theorem solcReturnMem_read64 (val : UInt256) :
 /-- `MLOAD 0x40` over solc return memory still pushes the free pointer `0x80`. -/
 theorem solcReturnMem_mload64 (val : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥ (solcReturnMem val).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+        then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((solcReturnMem val).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [solcReturnMem_size]; decide) (by decide) (solcReturnMem_read64 val)
+  mloadFreePtrValue (by rw [solcReturnMem_size]; decide) (solcReturnMem_read64 val)
 
 theorem solcReturnMem_read128 (val : UInt256) :
     (solcReturnMem val).readWithPadding 128 32 = UInt256.toByteArray val := by
@@ -543,14 +542,14 @@ theorem solcErrorStringMem3_mload64 (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+        then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((solcErrorStringMem3 len word mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
   mloadFreePtrValue (by rw [solcErrorStringMem3_size len word hmem]; decide)
-    (by decide) (solcErrorStringMem3_read64 len word hmem hread64)
+    (solcErrorStringMem3_read64 len word hmem hread64)
 
 theorem solcErrorStringMem0_size_of_size164 {mem : ByteArray} (hmem : mem.size = 164) :
     (solcErrorStringMem0 mem).size = 164 := by
@@ -600,14 +599,14 @@ theorem solcErrorStringMem3_mload64_of_size164 (len word : UInt256) {mem : ByteA
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+        then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((solcErrorStringMem3 len word mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
   mloadFreePtrValue (by rw [solcErrorStringMem3_size_of_size164 len word hmem]; decide)
-    (by decide) (solcErrorStringMem3_read64_of_size164 len word hmem hread64)
+    (solcErrorStringMem3_read64_of_size164 len word hmem hread64)
 
 /-! ## Mapping scratch memory -/
 
@@ -680,12 +679,12 @@ theorem solcMappingHashMem_read64 (baseSlot key : UInt256) :
 
 theorem solcMappingHashMem_mload64 (baseSlot key : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥ (solcMappingHashMem baseSlot key).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+        then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((solcMappingHashMem baseSlot key).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [solcMappingHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [solcMappingHashMem_size]; decide)
     (solcMappingHashMem_read64 baseSlot key)
 
 set_option maxHeartbeats 800000 in
@@ -796,13 +795,13 @@ theorem solcNestedMappingHashMem_read64 (baseSlot owner spender : UInt256) :
 
 theorem solcNestedMappingHashMem_mload64 (baseSlot owner spender : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥ (solcNestedMappingHashMem baseSlot owner spender).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+        then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((solcNestedMappingHashMem baseSlot owner spender).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [solcNestedMappingHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [solcNestedMappingHashMem_size]; decide)
     (solcNestedMappingHashMem_read64 baseSlot owner spender)
 
 set_option maxHeartbeats 800000 in
@@ -872,13 +871,13 @@ theorem solcScratchReturnMem_mload64 {scratch : ByteArray} (val : UInt256)
     (hscratch : scratch.size = 96)
     (hread64 : scratch.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (if (⟨64⟩ : UInt256).toNat ≥ (solcScratchReturnMem scratch val).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+        then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((solcScratchReturnMem scratch val).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [solcScratchReturnMem_size val hscratch]; decide) (by decide)
+  mloadFreePtrValue (by rw [solcScratchReturnMem_size val hscratch]; decide)
     (solcScratchReturnMem_read64 val hscratch hread64)
 
 theorem solcScratchReturnMem_read128 {scratch : ByteArray} (val : UInt256)
@@ -1018,38 +1017,32 @@ theorem solcBytesReturnPayloadMem_read64 (len payloadWord : UInt256) :
     (by decide)]
   exact solcBytesReturnLengthMem_read64 len
 
-theorem solcBytesReturnPayloadMem_mload64 (len payloadWord freePtr aw : UInt256)
-    (hfree : solcBytesReturnFreePtr len = freePtr)
-    (haw : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩) :
+theorem solcBytesReturnPayloadMem_mload64 (len payloadWord freePtr : UInt256)
+    (hfree : solcBytesReturnFreePtr len = freePtr) :
     (if (⟨64⟩ : UInt256).toNat ≥ (solcBytesReturnPayloadMem len payloadWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+        then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((solcBytesReturnPayloadMem len payloadWord).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = freePtr := by
-  exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := aw) (v := freePtr)
-    (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
-      solcBytesReturnPayloadMem_size]; decide)
-    haw
-    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hfree] using
-      solcBytesReturnPayloadMem_read64 len payloadWord)
+  rw [if_neg (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
+    solcBytesReturnPayloadMem_size]; decide)]
+  rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
+    solcBytesReturnPayloadMem_read64 len payloadWord, hfree,
+    fromByteArrayBigEndian_toByteArray, u256_ofNat_toNat]
 
-theorem solcBytesReturnPayloadMem_mload128 (len payloadWord aw : UInt256)
-    (haw : ¬ (⟨128⟩ : UInt256) ≥ aw * ⟨32⟩) :
+theorem solcBytesReturnPayloadMem_mload128 (len payloadWord : UInt256) :
     (if (⟨128⟩ : UInt256).toNat ≥ (solcBytesReturnPayloadMem len payloadWord).size
-        ∨ (⟨128⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+        then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((solcBytesReturnPayloadMem len payloadWord).readWithPadding
             (⟨128⟩ : UInt256).toNat 32))) = len := by
-  exact mloadWordValue_of_readWithPadding
-    (off := (⟨128⟩ : UInt256)) (aw := aw) (v := len)
-    (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
-      solcBytesReturnPayloadMem_size]; decide)
-    haw
-    (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
-      solcBytesReturnPayloadMem_read128 len payloadWord)
+  rw [if_neg (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+    solcBytesReturnPayloadMem_size]; decide)]
+  rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+    solcBytesReturnPayloadMem_read128 len payloadWord,
+    fromByteArrayBigEndian_toByteArray, u256_ofNat_toNat]
 
 theorem solcBytesReturnPayloadReturnMem_size (len payloadWord : UInt256) :
     (solcBytesReturnPayloadReturnMem len payloadWord).size = 224 := by
@@ -1070,22 +1063,19 @@ theorem solcBytesReturnPayloadReturnMem_read64 (len payloadWord : UInt256) :
     (by decide)]
   exact solcBytesReturnPayloadMem_read64 len payloadWord
 
-theorem solcBytesReturnPayloadReturnMem_mload64 (len payloadWord freePtr aw : UInt256)
-    (hfree : solcBytesReturnFreePtr len = freePtr)
-    (haw : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩) :
+theorem solcBytesReturnPayloadReturnMem_mload64 (len payloadWord freePtr : UInt256)
+    (hfree : solcBytesReturnFreePtr len = freePtr) :
     (if (⟨64⟩ : UInt256).toNat ≥ (solcBytesReturnPayloadReturnMem len payloadWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+        then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((solcBytesReturnPayloadReturnMem len payloadWord).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = freePtr := by
-  exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := aw) (v := freePtr)
-    (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
-      solcBytesReturnPayloadReturnMem_size]; decide)
-    haw
-    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hfree] using
-      solcBytesReturnPayloadReturnMem_read64 len payloadWord)
+  rw [if_neg (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
+    solcBytesReturnPayloadReturnMem_size]; decide)]
+  rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
+    solcBytesReturnPayloadReturnMem_read64 len payloadWord, hfree,
+    fromByteArrayBigEndian_toByteArray, u256_ofNat_toNat]
 
 theorem solcBytesReturnPayloadReturnMem_read192 (len payloadWord : UInt256) :
     (solcBytesReturnPayloadReturnMem len payloadWord).readWithPadding 192 32 =
@@ -5028,7 +5018,7 @@ theorem RD.solcErrorStringRevertTail {code : ByteArray} {g : Sat256} {s0 : State
     raw dup1 hd2 (by evm_ov),
     raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) hd3
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4 (by simp only [List.length_cons]; omega)
@@ -5468,14 +5458,14 @@ theorem RD.solcMaskedTransferLog3AndJump {code : ByteArray} {g : Sat256} {s0 : S
     (hwf : solcMaskedTransferLog3AndJumpWf code pc topic)
     (hmload :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
     (hlogMload :
       (if (⟨64⟩ : UInt256).toNat ≥
             ((UInt256.toByteArray value).write 0 mem 128 32).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           (((UInt256.toByteArray value).write 0 mem 128 32).readWithPadding
@@ -5584,14 +5574,14 @@ theorem RD.solcPlainLog3AndJump {code : ByteArray} {g : Sat256} {s0 : State}
     (hwf : solcPlainLog3AndJumpWf code pc topic)
     (hmload :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
     (hlogMload :
       (if (⟨64⟩ : UInt256).toNat ≥
             ((UInt256.toByteArray value).write 0 mem 128 32).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           (((UInt256.toByteArray value).write 0 mem 128 32).readWithPadding
@@ -5691,14 +5681,14 @@ theorem RD.solcReturnWordFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     (hwf : solcReturnWordFromMemWf code pc)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
     (hmemout : (UInt256.toByteArray val).write 0 mem 128 32 = memout)
     (hmemoutLoad64 :
       (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -5834,7 +5824,7 @@ theorem RD.solcReturnAddressFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     (hwf : solcReturnAddressFromMemWf code pc)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -5842,7 +5832,7 @@ theorem RD.solcReturnAddressFromMem {code : ByteArray} {g : Sat256} {s0 : State}
       (UInt256.toByteArray (UInt256.land val solcAddrMask)).write 0 mem 128 32 = memout)
     (hmemoutLoad64 :
       (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -5962,7 +5952,7 @@ theorem RD.solcReturnUint8FromMem {code : ByteArray} {g : Sat256} {s0 : State}
     (hwf : solcReturnUint8FromMemWf code pc)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -5970,7 +5960,7 @@ theorem RD.solcReturnUint8FromMem {code : ByteArray} {g : Sat256} {s0 : State}
       (UInt256.toByteArray (UInt256.land val ⟨255⟩)).write 0 mem 128 32 = memout)
     (hmemoutLoad64 :
       (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -6077,7 +6067,7 @@ theorem RD.solcReturnBoolFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     (hwf : solcReturnBoolFromMemWf code pc)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -6086,7 +6076,7 @@ theorem RD.solcReturnBoolFromMem {code : ByteArray} {g : Sat256} {s0 : State}
         memout)
     (hmemoutLoad64 :
       (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -6272,13 +6262,13 @@ theorem RD.solcUint256ReturnWordDecodeOk {code : ByteArray} {ee : ExecutionEnv}
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hMload64Value :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hMload128Value :
       (if (⟨128⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨128⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord)
@@ -6385,7 +6375,7 @@ theorem RD.solcUint256ReturnWordDecodeShortReverts {code : ByteArray} {ee : Exec
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hMload64Value :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)

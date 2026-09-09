@@ -1083,10 +1083,10 @@ theorem scratch_mload_of_read {mem : ByteArray} {fp packedLen aw : UInt256}
     (hmem : fp.toNat < mem.size)
     (haw : ¬ fp ≥ aw * ⟨32⟩)
     (hread : mem.readWithPadding fp.toNat 32 = UInt256.toByteArray packedLen) :
-    (if fp.toNat ≥ mem.size ∨ fp ≥ aw * ⟨32⟩ then ⟨0⟩
+    (if fp.toNat ≥ mem.size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding fp.toNat 32))) =
       packedLen :=
-  mloadWordValue_of_readWithPadding hmem haw hread
+  mloadWordValue_of_readWithPadding hmem hread
 
 theorem scratch_evalExpr_reveal_value_of_secretStoreOf (evm : EVM.State)
     (locals : Store) (i value secret : UInt256) (fake : Bool) :
@@ -2227,7 +2227,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromPacked_pair {I} {g : Sat256} {s0
         fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata (cA, σ) k C)
     (hfp :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -2240,7 +2240,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromPacked_pair {I} {g : Sat256} {s0
       let aw2 := UInt256.ofNat (MachineState.M aw1.toNat fp.toNat 32)
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
       let aw3 := UInt256.ofNat (MachineState.M aw2.toNat (⟨64⟩ : UInt256).toNat 32)
-      (if fp.toNat ≥ mem5.size ∨ fp ≥ aw3 * ⟨32⟩
+      (if fp.toNat ≥ mem5.size
        then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem5.readWithPadding fp.toNat 32))) =
         packedLen)
@@ -2357,7 +2357,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromPacked_concrete_pair {I} {g : Sa
         fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata (cA, σ) k C)
     (hfp :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -2370,7 +2370,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromPacked_concrete_pair {I} {g : Sa
       let aw2 := UInt256.ofNat (MachineState.M aw1.toNat fp.toNat 32)
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
       let aw3 := UInt256.ofNat (MachineState.M aw2.toNat (⟨64⟩ : UInt256).toNat 32)
-      (if fp.toNat ≥ mem5.size ∨ fp ≥ aw3 * ⟨32⟩
+      (if fp.toNat ≥ mem5.size
        then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem5.readWithPadding fp.toNat 32))) =
         packedLen)
@@ -2503,7 +2503,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromElemSlot_cursor_pair {I} {g : Sa
     (hread : mem.readWithPadding 64 32 = UInt256.toByteArray fp)
     (hmem96 : 96 ≤ mem.size) (hfp96 : 96 ≤ fp.toNat)
     (hfpPrefix :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -2567,8 +2567,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromElemSlot_cursor_pair {I} {g : Sa
           memNext awNext rdata (cA, σ) k' C' ∧
         3 ≤ awNext.toNat ∧
         awNext.toNat * 32 < UInt256.size ∧
-        (if (⟨64⟩ : UInt256).toNat ≥ memNext.size ∨
-            (⟨64⟩ : UInt256) ≥ awNext * ⟨32⟩
+        (if (⟨64⟩ : UInt256).toNat ≥ memNext.size
          then ⟨0⟩
          else UInt256.ofNat
           (fromByteArrayBigEndian
@@ -2623,8 +2622,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromElemSlot_cursor_pair {I} {g : Sa
       using scratch_revealPackedPrefix_size (mem := mem) (fp := fp) (value := value)
         (fakeWord := fakeWord) (secret := secret) hfit97 hmemle hgap
   have hfpPacked :
-      (if (⟨64⟩ : UInt256).toNat ≥ memP3.size ∨
-          (⟨64⟩ : UInt256) ≥ awP4 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memP3.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memP3.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -2656,7 +2654,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromElemSlot_cursor_pair {I} {g : Sa
        let aw2 := UInt256.ofNat (MachineState.M aw1.toNat fp.toNat 32)
        let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
        let aw3 := UInt256.ofNat (MachineState.M aw2.toNat (⟨64⟩ : UInt256).toNat 32)
-       if fp.toNat ≥ mem5.size ∨ fp ≥ aw3 * ⟨32⟩
+       if fp.toNat ≥ mem5.size
        then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem5.readWithPadding fp.toNat 32))) =
         packedLen := by
@@ -2694,8 +2692,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromElemSlot_cursor_pair {I} {g : Sa
       using scratch_revealPackedMem_freePtr_read (mem := mem) (fp := fp) (value := value)
         (fakeWord := fakeWord) (secret := secret) hfit97 hmemle hgap
   have hfpFinal :
-      (if (⟨64⟩ : UInt256).toNat ≥ memP5.size ∨
-          (⟨64⟩ : UInt256) ≥ awS5 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memP5.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memP5.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -2803,7 +2800,7 @@ theorem scratch_revealLoopBody_hashMismatch_afterSecret_pair {I} {g : Sat256}
         secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata (cA, σ) k C)
     (hfpPrefix :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -2818,7 +2815,7 @@ theorem scratch_revealLoopBody_hashMismatch_afterSecret_pair {I} {g : Sat256}
       let awP3 := UInt256.ofNat (MachineState.M awP2.toNat fakeBase.toNat 32)
       let mem3 := scratch_revealPackedSecretMem mem2 secretBase secret
       let awP4 := UInt256.ofNat (MachineState.M awP3.toNat secretBase.toNat 32)
-      (if (⟨64⟩ : UInt256).toNat ≥ mem3.size ∨ (⟨64⟩ : UInt256) ≥ awP4 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem3.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem3.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -2840,7 +2837,7 @@ theorem scratch_revealLoopBody_hashMismatch_afterSecret_pair {I} {g : Sat256}
       let aw2 := UInt256.ofNat (MachineState.M aw1.toNat fp.toNat 32)
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
       let aw3 := UInt256.ofNat (MachineState.M aw2.toNat (⟨64⟩ : UInt256).toNat 32)
-      (if fp.toNat ≥ mem5.size ∨ fp ≥ aw3 * ⟨32⟩
+      (if fp.toNat ≥ mem5.size
        then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem5.readWithPadding fp.toNat 32))) =
         packedLen)
@@ -2974,7 +2971,7 @@ theorem scratch_revealLoopBody_hashMismatch_afterBool_pair {I} {g : Sat256}
           (I.calldata.readBytes (UInt256.mul ⟨32⟩ i + secretsEnd).toNat 32) =
         secret)
     (hfpPrefix :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -2989,7 +2986,7 @@ theorem scratch_revealLoopBody_hashMismatch_afterBool_pair {I} {g : Sat256}
       let awP3 := UInt256.ofNat (MachineState.M awP2.toNat fakeBase.toNat 32)
       let mem3 := scratch_revealPackedSecretMem mem2 secretBase secret
       let awP4 := UInt256.ofNat (MachineState.M awP3.toNat secretBase.toNat 32)
-      (if (⟨64⟩ : UInt256).toNat ≥ mem3.size ∨ (⟨64⟩ : UInt256) ≥ awP4 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem3.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem3.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -3011,7 +3008,7 @@ theorem scratch_revealLoopBody_hashMismatch_afterBool_pair {I} {g : Sat256}
       let aw2 := UInt256.ofNat (MachineState.M aw1.toNat fp.toNat 32)
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
       let aw3 := UInt256.ofNat (MachineState.M aw2.toNat (⟨64⟩ : UInt256).toNat 32)
-      (if fp.toNat ≥ mem5.size ∨ fp ≥ aw3 * ⟨32⟩
+      (if fp.toNat ≥ mem5.size
        then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem5.readWithPadding fp.toNat 32))) =
         packedLen)
@@ -3122,7 +3119,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromFakeDecoder_pair {I} {g : Sat256
           (I.calldata.readBytes (UInt256.mul ⟨32⟩ i + secretsEnd).toNat 32) =
         secret)
     (hfpPrefix :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -3137,7 +3134,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromFakeDecoder_pair {I} {g : Sat256
       let awP3 := UInt256.ofNat (MachineState.M awP2.toNat fakeBase.toNat 32)
       let mem3 := scratch_revealPackedSecretMem mem2 secretBase secret
       let awP4 := UInt256.ofNat (MachineState.M awP3.toNat secretBase.toNat 32)
-      (if (⟨64⟩ : UInt256).toNat ≥ mem3.size ∨ (⟨64⟩ : UInt256) ≥ awP4 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem3.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem3.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -3159,7 +3156,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromFakeDecoder_pair {I} {g : Sat256
       let aw2 := UInt256.ofNat (MachineState.M aw1.toNat fp.toNat 32)
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
       let aw3 := UInt256.ofNat (MachineState.M aw2.toNat (⟨64⟩ : UInt256).toNat 32)
-      (if fp.toNat ≥ mem5.size ∨ fp ≥ aw3 * ⟨32⟩
+      (if fp.toNat ≥ mem5.size
        then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem5.readWithPadding fp.toNat 32))) =
         packedLen)
@@ -3309,7 +3306,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromElemSlot_pair {I} {g : Sat256}
           (I.calldata.readBytes (UInt256.mul ⟨32⟩ i + secretsEnd).toNat 32) =
         secret)
     (hfpPrefix :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -3324,7 +3321,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromElemSlot_pair {I} {g : Sat256}
       let awP3 := UInt256.ofNat (MachineState.M awP2.toNat fakeBase.toNat 32)
       let mem3 := scratch_revealPackedSecretMem mem2 secretBase secret
       let awP4 := UInt256.ofNat (MachineState.M awP3.toNat secretBase.toNat 32)
-      (if (⟨64⟩ : UInt256).toNat ≥ mem3.size ∨ (⟨64⟩ : UInt256) ≥ awP4 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem3.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem3.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -3346,7 +3343,7 @@ theorem scratch_revealLoopBody_hashMismatch_fromElemSlot_pair {I} {g : Sat256}
       let aw2 := UInt256.ofNat (MachineState.M aw1.toNat fp.toNat 32)
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
       let aw3 := UInt256.ofNat (MachineState.M aw2.toNat (⟨64⟩ : UInt256).toNat 32)
-      (if fp.toNat ≥ mem5.size ∨ fp ≥ aw3 * ⟨32⟩
+      (if fp.toNat ≥ mem5.size
        then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem5.readWithPadding fp.toNat 32))) =
         packedLen)
