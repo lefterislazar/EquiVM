@@ -539,7 +539,8 @@ theorem BlockProgress.externalCallOfBoundary {code ee g s0 evm cfg frame}
 
 This has the same client-facing shape as `BlockProgress.externalCall`, but the EVM-side
 boundary is the six-operand `STATICCALL` and the source send value must evaluate to zero.
-The boundary construction stays hidden inside the rule. -/
+The success continuation additionally receives static preservation of account storage
+and code. The boundary construction stays hidden inside the rule. -/
 theorem BlockProgress.staticExternalCall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {cfg : Config} {frame : Frame} {pc : UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -564,7 +565,8 @@ theorem BlockProgress.staticExternalCall {code : ByteArray} {ee : ExecutionEnv} 
       let cur := callCursor pc rest mem aw inOffset inSize outOffset outSize true out world'
       RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' →
       typedCallViaEVM cfg evm (EVM.address tgt) name 0 argVals (true, evm', out) false →
-      CallStateRel s0 ee world' evm' → out.size < UInt256.size →
+      CallStateRel s0 ee world' evm' →
+      accountStaticStateEq evm.accountMap evm'.accountMap → out.size < UInt256.size →
       match cfg.externalABI.decode? name out with
       | some values => BlockProgress code ee g s0 cfg
           { frame with locals := frame.locals.insert retVar (collapseReturns values) } evm' stmts Q
@@ -588,7 +590,8 @@ theorem BlockProgress.staticExternalCall {code : ByteArray} {ee : ExecutionEnv} 
       exact abort (hfailure out world' k' C' rd)
         (ExecStmt.externalCallFailure hreceiver heth hargs hcall)
   | true =>
-      have hnext := hsuccess out evm' world' k' C' rd hcall hState' hsize
+      have hstatic := typedCallViaEVM_static_accountStaticStateEq hcall
+      have hnext := hsuccess out evm' world' k' C' rd hcall hState' hstatic hsize
       cases hdecode : cfg.externalABI.decode? name out with
       | none =>
           exact abort (by simpa only [hdecode] using hnext)
@@ -1085,8 +1088,10 @@ theorem BlockRefinesFrom.externalCall {code ee g s0 evm cfg frame}
 /-- Fixed-start typed `STATICCALL` refinement. This is the read-only counterpart to
 `BlockRefinesFrom.externalCall`: operand and source-evaluation agreement come from
 `P`, the incoming RD supplies the `STATICCALL` cursor, and the rule hides the
-underlying call-boundary construction. The source send expression must evaluate to zero and the
-source statement is emitted with `perm := false`. -/
+underlying call-boundary construction. The successful continuation starts with both
+`CallStateRel` and `accountStaticStateEq` for the pre/post source account maps. The
+source send expression must evaluate to zero and the source statement is emitted with
+`perm := false`. -/
 theorem BlockRefinesFrom.staticExternalCall {code ee g s0 evm cfg frame}
     {entry : Cursor} {k C : ℕ} {P : StateRel}
     {gasArg target inOffset inSize outOffset outSize : UInt256} {rest : List UInt256}
@@ -1108,11 +1113,13 @@ theorem BlockRefinesFrom.staticExternalCall {code ee g s0 evm cfg frame}
       let cur := callCursor entry.pc rest entry.mem entry.aw inOffset inSize outOffset outSize
         true out world'
       typedCallViaEVM cfg evm (EVM.address tgt) name 0 argVals (true, evm', out) false →
-      out.size < UInt256.size →
+      accountStaticStateEq evm.accountMap evm'.accountMap → out.size < UInt256.size →
       match cfg.externalABI.decode? name out with
       | some values => BlockRefinesFrom code ee g s0 cfg cur k' C'
           { frame with locals := frame.locals.insert retVar (collapseReturns values) }
-          evm' (fun _ _ e => CallStateRel s0 ee world' e) stmts Q
+          evm' (fun _ _ e =>
+            CallStateRel s0 ee world' e ∧ accountStaticStateEq evm.accountMap e.accountMap)
+          stmts Q
       | none => RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' →
           RDrev code g s0)
     (hfailure : ∀ out world' k' C',
@@ -1129,14 +1136,14 @@ theorem BlockRefinesFrom.staticExternalCall {code ee g s0 evm cfg frame}
     hdec hov hRevert ?_ hfailure
   · intro out evm' world' k' C'
     dsimp only
-    intro rd' hcall hr hsize
-    have hnext := hsuccess out evm' world' k' C' hcall hsize
+    intro rd' hcall hr hstatic hsize
+    have hnext := hsuccess out evm' world' k' C' hcall hstatic hsize
     cases hd : cfg.externalABI.decode? name out with
     | none =>
         simp only [hd] at hnext
         exact hnext rd'
     | some values =>
         simp only [hd] at hnext
-        exact hnext rd' hr
+        exact hnext rd' ⟨hr, hstatic⟩
 
 end Reasoning.Refinement

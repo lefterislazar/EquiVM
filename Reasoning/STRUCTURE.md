@@ -123,7 +123,8 @@ these RD steps, including reaching a call boundary and following status/decoder 
 At an ordinary CALL, `BlockRefinesFrom.externalCall` connects the operands and encoded calldata
 to the source call at the head of a statement list. For STATICCALL, use
 `BlockRefinesFrom.staticExternalCall`; it has the same shape but consumes the six-word
-STATICCALL stack and fixes the source permission to `false`.
+STATICCALL stack, fixes the source permission to `false`, and gives successful
+continuations `accountStaticStateEq` for the pre/post source account maps.
 The shared attempt handles depth/balance cases and chooses gas/substate witnesses internally.
 The successful continuation receives the actual returndata, source state, EVM world/cursor,
 RD counters, call evidence, and state agreement. It proves the decoder path and refines the
