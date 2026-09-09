@@ -31,7 +31,7 @@ trusted spec of the FFI hash; asserts nothing about collision resistance).
 | `Dispatch.lean` | Solm dispatcher facts: `dispatchMsg` as a list walk (`dispatchList`), single-transition instances, `SingleSelectorDispatch`, and the `RDret`/`RDrev.reEquiv*` bridges that connect a finished trace to the equivalence statement. |
 | `ExternalCall.lean` | The `CALL` ↔ Solm `externalCall` boundary: both sides invoke the same `Θ`, so results coincide (`callCoincides`); transport of call results across equivalent account maps. |
 | `Refinement.lean` | Paired progression over RD: `StateRel`, `ExitRel`, `BlockProgress`, fixed-start `BlockRefinesFrom`, and reusable `StmtsRefine`. Sequencing with separate RD/source prefixes, EVM-only advancement, paired `GAS`/`gasleft()`, and coupled loop rules covering normal completion, break, continue, return, and revert. |
-| `CallRefinement.lean` | Paired CALL, STATICCALL, and DELEGATECALL boundaries (`PairedCall`) and statement rules for typed, low-level, checked, delegate, and internal calls. `CallStateRel` connects source state to the RD world; call rules hide gas/substate witnesses and depth/balance cases while exposing the actual post-call states to continuations. Creation is outside this module's scope. |
+| `CallRefinement.lean` | CALL, STATICCALL, and DELEGATECALL boundary helpers and statement rules for typed, low-level, checked, delegate, and internal calls. `CallStateRel` connects source state to the RD world; call rules hide gas/substate witnesses and depth/balance cases while exposing the actual post-call states to continuations. Creation is outside this module's scope. |
 | `RuntimeRefinement.lean` | Function-body refinement to `runtimeEquivalenceFor`: `runtimeExit` describes matching transaction endpoints; `BlockProgress.ofRDret`/`.ofRDrev` close paired proofs, and `BlockRefinesFrom.toRuntimeEquivalenceFor` combines body refinement with incoming RD, entry agreement, dispatch, and ABI decoding. |
 | `Constructor.lean` | Skeletons for constructor (creation-code) equivalence proofs. |
 
@@ -121,8 +121,10 @@ witnesses. Use `BlockRefinesFrom.ofRD` to advance only the EVM. Generated summar
 these RD steps, including reaching a call boundary and following status/decoder branches.
 
 At an ordinary CALL, `BlockRefinesFrom.externalCall` connects the operands and encoded calldata
-to the source call at the head of a statement list. For STATICCALL, obtain `PairedCall` with
-`staticCallPaired` and use `externalCallOfPaired` with the source permission set to `false`.
+to the source call at the head of a statement list. For STATICCALL, use
+`BlockRefinesFrom.staticExternalCall`; it has the same shape but consumes the six-word
+STATICCALL stack, fixes the source permission to `false`, and gives successful
+continuations `accountStaticStateEq` for the pre/post source account maps.
 The shared attempt handles depth/balance cases and chooses gas/substate witnesses internally.
 The successful continuation receives the actual returndata, source state, EVM world/cursor,
 RD counters, call evidence, and state agreement. It proves the decoder path and refines the
@@ -131,7 +133,7 @@ decoding also requires EVM reversion. Low-level and delegate calls continue for 
 checked calls execute the selected handler. Follow the corresponding rule's obligations.
 
 Continuations can obtain `out.size < 2 ^ 138` from the supplied call evidence using the
-`ExternalCall` bound lemmas after proving the required calldata-size bound. The paired rules
+`ExternalCall` bound lemmas after proving the required calldata-size bound. The call rules
 already expose `out.size < UInt256.size`. The stronger theorem wraps the underlying Θ bound,
 so contract proofs need not reopen call-attempt cases.
 

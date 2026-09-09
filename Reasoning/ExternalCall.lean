@@ -160,6 +160,24 @@ theorem typedCallViaEVM_static_accountCodeStateEq {cfg : Config} {evm evm' : EVM
   obtain ⟨_calldata, _hencode, hraw⟩ := hcall
   exact callViaEVM_static_accountCodeStateEq hraw
 
+theorem callViaEVM_static_accountStaticStateEq {evm evm' : EVM.State}
+    {target : EVM.Address} {value : ℤ} {calldata : ByteArray}
+    {z : Bool} {out : ByteArray}
+    (hcall : callViaEVM evm target value calldata (z, evm', out) false) :
+    accountStaticStateEq evm.accountMap evm'.accountMap :=
+  accountStaticStateEq_of_storage_code
+    (callViaEVM_static_accountStorageStateEq hcall)
+    (callViaEVM_static_accountCodeStateEq hcall)
+
+theorem typedCallViaEVM_static_accountStaticStateEq {cfg : Config} {evm evm' : EVM.State}
+    {target : EVM.Address} {name : Ident} {args : List Value}
+    {z : Bool} {out : ByteArray}
+    (hcall : typedCallViaEVM cfg evm target name 0 args (z, evm', out) false) :
+    accountStaticStateEq evm.accountMap evm'.accountMap :=
+  accountStaticStateEq_of_storage_code
+    (typedCallViaEVM_static_accountStorageStateEq hcall)
+    (typedCallViaEVM_static_accountCodeStateEq hcall)
+
 theorem typedCallViaEVM_static_storage_findD_of_accountMapEquiv {cfg : Config}
     {σ : AccountMap} {evm evm' : EVM.State}
     {target : EVM.Address} {name : Ident} {args : List Value}
