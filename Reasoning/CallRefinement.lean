@@ -2,7 +2,7 @@ import Reasoning.Refinement
 import Reasoning.ExternalCall
 
 /-!
-# Paired call progression
+# Call progression
 
 The raw call boundaries choose the EVM gas and substate witnesses internally and handle
 depth and balance failures. They return the actual post-call cursor and source state,
@@ -11,9 +11,9 @@ the compiler's status/ABI-decoder tail to the Solm call result.
 
 The rules cover typed, low-level, checked, and delegate calls, including STATICCALL
 permission variants, plus internal calls through a body-refinement summary.
-`PairedCall` packages the concrete RD/source witnesses shared by CALL, STATICCALL and
-DELEGATECALL. Obtain it with `callPaired`, `staticCallPaired`, `rawCallPaired`,
-`rawStaticCallPaired`, or `delegateCallPaired`, then apply the appropriate statement rule.
+For the common typed `.externalCall` cases, `BlockRefinesFrom.externalCall` and
+`BlockRefinesFrom.staticExternalCall` derive the CALL/STATICCALL boundary directly from
+the incoming RD cursor.
 `TypedCallSite` extends that boundary through compiler-specific status and ABI-decoder
 code. `BlockRefinesFrom.externalCallSite` consumes the resulting semantic certificate
 without depending on the surrounding opcode sequence.
@@ -133,7 +133,7 @@ the shared flag/bytes, and the relation needed to synchronize a later call.
 
 The cursor is immediately after CALL; the caller's status check and return decoder have
 not yet run. Those bytecode steps belong to the statement rule's continuation. -/
-theorem callPaired {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+theorem typedCallBoundary {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {cfg : Config} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
     {k C : ℕ} {gasArg target valueWord inOffset inSize outOffset outSize : UInt256}
@@ -174,7 +174,7 @@ def externalCallResult (cfg : Config) (frame : Frame) (evm' : State)
     | none => .reverted
   else .reverted
 
-/-- Paired progression for a typed external call at the head of a source block.
+/-- Progress through a typed external call at the head of a source block.
 
 `hsuccess` receives the post-CALL RD with raw flag `true`, the source post-call state,
 and their relation. It handles the bytecode status/decoder tail: successful decoding
@@ -184,7 +184,7 @@ failed decoding requires `RDrev` and skips those statements.
 `hfailure` is entirely EVM-side: from the post-CALL RD with flag `false`, prove `RDrev`.
 It needs no source state, typed-call fact, or return-data bound. The separate `hRevert`
 hypothesis says that `Q` accepts matching reverts. Gas witnesses and depth/balance checks
-stay internal to `callPaired`.
+stay internal to `typedCallBoundary`.
 
 For use inside a `StmtsRefine` proof, introduce its related starting pair and apply this
 rule directly. Setting `stmts := []` gives the singleton-call case. -/
@@ -225,7 +225,7 @@ theorem BlockProgress.externalCall {code : ByteArray} {ee : ExecutionEnv} {g : S
     BlockProgress code ee g s0 cfg frame evm
       (.externalCall receiver name eth args retVar :: stmts) Q := by
   obtain ⟨z, out, evm', world', k', C', rd, hcall, hState', hsize⟩ :=
-    callPaired h hState hword htarget hencode hdec hperm hov
+    typedCallBoundary h hState hword htarget hencode hdec hperm hov
   have abort (hrev : RDrev code g s0)
       (hstmt : ExecStmt cfg frame evm (.externalCall receiver name eth args retVar) .reverted) :
       BlockProgress code ee g s0 cfg frame evm
@@ -247,24 +247,10 @@ theorem BlockProgress.externalCall {code : ByteArray} {ee : ExecutionEnv} {g : S
 
 abbrev CallWorld := Batteries.RBSet AccountAddress compare × AccountMap
 
-/-- Concrete call boundary evidence. The relation closes over the source input state;
-`after` exposes the exact EVM cursor for each shared flag, output and world. -/
-def PairedCall (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
-    (call : (Bool × State × ByteArray) → Prop)
-    (after : Bool → ByteArray → CallWorld → Cursor) : Prop :=
-  ∃ z out evm' world' k' C',
-    let cur := after z out world'
-    RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' ∧
-    call (z, evm', out) ∧ CallStateRel s0 ee world' evm' ∧ out.size < UInt256.size
-
 /-- A complete semantic call site, abstracting over the bytecode used to prepare the
 call and process its result. A failed call or failed typed decoder reaches EVM revert.
 A successful decoder reaches an arbitrary cursor satisfying `post`; that relation is
-where a compiler-specific trace records its stack, memory, and continuation PC.
-
-Unlike `PairedCall`, this notion describes the whole compiler call site rather than
-the single CALL-family opcode. The exact opcode is still checked when constructing
-the underlying `PairedCall`. -/
+where a compiler-specific trace records its stack, memory, and continuation PC. -/
 def TypedCallSite (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (call : (Bool × State × ByteArray) → Prop)
     (decodeResult : ByteArray → Option (List Value))
@@ -280,12 +266,16 @@ def TypedCallSite (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : Stat
             RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C ∧
             post values out world' cur
 
-/-- Finish a semantic typed call site from the exact paired CALL-family boundary and
+/-- Finish a semantic typed call site from exact CALL-family boundary evidence and
 compiler-specific RD traces for its status check and return decoder. This is the main
-bridge used by generated-summary clients: `hpair` may include arbitrary setup code,
+bridge used by generated-summary clients: `hboundary` may include arbitrary setup code,
 while `hsuccess` and `hfailure` may include arbitrary result-processing code. -/
-theorem TypedCallSite.ofPaired {code ee g s0 call decodeResult post after}
-    (hpair : PairedCall code ee g s0 call after)
+theorem TypedCallSite.ofBoundary {code ee g s0 call decodeResult post}
+    {after : Bool → ByteArray → CallWorld → Cursor}
+    (hboundary : ∃ z out evm' world' k C,
+      let cur := after z out world'
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C ∧
+      call (z, evm', out) ∧ CallStateRel s0 ee world' evm' ∧ out.size < UInt256.size)
     (hsuccess : ∀ out evm' world' k C,
       let cur := after true out world'
       RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C →
@@ -301,7 +291,7 @@ theorem TypedCallSite.ofPaired {code ee g s0 call decodeResult post after}
       RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C →
       RDrev code g s0) :
     TypedCallSite code ee g s0 call decodeResult post := by
-  obtain ⟨z, out, evm', world', k, C, rd, hcall, hrel, hsize⟩ := hpair
+  obtain ⟨z, out, evm', world', k, C, rd, hcall, hrel, hsize⟩ := hboundary
   refine ⟨z, out, evm', world', hcall, hrel, hsize, ?_⟩
   cases z with
   | false => exact hfailure out world' k C rd
@@ -382,8 +372,8 @@ private theorem delegateCallExact {code : ByteArray} {ee : ExecutionEnv} {g : Sa
     simpa only [hEnv, hOriginal, hGenesis, hBlocks] using hTheta
   · simpa only [hEnv] using hd
 
-/-- Pair a zero-value STATICCALL with the typed source call in read-only mode. -/
-theorem staticCallPaired {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+/-- Cross a zero-value STATICCALL with the typed source call in read-only mode. -/
+theorem typedStaticCallBoundary {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {cfg : Config} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
     {k C : ℕ} {gasArg target inOffset inSize outOffset outSize : UInt256}
@@ -413,9 +403,9 @@ theorem staticCallPaired {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
   refine ⟨z, out, _, (cA', σ'), k', C', rd, hcall, ?_, hsize⟩
   exact ⟨hState.env, hState.readOnly, rfl, hAccounts⟩
 
-/-- Pair DELEGATECALL with the native Solm relation, including depth-limit failure.
+/-- Cross DELEGATECALL with the native Solm relation, including depth-limit failure.
 No assumption about the target's code, inherited value, or permission is needed. -/
-theorem delegateCallPaired {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+theorem delegateCallBoundary {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
     {k C : ℕ} {gasArg target inOffset inSize outOffset outSize : UInt256}
@@ -428,8 +418,11 @@ theorem delegateCallPaired {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     (hdata : calldata = mem.readWithPadding inOffset.toNat inSize.toNat)
     (hdec : decode code pc = some (.DELEGATECALL, .none))
     (hov : rest.length + 1 ≤ 1024) :
-    PairedCall code ee g s0 (delegateCallViaEVM evm tgt calldata)
-      (callCursor pc rest mem aw inOffset inSize outOffset outSize) := by
+    ∃ z out evm' world' k' C',
+      let cur := callCursor pc rest mem aw inOffset inSize outOffset outSize z out world'
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' ∧
+      delegateCallViaEVM evm tgt calldata (z, evm', out) ∧
+      CallStateRel s0 ee world' evm' ∧ out.size < UInt256.size := by
   let shadow := { evm with createdAccounts := cA, accountMap := σ }
   obtain ⟨cA', σ', z, out, A', k', C', rd, hraw, hsize⟩ :=
     delegateCallExact (evm := shadow) h hState.env hState.readOnly hdec hov
@@ -439,8 +432,8 @@ theorem delegateCallPaired {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
   exact ⟨z, out, _, (cA', σ'), k', C', rd, hcall,
     ⟨hState.env, hState.readOnly, rfl, hAccounts⟩, hsize⟩
 
-/-- Pair a raw CALL with verbatim calldata. -/
-theorem rawCallPaired {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+/-- Cross a raw CALL with verbatim calldata. -/
+theorem rawCallBoundary {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
     {k C : ℕ} {gasArg target valueWord inOffset inSize outOffset outSize : UInt256}
@@ -454,17 +447,20 @@ theorem rawCallPaired {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     (hdata : calldata = mem.readWithPadding inOffset.toNat inSize.toNat)
     (hdec : decode code pc = some (.CALL, .none)) (hperm : ee.perm = true)
     (hov : rest.length + 1 ≤ 1024) :
-    PairedCall code ee g s0 (callViaEVM evm tgt value calldata)
-      (callCursor pc rest mem aw inOffset inSize outOffset outSize) := by
+    ∃ z out evm' world' k' C',
+      let cur := callCursor pc rest mem aw inOffset inSize outOffset outSize z out world'
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' ∧
+      callViaEVM evm tgt value calldata (z, evm', out) ∧
+      CallStateRel s0 ee world' evm' ∧ out.size < UInt256.size := by
   let cfg := rawCallTransportConfig { layout := fun _ _ => none } calldata
   obtain ⟨z, out, evm', world', k', C', rd, ⟨bytes, henc, hraw⟩, hr, hsize⟩ :=
-    callPaired (cfg := cfg) (name := "") (args := []) h hState hword htarget
+    typedCallBoundary (cfg := cfg) (name := "") (args := []) h hState hword htarget
       (congrArg some hdata) hdec hperm hov
   have heq : calldata = bytes := Option.some.inj henc
   exact ⟨z, out, evm', world', k', C', rd, heq ▸ hraw, hr, hsize⟩
 
-/-- Pair a raw STATICCALL with verbatim calldata and zero value. -/
-theorem rawStaticCallPaired {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+/-- Cross a raw STATICCALL with verbatim calldata and zero value. -/
+theorem rawStaticCallBoundary {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 evm : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
     {k C : ℕ} {gasArg target inOffset inSize outOffset outSize : UInt256}
@@ -477,23 +473,29 @@ theorem rawStaticCallPaired {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     (hdata : calldata = mem.readWithPadding inOffset.toNat inSize.toNat)
     (hdec : decode code pc = some (.STATICCALL, .none))
     (hov : rest.length + 1 ≤ 1024) :
-    PairedCall code ee g s0 (fun result => callViaEVM evm tgt 0 calldata result false)
-      (callCursor pc rest mem aw inOffset inSize outOffset outSize) := by
+    ∃ z out evm' world' k' C',
+      let cur := callCursor pc rest mem aw inOffset inSize outOffset outSize z out world'
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' ∧
+      callViaEVM evm tgt 0 calldata (z, evm', out) false ∧
+      CallStateRel s0 ee world' evm' ∧ out.size < UInt256.size := by
   let cfg := rawCallTransportConfig { layout := fun _ _ => none } calldata
   obtain ⟨z, out, evm', world', k', C', rd, ⟨bytes, henc, hraw⟩, hr, hsize⟩ :=
-    staticCallPaired (cfg := cfg) (name := "") (args := []) h hState htarget
+    typedStaticCallBoundary (cfg := cfg) (name := "") (args := []) h hState htarget
       (congrArg some hdata) hdec hov
   have heq : calldata = bytes := Option.some.inj henc
   exact ⟨z, out, evm', world', k', C', rd, heq ▸ hraw, hr, hsize⟩
 
-/-- Typed call elimination shared by CALL and STATICCALL. Supply the concrete boundary
-from `callPaired` or `staticCallPaired`. Raw failure needs only the EVM revert continuation. -/
-theorem BlockProgress.externalCallOfPaired {code ee g s0 evm cfg frame}
+/-- Typed call elimination shared by CALL and STATICCALL. Supply concrete boundary
+evidence. Raw failure needs only the EVM revert continuation. -/
+theorem BlockProgress.externalCallOfBoundary {code ee g s0 evm cfg frame}
     {receiver eth : Expr} {args : List Expr} {argVals : List Value} {tgt : EVM.Address}
     {name retVar : Ident} {value : ℤ} {stmts : List Stmt} {Q : ExitRel} {perm : Bool}
     {after : Bool → ByteArray → CallWorld → Cursor}
-    (hpair : PairedCall code ee g s0
-      (fun result => typedCallViaEVM cfg evm (EVM.address tgt) name value argVals result perm) after)
+    (hboundary : ∃ z out evm' world' k' C',
+      let cur := after z out world'
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' ∧
+      typedCallViaEVM cfg evm (EVM.address tgt) name value argVals (z, evm', out) perm ∧
+      CallStateRel s0 ee world' evm' ∧ out.size < UInt256.size)
     (hreceiver : evalExpr? cfg frame evm receiver = .ok (.address tgt))
     (heth : evalExpr? cfg frame evm eth = .ok (.int value))
     (hargs : evalExprs? cfg frame evm args = .ok argVals)
@@ -513,11 +515,73 @@ theorem BlockProgress.externalCallOfPaired {code ee g s0 evm cfg frame}
       RDrev code g s0) :
     BlockProgress code ee g s0 cfg frame evm
       (.externalCall receiver name eth args retVar perm :: stmts) Q := by
-  obtain ⟨z, out, evm', world', k', C', rd, hcall, hState', hsize⟩ := hpair
+  obtain ⟨z, out, evm', world', k', C', rd, hcall, hState', hsize⟩ := hboundary
   have abort (hrev : RDrev code g s0)
       (hstmt : ExecStmt cfg frame evm (.externalCall receiver name eth args retVar perm) .reverted) :
       BlockProgress code ee g s0 cfg frame evm
         (.externalCall receiver name eth args retVar perm :: stmts) Q := by
+    exact ⟨.reverted, .reverted, ExecBlock.consRevert hstmt, hrev, hRevert⟩
+  cases z with
+  | false =>
+      exact abort (hfailure out world' k' C' rd)
+        (ExecStmt.externalCallFailure hreceiver heth hargs hcall)
+  | true =>
+      have hnext := hsuccess out evm' world' k' C' rd hcall hState' hsize
+      cases hdecode : cfg.externalABI.decode? name out with
+      | none =>
+          exact abort (by simpa only [hdecode] using hnext)
+            (ExecStmt.externalCallReturnDecodeRevert hreceiver heth hargs hcall hdecode)
+      | some values =>
+          exact BlockProgress.cons (ExecStmt.externalCallSuccess hreceiver heth hargs hcall hdecode)
+            (by simpa only [hdecode] using hnext)
+
+/-- Direct typed `STATICCALL` elimination for source `.externalCall ... (perm := false)`.
+
+This has the same client-facing shape as `BlockProgress.externalCall`, but the EVM-side
+boundary is the six-operand `STATICCALL` and the source send value must evaluate to zero.
+The boundary construction stays hidden inside the rule. -/
+theorem BlockProgress.staticExternalCall {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 evm : State} {cfg : Config} {frame : Frame} {pc : UInt256}
+    {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
+    {gasArg target inOffset inSize outOffset outSize : UInt256} {rest : List UInt256}
+    {receiver eth : Expr} {args : List Expr} {argVals : List Value} {tgt : EVM.Address}
+    {name retVar : Ident} {stmts : List Stmt} {Q : ExitRel}
+    (h : RD code ee g s0 pc
+      (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: rest)
+      mem aw rdata (cA, σ) k C)
+    (hState : CallStateRel s0 ee (cA, σ) evm)
+    (hreceiver : evalExpr? cfg frame evm receiver = .ok (.address tgt))
+    (heth : evalExpr? cfg frame evm eth = .ok (.int 0))
+    (hargs : evalExprs? cfg frame evm args = .ok argVals)
+    (htarget : EVM.address tgt = AccountAddress.ofUInt256 target)
+    (hencode : cfg.externalABI.encode? name argVals =
+      some (mem.readWithPadding inOffset.toNat inSize.toNat))
+    (hdec : decode code pc = some (.STATICCALL, .none))
+    (hov : rest.length + 1 ≤ 1024)
+    (hRevert : Q .reverted .reverted)
+    (hsuccess : ∀ out evm' world' k' C',
+      let cur := callCursor pc rest mem aw inOffset inSize outOffset outSize true out world'
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' →
+      typedCallViaEVM cfg evm (EVM.address tgt) name 0 argVals (true, evm', out) false →
+      CallStateRel s0 ee world' evm' → out.size < UInt256.size →
+      match cfg.externalABI.decode? name out with
+      | some values => BlockProgress code ee g s0 cfg
+          { frame with locals := frame.locals.insert retVar (collapseReturns values) } evm' stmts Q
+      | none => RDrev code g s0)
+    (hfailure : ∀ out world' k' C',
+      let cur := callCursor pc rest mem aw inOffset inSize outOffset outSize false out world'
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' →
+      RDrev code g s0) :
+    BlockProgress code ee g s0 cfg frame evm
+      (.externalCall receiver name eth args retVar (perm := false) :: stmts) Q := by
+  obtain ⟨z, out, evm', world', k', C', rd, hcall, hState', hsize⟩ :=
+    typedStaticCallBoundary h hState htarget hencode hdec hov
+  have abort (hrev : RDrev code g s0)
+      (hstmt : ExecStmt cfg frame evm
+        (.externalCall receiver name eth args retVar (perm := false)) .reverted) :
+      BlockProgress code ee g s0 cfg frame evm
+        (.externalCall receiver name eth args retVar (perm := false) :: stmts) Q := by
     exact ⟨.reverted, .reverted, ExecBlock.consRevert hstmt, hrev, hRevert⟩
   cases z with
   | false =>
@@ -577,13 +641,16 @@ theorem BlockProgress.externalCallOfSite {code ee g s0 evm cfg frame}
 
 
 /-- Low-level CALL/STATICCALL binds both raw results and continues even when `z = false`.
-Use `rawCallPaired` or `rawStaticCallPaired` for the boundary premise. -/
+Use `rawCallBoundary` or `rawStaticCallBoundary` for the boundary premise. -/
 theorem BlockProgress.lowLevelCall {code ee g s0 evm cfg frame}
     {receiver eth cdata : Expr} {tgt : EVM.Address} {value : ℤ} {calldata : ByteArray}
     {okVar dataVar : Ident} {stmts : List Stmt} {Q : ExitRel} {perm : Bool}
     {after : Bool → ByteArray → CallWorld → Cursor}
-    (hpair : PairedCall code ee g s0
-      (fun result => callViaEVM evm (EVM.address tgt) value calldata result perm) after)
+    (hboundary : ∃ z out evm' world' k' C',
+      let cur := after z out world'
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' ∧
+      callViaEVM evm (EVM.address tgt) value calldata (z, evm', out) perm ∧
+      CallStateRel s0 ee world' evm' ∧ out.size < UInt256.size)
     (hreceiver : evalExpr? cfg frame evm receiver = .ok (.address tgt))
     (heth : evalExpr? cfg frame evm eth = .ok (.int value))
     (hdata : evalExpr? cfg frame evm cdata = .ok (.bytes calldata))
@@ -597,20 +664,23 @@ theorem BlockProgress.lowLevelCall {code ee g s0 evm cfg frame}
         evm' stmts Q) :
     BlockProgress code ee g s0 cfg frame evm
       (.lowLevelCall receiver eth cdata okVar dataVar perm :: stmts) Q := by
-  obtain ⟨z, out, evm', world', k', C', rd, hcall, hr, hsize⟩ := hpair
+  obtain ⟨z, out, evm', world', k', C', rd, hcall, hr, hsize⟩ := hboundary
   have hnext := hcontinue z out evm' world' k' C' rd hcall hr hsize
   cases z with
   | false => exact BlockProgress.cons (ExecStmt.lowLevelCallFailure hreceiver heth hdata hcall) hnext
   | true => exact BlockProgress.cons (ExecStmt.lowLevelCallSuccess hreceiver heth hdata hcall) hnext
 
 /-- DELEGATECALL binds both raw results and continues even when `z = false`.
-Use `delegateCallPaired` for the boundary premise. -/
+Use `delegateCallBoundary` for the boundary premise. -/
 theorem BlockProgress.delegateCall {code ee g s0 evm cfg frame}
     {receiver cdata : Expr} {tgt : EVM.Address} {calldata : ByteArray}
     {okVar dataVar : Ident} {stmts : List Stmt} {Q : ExitRel}
     {after : Bool → ByteArray → CallWorld → Cursor}
-    (hpair : PairedCall code ee g s0
-      (fun result => delegateCallViaEVM evm (EVM.address tgt) calldata result) after)
+    (hboundary : ∃ z out evm' world' k' C',
+      let cur := after z out world'
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' ∧
+      delegateCallViaEVM evm (EVM.address tgt) calldata (z, evm', out) ∧
+      CallStateRel s0 ee world' evm' ∧ out.size < UInt256.size)
     (hreceiver : evalExpr? cfg frame evm receiver = .ok (.address tgt))
     (hdata : evalExpr? cfg frame evm cdata = .ok (.bytes calldata))
     (hcontinue : ∀ z out evm' world' k' C',
@@ -623,7 +693,7 @@ theorem BlockProgress.delegateCall {code ee g s0 evm cfg frame}
         evm' stmts Q) :
     BlockProgress code ee g s0 cfg frame evm
       (.delegateCall receiver cdata okVar dataVar :: stmts) Q := by
-  obtain ⟨z, out, evm', world', k', C', rd, hcall, hr, hsize⟩ := hpair
+  obtain ⟨z, out, evm', world', k', C', rd, hcall, hr, hsize⟩ := hboundary
   have hnext := hcontinue z out evm' world' k' C' rd hcall hr hsize
   cases z with
   | false => exact BlockProgress.cons (ExecStmt.delegateCallFailure hreceiver hdata hcall) hnext
@@ -636,8 +706,11 @@ theorem BlockProgress.checkedCall {code ee g s0 evm cfg frame}
     {receiver eth : Expr} {args : List Expr} {argVals : List Value} {tgt : EVM.Address}
     {name retVar errVar : Ident} {value : ℤ} {onSuccess onFail stmts : List Stmt}
     {Q : ExitRel} {perm : Bool} {after : Bool → ByteArray → CallWorld → Cursor}
-    (hpair : PairedCall code ee g s0
-      (fun result => typedCallViaEVM cfg evm (EVM.address tgt) name value argVals result perm) after)
+    (hboundary : ∃ z out evm' world' k' C',
+      let cur := after z out world'
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' ∧
+      typedCallViaEVM cfg evm (EVM.address tgt) name value argVals (z, evm', out) perm ∧
+      CallStateRel s0 ee world' evm' ∧ out.size < UInt256.size)
     (hreceiver : evalExpr? cfg frame evm receiver = .ok (.address tgt))
     (heth : evalExpr? cfg frame evm eth = .ok (.int value))
     (hargs : evalExprs? cfg frame evm args = .ok argVals)
@@ -661,7 +734,7 @@ theorem BlockProgress.checkedCall {code ee g s0 evm cfg frame}
         evm' (onFail ++ stmts) Q) :
     BlockProgress code ee g s0 cfg frame evm
       (.checkedCall receiver name eth args retVar onSuccess errVar onFail perm :: stmts) Q := by
-  obtain ⟨z, out, evm', world', k', C', rd, hcall, hr, hsize⟩ := hpair
+  obtain ⟨z, out, evm', world', k', C', rd, hcall, hr, hsize⟩ := hboundary
   cases z with
   | false =>
       exact BlockProgress.wrapPrefix
@@ -690,7 +763,7 @@ def internalCallExit (R : Option (List Value) → StateRel) : ExitRel
   | .reverted, .reverted => True
   | _, _ => False
 
-/-- Refine an internal call using paired progression for its body. The body summary
+/-- Refine an internal call using refinement progression for its body. The body summary
 may combine manual RD steps with source evaluation; it returns both states to `hreturn`.
 The caller's locals are restored before binding the returned value and running the tail. -/
 theorem BlockProgress.internalCall {code ee g s0 evm cfg frame}
@@ -736,18 +809,22 @@ theorem BlockProgress.internalCall {code ee g s0 evm cfg frame}
       cases endpoint <;> simp only [internalCallExit] at hrel
       exact finish (ExecFuncBody.execBlockContinue hb) hr hrel
 
-/-- Fixed-start typed CALL/STATICCALL refinement. Derive the paired boundary from
-incoming RD and `P`. Successful decoding continues with a fixed-start refinement;
+/-- Fixed-start typed CALL/STATICCALL refinement. Derive the boundary from incoming
+RD and `P`. Successful decoding continues with a fixed-start refinement;
 raw failure and decode failure require only the corresponding EVM revert proof. -/
-theorem BlockRefinesFrom.externalCallOfPaired {code ee g s0 evm cfg frame}
+theorem BlockRefinesFrom.externalCallOfBoundary {code ee g s0 evm cfg frame}
     {entry : Cursor} {k C : ℕ} {P : StateRel}
     {receiver eth : Expr} {args : List Expr} {argVals : List Value} {tgt : EVM.Address}
     {name retVar : Ident} {value : ℤ} {stmts : List Stmt} {Q : ExitRel} {perm : Bool}
     {after : Bool → ByteArray → CallWorld → Cursor}
-    (hpair :
+    (hboundary :
       RD code ee g s0 entry.pc entry.stack entry.mem entry.aw entry.rdata entry.world k C →
-      P entry frame evm → PairedCall code ee g s0
-      (fun result => typedCallViaEVM cfg evm (EVM.address tgt) name value argVals result perm) after)
+      P entry frame evm →
+      ∃ z out evm' world' k' C',
+        let cur := after z out world'
+        RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' ∧
+        typedCallViaEVM cfg evm (EVM.address tgt) name value argVals (z, evm', out) perm ∧
+        CallStateRel s0 ee world' evm' ∧ out.size < UInt256.size)
     (hreceiver : P entry frame evm → evalExpr? cfg frame evm receiver = .ok (.address tgt))
     (heth : P entry frame evm → evalExpr? cfg frame evm eth = .ok (.int value))
     (hargs : P entry frame evm → evalExprs? cfg frame evm args = .ok argVals)
@@ -769,7 +846,7 @@ theorem BlockRefinesFrom.externalCallOfPaired {code ee g s0 evm cfg frame}
     BlockRefinesFrom code ee g s0 cfg entry k C frame evm P
       (.externalCall receiver name eth args retVar perm :: stmts) Q := by
   intro rd hP
-  refine BlockProgress.externalCallOfPaired (hpair rd hP)
+  refine BlockProgress.externalCallOfBoundary (hboundary rd hP)
     (hreceiver hP) (heth hP) (hargs hP) hRevert ?_ hfailure
   · intro out evm' world' k' C'
     dsimp only
@@ -820,10 +897,14 @@ theorem BlockRefinesFrom.lowLevelCall {code ee g s0 evm cfg frame}
     {receiver eth cdata : Expr} {tgt : EVM.Address} {value : ℤ} {calldata : ByteArray}
     {okVar dataVar : Ident} {stmts : List Stmt} {Q : ExitRel} {perm : Bool}
     {after : Bool → ByteArray → CallWorld → Cursor}
-    (hpair :
+    (hboundary :
       RD code ee g s0 entry.pc entry.stack entry.mem entry.aw entry.rdata entry.world k C →
-      P entry frame evm → PairedCall code ee g s0
-      (fun result => callViaEVM evm (EVM.address tgt) value calldata result perm) after)
+      P entry frame evm →
+      ∃ z out evm' world' k' C',
+        let cur := after z out world'
+        RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' ∧
+        callViaEVM evm (EVM.address tgt) value calldata (z, evm', out) perm ∧
+        CallStateRel s0 ee world' evm' ∧ out.size < UInt256.size)
     (hreceiver : P entry frame evm → evalExpr? cfg frame evm receiver = .ok (.address tgt))
     (heth : P entry frame evm → evalExpr? cfg frame evm eth = .ok (.int value))
     (hdata : P entry frame evm → evalExpr? cfg frame evm cdata = .ok (.bytes calldata))
@@ -837,7 +918,7 @@ theorem BlockRefinesFrom.lowLevelCall {code ee g s0 evm cfg frame}
     BlockRefinesFrom code ee g s0 cfg entry k C frame evm P
       (.lowLevelCall receiver eth cdata okVar dataVar perm :: stmts) Q := by
   intro rd hP
-  apply BlockProgress.lowLevelCall (hpair rd hP) (hreceiver hP) (heth hP) (hdata hP)
+  apply BlockProgress.lowLevelCall (hboundary rd hP) (hreceiver hP) (heth hP) (hdata hP)
   intro z out evm' world' k' C'
   dsimp only
   intro rd' hcall hr hsize
@@ -850,10 +931,14 @@ theorem BlockRefinesFrom.delegateCall {code ee g s0 evm cfg frame}
     {receiver cdata : Expr} {tgt : EVM.Address} {calldata : ByteArray}
     {okVar dataVar : Ident} {stmts : List Stmt} {Q : ExitRel}
     {after : Bool → ByteArray → CallWorld → Cursor}
-    (hpair :
+    (hboundary :
       RD code ee g s0 entry.pc entry.stack entry.mem entry.aw entry.rdata entry.world k C →
-      P entry frame evm → PairedCall code ee g s0
-      (fun result => delegateCallViaEVM evm (EVM.address tgt) calldata result) after)
+      P entry frame evm →
+      ∃ z out evm' world' k' C',
+        let cur := after z out world'
+        RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' ∧
+        delegateCallViaEVM evm (EVM.address tgt) calldata (z, evm', out) ∧
+        CallStateRel s0 ee world' evm' ∧ out.size < UInt256.size)
     (hreceiver : P entry frame evm → evalExpr? cfg frame evm receiver = .ok (.address tgt))
     (hdata : P entry frame evm → evalExpr? cfg frame evm cdata = .ok (.bytes calldata))
     (hcontinue : ∀ z out evm' world' k' C',
@@ -866,7 +951,7 @@ theorem BlockRefinesFrom.delegateCall {code ee g s0 evm cfg frame}
     BlockRefinesFrom code ee g s0 cfg entry k C frame evm P
       (.delegateCall receiver cdata okVar dataVar :: stmts) Q := by
   intro rd hP
-  apply BlockProgress.delegateCall (hpair rd hP) (hreceiver hP) (hdata hP)
+  apply BlockProgress.delegateCall (hboundary rd hP) (hreceiver hP) (hdata hP)
   intro z out evm' world' k' C'
   dsimp only
   intro rd' hcall hr hsize
@@ -879,10 +964,14 @@ theorem BlockRefinesFrom.checkedCall {code ee g s0 evm cfg frame}
     {receiver eth : Expr} {args : List Expr} {argVals : List Value} {tgt : EVM.Address}
     {name retVar errVar : Ident} {value : ℤ} {onSuccess onFail stmts : List Stmt}
     {Q : ExitRel} {perm : Bool} {after : Bool → ByteArray → CallWorld → Cursor}
-    (hpair :
+    (hboundary :
       RD code ee g s0 entry.pc entry.stack entry.mem entry.aw entry.rdata entry.world k C →
-      P entry frame evm → PairedCall code ee g s0
-      (fun result => typedCallViaEVM cfg evm (EVM.address tgt) name value argVals result perm) after)
+      P entry frame evm →
+      ∃ z out evm' world' k' C',
+        let cur := after z out world'
+        RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' ∧
+        typedCallViaEVM cfg evm (EVM.address tgt) name value argVals (z, evm', out) perm ∧
+        CallStateRel s0 ee world' evm' ∧ out.size < UInt256.size)
     (hreceiver : P entry frame evm → evalExpr? cfg frame evm receiver = .ok (.address tgt))
     (heth : P entry frame evm → evalExpr? cfg frame evm eth = .ok (.int value))
     (hargs : P entry frame evm → evalExprs? cfg frame evm args = .ok argVals)
@@ -907,7 +996,7 @@ theorem BlockRefinesFrom.checkedCall {code ee g s0 evm cfg frame}
     BlockRefinesFrom code ee g s0 cfg entry k C frame evm P
       (.checkedCall receiver name eth args retVar onSuccess errVar onFail perm :: stmts) Q := by
   intro rd hP
-  refine BlockProgress.checkedCall (hpair rd hP)
+  refine BlockProgress.checkedCall (hboundary rd hP)
     (hreceiver hP) (heth hP) (hargs hP) hRevert ?_ ?_
   · intro out evm' world' k' C'
     dsimp only
@@ -986,11 +1075,68 @@ theorem BlockRefinesFrom.externalCall {code ee g s0 evm cfg frame}
       RDrev code g s0) :
     BlockRefinesFrom code ee g s0 cfg entry k C frame evm P
       (.externalCall receiver name eth args retVar :: stmts) Q := by
-  apply BlockRefinesFrom.externalCallOfPaired
+  apply BlockRefinesFrom.externalCallOfBoundary
     (after := callCursor entry.pc rest entry.mem entry.aw inOffset inSize outOffset outSize)
     ?_ hreceiver heth hargs hRevert hsuccess hfailure
   intro rd hP
   rw [hstack hP] at rd
-  exact callPaired rd (hState hP) (hword hP) (htarget hP) (hencode hP) hdec hperm hov
+  exact typedCallBoundary rd (hState hP) (hword hP) (htarget hP) (hencode hP) hdec hperm hov
+
+/-- Fixed-start typed `STATICCALL` refinement. This is the read-only counterpart to
+`BlockRefinesFrom.externalCall`: operand and source-evaluation agreement come from
+`P`, the incoming RD supplies the `STATICCALL` cursor, and the rule hides the
+underlying call-boundary construction. The source send expression must evaluate to zero and the
+source statement is emitted with `perm := false`. -/
+theorem BlockRefinesFrom.staticExternalCall {code ee g s0 evm cfg frame}
+    {entry : Cursor} {k C : ℕ} {P : StateRel}
+    {gasArg target inOffset inSize outOffset outSize : UInt256} {rest : List UInt256}
+    {receiver eth : Expr} {args : List Expr} {argVals : List Value} {tgt : EVM.Address}
+    {name retVar : Ident} {stmts : List Stmt} {Q : ExitRel}
+    (hstack : P entry frame evm → entry.stack =
+      gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: rest)
+    (hState : P entry frame evm → CallStateRel s0 ee entry.world evm)
+    (hreceiver : P entry frame evm → evalExpr? cfg frame evm receiver = .ok (.address tgt))
+    (heth : P entry frame evm → evalExpr? cfg frame evm eth = .ok (.int 0))
+    (hargs : P entry frame evm → evalExprs? cfg frame evm args = .ok argVals)
+    (htarget : P entry frame evm → EVM.address tgt = AccountAddress.ofUInt256 target)
+    (hencode : P entry frame evm → cfg.externalABI.encode? name argVals =
+      some (entry.mem.readWithPadding inOffset.toNat inSize.toNat))
+    (hdec : decode code entry.pc = some (.STATICCALL, .none))
+    (hov : rest.length + 1 ≤ 1024)
+    (hRevert : Q .reverted .reverted)
+    (hsuccess : ∀ out evm' world' k' C',
+      let cur := callCursor entry.pc rest entry.mem entry.aw inOffset inSize outOffset outSize
+        true out world'
+      typedCallViaEVM cfg evm (EVM.address tgt) name 0 argVals (true, evm', out) false →
+      out.size < UInt256.size →
+      match cfg.externalABI.decode? name out with
+      | some values => BlockRefinesFrom code ee g s0 cfg cur k' C'
+          { frame with locals := frame.locals.insert retVar (collapseReturns values) }
+          evm' (fun _ _ e => CallStateRel s0 ee world' e) stmts Q
+      | none => RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' →
+          RDrev code g s0)
+    (hfailure : ∀ out world' k' C',
+      let cur := callCursor entry.pc rest entry.mem entry.aw inOffset inSize outOffset outSize
+        false out world'
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k' C' →
+      RDrev code g s0) :
+    BlockRefinesFrom code ee g s0 cfg entry k C frame evm P
+      (.externalCall receiver name eth args retVar (perm := false) :: stmts) Q := by
+  intro rd hP
+  rw [hstack hP] at rd
+  refine BlockProgress.staticExternalCall rd (hState hP)
+    (hreceiver hP) (heth hP) (hargs hP) (htarget hP) (hencode hP)
+    hdec hov hRevert ?_ hfailure
+  · intro out evm' world' k' C'
+    dsimp only
+    intro rd' hcall hr hsize
+    have hnext := hsuccess out evm' world' k' C' hcall hsize
+    cases hd : cfg.externalABI.decode? name out with
+    | none =>
+        simp only [hd] at hnext
+        exact hnext rd'
+    | some values =>
+        simp only [hd] at hnext
+        exact hnext rd' hr
 
 end Reasoning.Refinement
