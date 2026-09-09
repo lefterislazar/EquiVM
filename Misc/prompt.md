@@ -595,12 +595,13 @@ Function calls should be proven modularly. In particular:
   even when they contain no calls. State a `StateRel` invariant over
   the relevant source locals, EVM stack shape, and memory facts,
   indexed by a decreasing variant; include `CallStateRel` when needed
-  by calls or world agreement. Use `StmtsRefine.forLoopCombined` and
-  the provided summaries for the header, body, post, and exit
-  boundaries. Prove the body as a reusable paired refinement with the
-  appropriate exit relations: `break` goes to the loop tail;
-  `continue` and normal body completion execute the post; return and
-  revert bypass both.
+  by calls or world agreement. Use `*.whileLoopCombined` for
+  while loops and `*.forLoopCombined` for empty-initializer
+  for loops, together with the provided summaries for the header, body,
+  post, and exit boundaries. For `while`, `break` goes to the loop tail
+  and `continue`/normal completion go back to the header. For `for`,
+  `break` goes to the loop tail and `continue`/normal completion
+  execute the post. Return and revert bypass both loop tails.
 
   `Examples/NestedCaller` is the reference architecture for an
   internal function containing `gasleft()` and an external call, used

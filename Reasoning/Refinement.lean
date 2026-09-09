@@ -486,6 +486,124 @@ theorem StmtsRefine.forLoop (v : ℕ) :
 
 end ForLoop
 
+/-- Route a while-loop body's normal/continue outcomes back to the header.
+Break exits the loop normally; returns and reverts use the enclosing loop's exit relation. -/
+def whileBodyExit (header : UInt256) (Inv : StateRel) (Q : ExitRel) : ExitRel
+  | .ok frame evm, endpoint | .continue frame evm, endpoint =>
+      fallthrough header Inv (.ok frame evm) endpoint
+  | .break frame evm, endpoint => Q (.ok frame evm) endpoint
+  | .returned frame evm values, endpoint => Q (.returned frame evm values) endpoint
+  | .reverted, endpoint => Q .reverted endpoint
+
+section WhileLoop
+
+variable {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {cfg : Config}
+    (header bodyHeader : UInt256) (cond : Expr) (body : List Stmt)
+    (Inv BodyInv : ℕ → StateRel) (Q : ExitRel)
+    (hfalse : ∀ cur frame evm, Inv 0 cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool false))
+    (htrue : ∀ v cur frame evm, Inv (v + 1) cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool true))
+    (hexit : StmtsRefine code ee g s0 cfg header (Inv 0) [] Q)
+    (henter : ∀ v, StmtsRefine code ee g s0 cfg header (Inv (v + 1)) []
+      (fallthrough bodyHeader (BodyInv v)))
+    (hbody : ∀ v, StmtsRefine code ee g s0 cfg bodyHeader (BodyInv v) body
+      (whileBodyExit header (Inv v) Q))
+
+include hfalse htrue hexit henter hbody
+
+/-- Variant-indexed paired while-loop progression. `hexit` and `henter` refine
+empty source blocks: they execute the bytecode guard without changing the source
+state. At variant `v + 1`, the body uses `BodyInv v`, and a normal or continue
+body result restores `Inv v` at the header.
+
+Break exits normally. Body return/revert propagate through `Q`. The guard is
+required to evaluate successfully, as in the for-loop refinement rules. -/
+theorem execWhileLoop :
+    ∀ v cur k C frame evm,
+      cur.pc = header →
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C →
+      Inv v cur frame evm →
+      ∃ result endpoint,
+        ExecStmt cfg frame evm (.while cond body) result ∧
+        ReachesEndpoint code ee g s0 endpoint ∧ Q result endpoint := by
+  intro v
+  induction v with
+  | zero =>
+      intro cur k C frame evm hpc hRD hInv
+      rcases hexit cur k C frame evm hpc hRD hInv with ⟨r, ep, hnil, hreach, hQ⟩
+      cases hnil
+      exact ⟨_, ep, ExecStmt.whileFalse (hfalse cur frame evm hInv), hreach, hQ⟩
+  | succ v ih =>
+      intro cur k C frame evm hpc hRD hInv
+      have hcond := htrue v cur frame evm hInv
+      rcases henter v cur k C frame evm hpc hRD hInv with
+        ⟨r, ep, hnil, hreach, hEntry⟩
+      cases hnil
+      cases ep with
+      | returned => exact False.elim hEntry
+      | reverted => exact False.elim hEntry
+      | reached curBody =>
+          obtain ⟨hpcBody, hInvBody⟩ := hEntry
+          obtain ⟨kBody, CBody, rdBody⟩ := hreach
+          rcases hbody v curBody kBody CBody frame evm hpcBody rdBody hInvBody with
+            ⟨result, endpoint, hBody, hReach, hExit⟩
+          cases result with
+          | ok frame1 evm1 =>
+              cases endpoint with
+              | returned => exact False.elim hExit
+              | reverted => exact False.elim hExit
+              | reached curNext =>
+                  obtain ⟨hpcNext, hInvNext⟩ := hExit
+                  obtain ⟨kNext, CNext, rdNext⟩ := hReach
+                  rcases ih curNext kNext CNext frame1 evm1 hpcNext rdNext hInvNext with
+                    ⟨r, ep, hLoop, hReachLoop, hQLoop⟩
+                  exact ⟨r, ep, ExecStmt.whileTrue hcond hBody hLoop, hReachLoop, hQLoop⟩
+          | «continue» frame1 evm1 =>
+              cases endpoint with
+              | returned => exact False.elim hExit
+              | reverted => exact False.elim hExit
+              | reached curNext =>
+                  obtain ⟨hpcNext, hInvNext⟩ := hExit
+                  obtain ⟨kNext, CNext, rdNext⟩ := hReach
+                  rcases ih curNext kNext CNext frame1 evm1 hpcNext rdNext hInvNext with
+                    ⟨r, ep, hLoop, hReachLoop, hQLoop⟩
+                  exact ⟨r, ep, ExecStmt.whileContinue hcond hBody hLoop, hReachLoop, hQLoop⟩
+          | «break» frame1 evm1 =>
+              exact ⟨_, endpoint, ExecStmt.whileBreak hcond hBody, hReach, hExit⟩
+          | returned frame1 evm1 values =>
+              exact ⟨_, endpoint, ExecStmt.whileReturn hcond hBody, hReach, hExit⟩
+          | reverted =>
+              exact ⟨_, endpoint, ExecStmt.whileRevert hcond hBody, hReach, hExit⟩
+
+/-- A while-loop at `header` refines the singleton Solm while statement. -/
+theorem BlockProgress.whileLoop
+    (v : ℕ) (cur : Cursor) (k C : ℕ) (frame : Frame) (evm : State)
+    (hpc : cur.pc = header)
+    (hRD : RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C)
+    (hInv : Inv v cur frame evm) :
+    BlockProgress code ee g s0 cfg frame evm [.while cond body] Q := by
+  rcases execWhileLoop header bodyHeader cond body Inv BodyInv Q
+      hfalse htrue hexit henter hbody v cur k C frame evm hpc hRD hInv with
+    ⟨result, endpoint, hLoop, hReach, hQ⟩
+  exact BlockProgress.ofStmt hLoop hReach hQ
+
+/-- The paired while-loop rule as a refinement from a fixed entry pair. -/
+theorem BlockRefinesFrom.whileLoop
+    (v : ℕ) (cur : Cursor) (k C : ℕ) (frame : Frame) (evm : State)
+    (hpc : cur.pc = header) :
+    BlockRefinesFrom code ee g s0 cfg cur k C frame evm (Inv v) [.while cond body] Q :=
+  BlockProgress.whileLoop header bodyHeader cond body Inv BodyInv Q
+    hfalse htrue hexit henter hbody v cur k C frame evm hpc
+
+/-- Universally quantify the concrete while-loop progression over related starting pairs. -/
+theorem StmtsRefine.whileLoop (v : ℕ) :
+    StmtsRefine code ee g s0 cfg header (Inv v) [.while cond body] Q :=
+  BlockRefinesFrom.whileLoop header bodyHeader cond body Inv BodyInv Q
+    hfalse htrue hexit henter hbody v
+
+end WhileLoop
+
 /-- Exit relation for a combined body/post iteration. The source result belongs
 to the body, but the EVM endpoint is after the whole iteration. For a normal or
 continue body result, retain the actual post execution and its result here;
@@ -646,6 +764,76 @@ theorem StmtsRefine.forLoopCombined
     StmtsRefine code ee g s0 cfg header (Inv v) (.for [] cond post body :: stmts) Q :=
   BlockRefinesFrom.forLoopCombined header bodyHeader exit cond post body stmts Inv BodyInv R Q
     hfalse htrue hexit henter hiteration htail v
+
+/-- Execute a while-loop followed by `stmts`. A false guard or body break reaches
+`exit` with `R`, then invokes `htail` on the actual resulting pair. Body
+return/revert satisfy `Q` directly and skip `stmts`. -/
+theorem BlockProgress.whileLoopCombined
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {cfg : Config}
+    (header bodyHeader exit : UInt256) (cond : Expr) (body stmts : List Stmt)
+    (Inv BodyInv : ℕ → StateRel) (R : StateRel) (Q : ExitRel)
+    (hfalse : ∀ cur frame evm, Inv 0 cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool false))
+    (htrue : ∀ v cur frame evm, Inv (v + 1) cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool true))
+    (hexit : StmtsRefine code ee g s0 cfg header (Inv 0) [] (sequenceExit exit R Q))
+    (henter : ∀ v, StmtsRefine code ee g s0 cfg header (Inv (v + 1)) []
+      (fallthrough bodyHeader (BodyInv v)))
+    (hbody : ∀ v, StmtsRefine code ee g s0 cfg bodyHeader (BodyInv v) body
+      (whileBodyExit header (Inv v) (sequenceExit exit R Q)))
+    (htail : StmtsRefine code ee g s0 cfg exit R stmts Q)
+    (v : ℕ) (cur : Cursor) (k C : ℕ) (frame : Frame) (evm : State)
+    (hpc : cur.pc = header)
+    (hRD : RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C)
+    (hInv : Inv v cur frame evm) :
+    BlockProgress code ee g s0 cfg frame evm (.while cond body :: stmts) Q := by
+  obtain ⟨result, endpoint, hl, hr, hq⟩ := execWhileLoop header bodyHeader cond body
+    Inv BodyInv (sequenceExit exit R Q) hfalse htrue hexit henter hbody
+    v cur k C frame evm hpc hRD hInv
+  exact BlockProgress.seqOrExit (BlockProgress.ofStmt hl hr hq) htail
+
+/-- Fixed-start while-loop and tail refinement. Normal loop exits, including
+break, pass their RD evidence and `R` to `htail`; return/revert bypass the tail. -/
+theorem BlockRefinesFrom.whileLoopCombined
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {cfg : Config}
+    (header bodyHeader exit : UInt256) (cond : Expr) (body stmts : List Stmt)
+    (Inv BodyInv : ℕ → StateRel) (R : StateRel) (Q : ExitRel)
+    (hfalse : ∀ cur frame evm, Inv 0 cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool false))
+    (htrue : ∀ v cur frame evm, Inv (v + 1) cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool true))
+    (hexit : StmtsRefine code ee g s0 cfg header (Inv 0) [] (sequenceExit exit R Q))
+    (henter : ∀ v, StmtsRefine code ee g s0 cfg header (Inv (v + 1)) []
+      (fallthrough bodyHeader (BodyInv v)))
+    (hbody : ∀ v, StmtsRefine code ee g s0 cfg bodyHeader (BodyInv v) body
+      (whileBodyExit header (Inv v) (sequenceExit exit R Q)))
+    (htail : StmtsRefine code ee g s0 cfg exit R stmts Q)
+    (v : ℕ) (cur : Cursor) (k C : ℕ) (frame : Frame) (evm : State)
+    (hpc : cur.pc = header) :
+    BlockRefinesFrom code ee g s0 cfg cur k C frame evm (Inv v)
+      (.while cond body :: stmts) Q :=
+  BlockProgress.whileLoopCombined header bodyHeader exit cond body stmts Inv BodyInv R Q
+    hfalse htrue hexit henter hbody htail v cur k C frame evm hpc
+
+/-- While-loop and tail refinement for every related starting pair at the header. -/
+theorem StmtsRefine.whileLoopCombined
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State} {cfg : Config}
+    (header bodyHeader exit : UInt256) (cond : Expr) (body stmts : List Stmt)
+    (Inv BodyInv : ℕ → StateRel) (R : StateRel) (Q : ExitRel)
+    (hfalse : ∀ cur frame evm, Inv 0 cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool false))
+    (htrue : ∀ v cur frame evm, Inv (v + 1) cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool true))
+    (hexit : StmtsRefine code ee g s0 cfg header (Inv 0) [] (sequenceExit exit R Q))
+    (henter : ∀ v, StmtsRefine code ee g s0 cfg header (Inv (v + 1)) []
+      (fallthrough bodyHeader (BodyInv v)))
+    (hbody : ∀ v, StmtsRefine code ee g s0 cfg bodyHeader (BodyInv v) body
+      (whileBodyExit header (Inv v) (sequenceExit exit R Q)))
+    (htail : StmtsRefine code ee g s0 cfg exit R stmts Q)
+    (v : ℕ) :
+    StmtsRefine code ee g s0 cfg header (Inv v) (.while cond body :: stmts) Q :=
+  BlockRefinesFrom.whileLoopCombined header bodyHeader exit cond body stmts Inv BodyInv R Q
+    hfalse htrue hexit henter hbody htail v
 
 
 /-- Normal initialization reaches the empty-initializer loop with `R`. Initializer
