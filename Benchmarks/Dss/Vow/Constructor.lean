@@ -383,7 +383,7 @@ private theorem vowCtorArgsSizeReach
     at rd18
   have rd26 := evm_run rd18 with [
     raw push1 ⟨64⟩ (by ctor_decode) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by ctor_decode) mem_cost solcFreePtrMem_mload64
+    raw rawMload 0 ⟨128⟩ (UInt256.ofNat 3) (by ctor_decode) mem_cost solcFreePtrMem_mload64
       (by decide) (by evm_ov),
     raw push2 ⟨5410⟩ (by ctor_decode) (by evm_ov),
     raw codesize (by ctor_decode) (by evm_ov),
@@ -417,7 +417,7 @@ private theorem vowCtorArgsCodecopyReach
     raw dup1 (by ctor_decode) (by evm_ov),
     raw push2 ⟨5410⟩ (by ctor_decode) (by evm_ov),
     raw dup4 (by ctor_decode) (by evm_ov),
-    raw codecopy
+    raw rawCodecopy
       (Cₘ (UInt256.ofNat (MachineState.M (UInt256.ofNat 3).toNat 128 96)) -
         Cₘ (UInt256.ofNat 3))
       (vowCtorCopiedMem vat flapper flopper) (UInt256.ofNat 7)
@@ -452,7 +452,7 @@ private theorem vowCtorArgsFreePtrReach
     raw dup2 (by ctor_decode) (by evm_ov),
     raw add (by ctor_decode) (by evm_ov),
     raw push1 ⟨64⟩ (by ctor_decode) (by evm_ov),
-    raw mstore 0 (vowCtorArgsMem vat flapper flopper) (UInt256.ofNat 7)
+    raw rawMstore 0 (vowCtorArgsMem vat flapper flopper) (UInt256.ofNat 7)
       (by ctor_decode) mem_cost hmstore (by decide) (by evm_ov)]
   exact ⟨_, _, by simpa [code] using rd38⟩
 
@@ -535,19 +535,19 @@ private theorem vowCtorArgsLoadReach
     raw jumpdest (by ctor_decode) (by evm_ov),
     raw pop (by ctor_decode) (by evm_ov),
     raw dup1 (by ctor_decode) (by evm_ov),
-    raw mload 0 (EVM.word vat.val) (UInt256.ofNat 7) (by ctor_decode) mem_cost hmloadVat
+    raw rawMload 0 (EVM.word vat.val) (UInt256.ofNat 7) (by ctor_decode) mem_cost hmloadVat
       (by decide) (by evm_ov),
     raw push1 ⟨32⟩ (by ctor_decode) (by evm_ov),
     raw dup1 (by ctor_decode) (by evm_ov),
     raw dup4 (by ctor_decode) (by evm_ov),
     raw add (by ctor_decode) (by evm_ov),
-    raw mload 0 (EVM.word flapper.val) (UInt256.ofNat 7) (by ctor_decode) mem_cost
+    raw rawMload 0 (EVM.word flapper.val) (UInt256.ofNat 7) (by ctor_decode) mem_cost
       hmloadFlapper (by decide) (by evm_ov),
     raw push1 ⟨64⟩ (by ctor_decode) (by evm_ov),
     raw swap4 (by ctor_decode) (by evm_ov),
     raw dup5 (by ctor_decode) (by evm_ov),
     raw add (by ctor_decode) (by evm_ov),
-    raw mload 0 (EVM.word flopper.val) (UInt256.ofNat 7) (by ctor_decode) mem_cost
+    raw rawMload 0 (EVM.word flopper.val) (UInt256.ofNat 7) (by ctor_decode) mem_cost
       hmloadFlopper (by decide) (by evm_ov)]
   exact ⟨_, _, by simpa [code] using rd67⟩
 
@@ -692,17 +692,17 @@ theorem vowCtorWardsStoreReach
     raw push1 ⟨0⟩ (by ctor_decode) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov),
     raw dup2 (by ctor_decode) (by evm_ov),
-    raw mstore 0 (wordAt0Mem (solcSourceWord I) (vowCtorArgsMem vat flapper flopper))
+    raw rawMstore 0 (wordAt0Mem (solcSourceWord I) (vowCtorArgsMem vat flapper flopper))
       (UInt256.ofNat 7) (by ctor_decode) mem_cost (by rfl) (by decide) (by evm_ov),
     raw swap3 (by ctor_decode) (by evm_ov),
     raw dup4 (by ctor_decode) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov),
-    raw mstore 0 (vowCtorWardsHashMem I vat flapper flopper)
+    raw rawMstore 0 (vowCtorWardsHashMem I vat flapper flopper)
       (UInt256.ofNat 7) (by ctor_decode) mem_cost (by rfl) (by decide) (by evm_ov),
     raw dup5 (by ctor_decode) (by evm_ov),
     raw dup4 (by ctor_decode) (by evm_ov)]
   have hslot := vowCtorWardsHashSlot I vat flapper flopper
-  have rdSlot := rdBeforeHash.keccak256 0 (vowCtorCallerWardsSlot I) (UInt256.ofNat 7)
+  have rdSlot := rdBeforeHash.rawKeccak256 0 (vowCtorCallerWardsSlot I) (UInt256.ofNat 7)
     (by ctor_decode) mem_cost hslot (by decide) (by evm_ov)
   have rdBeforeStore := evm_run rdSlot with [
     raw push1 ⟨1⟩ (by ctor_decode) (by evm_ov),
@@ -710,7 +710,7 @@ theorem vowCtorWardsStoreReach
     raw dup2 (by ctor_decode) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov)]
   obtain ⟨k', C', rd86⟩ := rdBeforeStore.sstore hperm (by ctor_decode) (by evm_ov)
-  exact ⟨k', C', by simpa [code] using rd86⟩
+  exact ⟨k', C', by simpa [code, storageWrite_eq] using rd86⟩
 
 /-! ## Solm constructor body helpers -/
 
@@ -819,7 +819,7 @@ theorem vowCtorVatStoreReach
       (σWards.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨1⟩ ⟨0⟩)) =
         solcSlotWord σWards I ⟨1⟩ := by
     rfl
-  rw [hload] at rdBeforeStore
+  rw [storageRead_eq, hload] at rdBeforeStore
   have hword :
       UInt256.lor
           (UInt256.land (UInt256.lnot solcAddrMask) (solcSlotWord σWards I ⟨1⟩))
@@ -837,7 +837,7 @@ theorem vowCtorVatStoreReach
             rfl
   obtain ⟨k', C', rd116⟩ := rdBeforeStore.sstore hperm (by ctor_decode) (by evm_ov)
   exact ⟨k', C', by
-    simpa [code, solcSlotWord, setAddressOffset0Word, hword,
+    simpa [code, solcSlotWord, setAddressOffset0Word, storageWrite_eq, hword,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide] using rd116⟩
 
@@ -889,7 +889,7 @@ theorem vowCtorFlapperStoreReach
       (σVat.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) =
         solcSlotWord σVat I ⟨2⟩ := by
     rfl
-  rw [hload] at rdBeforeStore
+  rw [storageRead_eq, hload] at rdBeforeStore
   have hflapperMask : UInt256.land (EVM.word flapper.val) solcAddrMask =
       EVM.word flapper.val := by
     exact solcAddrMask_clean (word_val_addr_canonical flapper)
@@ -927,7 +927,7 @@ theorem vowCtorFlapperStoreReach
             rw [hflapperMask]
       _ = setAddressOffset0Word (solcSlotWord σVat I ⟨2⟩) (EVM.word flapper.val) := hword
   exact ⟨k', C', by
-    simpa [code, solcSlotWord, setAddressOffset0Word, hwordStore, hflapperMask,
+    simpa [code, solcSlotWord, setAddressOffset0Word, storageWrite_eq, hwordStore, hflapperMask,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide] using rd131⟩
 
@@ -980,7 +980,7 @@ theorem vowCtorFlopperStoreReach
       (σFlapper.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨3⟩ ⟨0⟩)) =
         solcSlotWord σFlapper I ⟨3⟩ := by
     rfl
-  rw [hload] at rdBeforeStore
+  rw [storageRead_eq, hload] at rdBeforeStore
   have hword :
       UInt256.lor (UInt256.land (EVM.word flopper.val) solcAddrMask)
           (UInt256.land (UInt256.lnot solcAddrMask) (solcSlotWord σFlapper I ⟨3⟩)) =
@@ -1011,7 +1011,7 @@ theorem vowCtorFlopperStoreReach
     rw [u256_land_comm (UInt256.lnot solcAddrMask) (solcSlotWord σFlapper I ⟨3⟩)]
     rfl
   exact ⟨k', C', by
-    simpa [code, solcSlotWord, setAddressOffset0Word, hwordStore,
+    simpa [code, solcSlotWord, setAddressOffset0Word, storageWrite_eq, hwordStore,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide] using rd147⟩
 
@@ -1163,13 +1163,13 @@ theorem vowCtorCallSetupReach
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hcallMemRead64)
   have rd201 := evm_run rd147 with [
     raw dup8 (by ctor_decode) (by evm_ov),
-    raw mload 0 ⟨224⟩ (UInt256.ofNat 7) (by ctor_decode) mem_cost hmload64
+    raw rawMload 0 ⟨224⟩ (UInt256.ofNat 7) (by ctor_decode) mem_cost hmload64
       (by decide) (by evm_ov),
     raw push4 ⟨686590961⟩ (by ctor_decode) (by evm_ov),
     raw push1 ⟨226⟩ (by ctor_decode) (by evm_ov),
     raw shl (by ctor_decode) (by evm_ov),
     raw dup2 (by ctor_decode) (by evm_ov),
-    raw mstore 3 (vowCtorHopeSelectorMem (vowCtorWardsHashMem I vat flapper flopper))
+    raw rawMstore 3 (vowCtorHopeSelectorMem (vowCtorWardsHashMem I vat flapper flopper))
       (UInt256.ofNat 8) (by ctor_decode) mem_cost (by rfl) (by decide) (by evm_ov),
     raw push1 ⟨4⟩ (by ctor_decode) (by evm_ov),
     raw dup2 (by ctor_decode) (by evm_ov),
@@ -1177,11 +1177,11 @@ theorem vowCtorCallSetupReach
     raw swap3 (by ctor_decode) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov),
     raw swap3 (by ctor_decode) (by evm_ov),
-    raw mstore 3 (vowCtorHopeCalldataMem (EVM.word flapper.val)
+    raw rawMstore 3 (vowCtorHopeCalldataMem (EVM.word flapper.val)
         (vowCtorWardsHashMem I vat flapper flopper))
       (UInt256.ofNat 9) (by ctor_decode) mem_cost (by rfl) (by decide) (by evm_ov),
     raw swap7 (by ctor_decode) (by evm_ov),
-    raw mload 0 ⟨224⟩ (UInt256.ofNat 9) (by ctor_decode) mem_cost hmload64Call
+    raw rawMload 0 ⟨224⟩ (UInt256.ofNat 9) (by ctor_decode) mem_cost hmload64Call
       (by decide) (by evm_ov),
     raw swap6 (by ctor_decode) (by evm_ov),
     raw swap7 (by ctor_decode) (by evm_ov),

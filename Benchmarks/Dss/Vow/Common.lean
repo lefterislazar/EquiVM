@@ -223,7 +223,7 @@ theorem RD.solcCheckedAddEmptyRevert {code : ByteArray} {g : Sat256} {s0 : State
   exact evm_run rdTail with [
     raw push1 ⟨0⟩ hdRev0 (by evm_ov),
     raw dup1 hdRev2 (by evm_ov),
-    raw rev 0 hdRev3 mem_cost (by evm_ov)]
+    raw rawRev 0 hdRev3 mem_cost (by evm_ov)]
 
 theorem RD.solcCheckedAddEmptyRevertAnyWords {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc a b ret : UInt256} {R : List UInt256}
@@ -272,7 +272,7 @@ theorem RD.solcCheckedAddEmptyRevertAnyWords {code : ByteArray} {g : Sat256} {s0
   have rdRev := evm_run rdTail with [
     raw push1 ⟨0⟩ hdRev0 (by evm_ov),
     raw dup1 hdRev2 (by evm_ov)]
-  exact RD.rev 0 rdRev hdRev3 (fun s _ hstk => memExpRevert0 s hstk) (by evm_ov)
+  exact RD.rawRev 0 rdRev hdRev3 (fun s _ hstk => memExpRevert0 s hstk) (by evm_ov)
 
 -- LIBRARY CANDIDATE: checked-sub variant of `RD.solcCheckedAddEmptyRevert`.
 @[reducible] def solcCheckedSubEmptyRevertWf
@@ -328,7 +328,7 @@ theorem RD.solcCheckedSubEmptyRevert {code : ByteArray} {g : Sat256} {s0 : State
   exact evm_run rdTail with [
     raw push1 ⟨0⟩ hdRev0 (by evm_ov),
     raw dup1 hdRev2 (by evm_ov),
-    raw rev 0 hdRev3 mem_cost (by evm_ov)]
+    raw rawRev 0 hdRev3 mem_cost (by evm_ov)]
 
 theorem vowSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (c0 c1 c2 c3 : UInt8) (sel : UInt256)
