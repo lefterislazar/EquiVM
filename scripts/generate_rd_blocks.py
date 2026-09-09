@@ -4,8 +4,10 @@
 Each output is ordinary Lean source: every summary starts from an ``RD`` cursor
 and stacks the framework's opcode lemmas.  ``--shard-size`` spreads summaries
 across independently importable files. Deterministic blocks expose exact final
-step/gas counters; blocks containing warm/cold operations existentially package
-the counters and keep stepping through the remainder of the block.  Semantic side
+step/gas counters and also get a packed sibling summary whose final step/gas
+counters and active-word count are existential. Blocks containing warm/cold
+operations existentially package the counters and keep stepping through the
+remainder of the block.  Semantic side
 conditions required by an opcode are lifted to hypotheses of the whole block
 summary, so they do not interrupt symbolic execution.  Unsupported instructions
 become explicit boundaries, with independently quantified summaries generated for
@@ -1456,7 +1458,47 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
             lines.append(f"  exact ⟨{', '.join(witnesses)}⟩")
         else:
             lines.append(f"  exact RD.normalizeCounters {last} (by omega) (by omega)")
+    if not summary.terminal:
+        lines.append("")
+        lines.extend(
+            render_packed_summary(name, params, assumptions, effective_code_term, summary)
+        )
     return "\n".join(lines)
+
+
+def render_packed_summary(base_name: str, params: str, assumptions: list[str],
+                          effective_code_term: str, summary: Summary) -> list[str]:
+    packed_name = f"{base_name}_packed"
+    result_rd = (
+        f"RD {effective_code_term} ee g s0 {summary.pc} {stack_term(summary.stack_out)} "
+        f"{summary.mem} aw' rdata (cA, {summary.world_map})"
+    )
+    word_binders = "" if not summary.existential_words else (
+        "(" + " ".join(summary.existential_words) + " : UInt256) "
+    )
+    result = f"∃ {word_binders}(aw' : UInt256) (k' C' : ℕ), {result_rd} k' C'"
+    result = result.replace("__CODE__", effective_code_term)
+    call_args = ["hstack"] if any(a.startswith("(hstack :") for a in assumptions) else []
+    call_args.extend(name for name, _ in summary.extra_hypotheses)
+    call_args.append("h")
+    theorem_call = f"{base_name} {' '.join(call_args)}"
+
+    lines = [
+        f"/-- Packed RD summary for bytecode block with abstract final counters and active words. -/",
+        f"theorem {packed_name} {params}",
+    ]
+    lines.extend(f"    {a}" for a in assumptions)
+    lines.append(f"    : {result} := by")
+    if summary.existential_counters:
+        unpacked_witnesses = summary.existential_words + ["k0", "C0", "h0"]
+        lines.append(f"  obtain ⟨{', '.join(unpacked_witnesses)}⟩ := {theorem_call}")
+        lines.append("  obtain ⟨k', C', h'⟩ := RD.pack h0")
+        packed_witnesses = summary.existential_words + ["_", "k'", "C'", "h'"]
+        lines.append(f"  exact ⟨{', '.join(packed_witnesses)}⟩")
+    else:
+        lines.append(f"  obtain ⟨k', C', h'⟩ := RD.pack ({theorem_call})")
+        lines.append("  exact ⟨_, k', C', h'⟩")
+    return lines
 
 
 def unsupported_boundary_comment(ins: Instruction, code_size: int) -> str:

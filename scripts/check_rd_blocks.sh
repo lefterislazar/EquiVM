@@ -96,7 +96,8 @@ python3 scripts/generate_rd_blocks.py "$test_dir/ExtraRequirementsBytecode.lean"
   --bytecode-import ExtraRequirementsBytecode \
   --shard-size 1 --output "$test_dir/ExtraRequirements.lean"
 rg -Fq '(hguard0 :' "$test_dir/ExtraRequirements_001.lean"
-test "$(rg -F --no-filename '(hperm :' "$test_dir"/ExtraRequirements_*.lean | wc -l)" -eq 1
+test "$(rg -F --no-filename '(hperm :' "$test_dir"/ExtraRequirements_*.lean | wc -l)" -eq 2
+rg -Fq 'theorem extraRequirements_block_0_packed' "$test_dir/ExtraRequirements_001.lean"
 rg -q 'have r14 := r13.add' "$test_dir"/ExtraRequirements_*.lean
 for shard in "$test_dir"/ExtraRequirements_*.lean; do
   LEAN_PATH="$test_dir${LEAN_PATH:+:$LEAN_PATH}" lake env lean "$shard"

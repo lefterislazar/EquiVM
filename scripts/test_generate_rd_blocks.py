@@ -93,6 +93,43 @@ class SequencePatternTests(unittest.TestCase):
         self.assertNotIn("decode_append_left_of_decode", rendered)
         self.assertIn("RD runtimeBytecode", rendered)
 
+    def test_packed_summary_hides_final_counters_and_active_words(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("6001"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        rendered = "\n".join(units)
+        self.assertIn("theorem runtime_block_0_packed", rendered)
+        self.assertIn("∃ (aw' : UInt256) (k' C' : ℕ), RD runtimeBytecode", rendered)
+        self.assertIn("mem aw' rdata", rendered)
+        self.assertIn("RD.pack (runtime_block_0 hstack h)", rendered)
+
+    def test_packed_summary_repackages_existential_counter_blocks(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("600054"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        rendered = "\n".join(units)
+        self.assertIn("theorem runtime_block_0_packed", rendered)
+        self.assertIn("obtain ⟨k0, C0, h0⟩ := runtime_block_0 hstack h", rendered)
+        self.assertIn("obtain ⟨k', C', h'⟩ := RD.pack h0", rendered)
+
+    def test_creation_packed_summary_lifts_code_terms_inside_symbolic_results(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("38"), "creation", "creationBytecode",
+            keep_metadata=True, creation_code=True,
+        )
+        rendered = "\n".join(units)
+        self.assertIn("(UInt256.ofNat (creationBytecode ++ tail).size)", rendered)
+        self.assertNotIn("__CODE__", rendered)
+
+    def test_terminal_blocks_do_not_emit_packed_summaries(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("600100"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        self.assertNotIn("_packed", "\n".join(units))
+
     def test_dynamic_gas_constants_emit_as_numerals(self) -> None:
         for code in ("60006000602039", "6000602020", "600060206001a1"):
             with self.subTest(code):
