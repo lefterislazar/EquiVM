@@ -1,11 +1,9 @@
 # Agent prompt — proving EVM↔Solm correctness for a contract
 
 You are proving that a concrete EVM bytecode artifact refines its Solm
-specification. You goal is to complete the proof of the top-level theorem 
+specification. Your goal is to complete the proof of the top-level theorem
 in `Correct.lean` with no `sorry` and no added axioms, except for the 
 accepted trusted base below.
-
-```lean
 
 You are given a working directory, which is named after the contract
 (`<Name>/`) and includes:
@@ -142,11 +140,16 @@ The proof of each function follows, roughly, four phases:
    `returns`). For mutating functions, split success and revert
    branches early.
 
-4. EVM reachability. Thread the bytecode trace from the body entry PC
-   to `RDret` (success) or `RDrev` (revert) using `evm_run … with [ …
-   ]` cooked-step chains and factored `RD.*` routine lemmas. Never
-   write one giant `evm_run`; split into named `have`s, one per
-   phase/routine.
+4. EVM reachability. Use the generated RD block summaries as the
+   default interface from the body entry PC to `RDret` (success) or
+   `RDrev` (revert). Find the relevant block theorem in the generated
+   index, read only the listed line range, and chain the summary
+   theorems with the existing `RD.*` routine lemmas. In the general
+   case where gas, exact step counts, and exact active-word accounting
+   are not important for refinement, prefer the `_packed` summary
+   theorem. Use direct `evm_run … with [ … ]` stepping only in
+   exceptional cases where partial execution inside a block has
+   semantic meaning for the proof.
 
 5. Connect. `reEquivExecution` / `reEquivDecodingFailed` /
    `reEquivNoDispatch` / `reEquivElim` glue the source result, the
@@ -262,6 +265,31 @@ How to use the library:
   lemma, not proving EVM semantics from scratch. Before writing any
   arithmetic / calldata / memory / dispatch proof by hand, search for
   an existing lemma.
+
+- Generated RD summaries are the normal way to reason about concrete
+  bytecode blocks. A generated summary states the effect of one
+  supported basic block or branch: entry PC, exit PC or terminal
+  `RDret`/`RDrev`, required hypotheses, final stack, final memory,
+  active-word state, and the exact cost/counter information. When the
+  final stack or memory term is large, the generator introduces a
+  local definition immediately before the theorem; use that definition
+  instead of reconstructing the term by hand. Trivial final stack or
+  memory definitions may be omitted.
+
+- Prefer packed generated summaries when refinement does not depend on
+  gas or exact counters. A `_packed` theorem hides the final active
+  words, step count, and cost behind existentials while preserving the
+  semantic stack/memory/control-flow effect. Use the exact theorem
+  only when the proof really needs those precise values.
+
+- Use the generated index before opening a generated block file. The
+  sidecar index has one non-verbose entry per theorem:
+  `<theorem-name>\t<file>:<start>-<end>\t<pcs...>`. Search it for the
+  PC you need, then read only the listed line range in the named file.
+  The range includes the theorem and its generated stack/memory
+  definitions; for packed summaries it also includes the exact theorem
+  support it depends on. Import the file named by the index entry and
+  apply the theorem named in the first column.
 
 - Never duplicate lemmas and proof work. Always search `Reasoning/`
   for existing lemmas before proving a new one.  If you find yourself
@@ -438,64 +466,89 @@ Function calls should be proven modularly. In particular:
   into its proper file and delete the scratch.
 
 - Decode obligations use `native_decide`, not `decide` (~20× faster on
-  big bytecode). `evm_run` cooked steps auto-supply it; raw steps
-  write `(by native_decide)` for decode, `(by decide)` for small side
-  conditions, `(by jump_dest)` for jump-dest membership, `(by evm_ov)`
-  for stack-overflow bounds. Keep these — the resulting `native_decide`
-  axiom dependencies (`….native_decide.ax_*`) are expected and fine.
+  big bytecode). Generated summaries and `evm_run` cooked steps
+  auto-supply it; if you must use raw steps, write `(by native_decide)`
+  for decode, `(by decide)` for small side conditions, `(by jump_dest)`
+  for jump-dest membership, and `(by evm_ov)` for stack-overflow
+  bounds. Keep these — the resulting `native_decide` axiom
+  dependencies (`….native_decide.ax_*`) are expected and fine.
 
 - Raise `maxHeartbeats` only on the file/lemma that needs it, with
   `set_option … in` on that one theorem, not globally.
 
 ---
 
-## 8. Routine-lemma discipline
+## 8. Summary and routine-lemma discipline
 
-Every repeated bytecode segment becomes one `RD`-combinator lemma,
-proved once, applied many times:
+Generated block summaries are the first tool for concrete bytecode
+reachability. Chain them as small named `have`s, one block/routine at a
+time, and keep the proof at the `RD`/`RDret`/`RDrev` boundary.
 
-- A straight-line bytecode segment `pc_in → pc_out` over a stack tail
-  `R` becomes a theorem of the form `RD code … pc_in (args ++ R) … → ∃
-  k' C', RD code … pc_out (results ++ R) …` (or `→ RDret` / `→ RDrev`
-  for terminal segments). See `RD.routine9c`, `RD.routinebb`,
-  `RD.routinecf`, `RD.erc20DecodeAddrMask`,
-  `RD.erc20MappingHashSuffix`, `RD.erc20RoutineEncodeUint256`.
+- Start from the PC you need, search the generated index, and read the
+  listed range only. The index tells you the theorem name, the file,
+  the line range, and the PCs covered by the theorem. Do not open a
+  whole generated shard unless the range itself points you there.
+
+- Use `_packed` summaries unless refinement depends on gas, exact step
+  counts, or exact active-word accounting. Packed summaries are usually
+  the right shape for contract refinement because they expose the
+  semantic stack, memory, and control-flow result without forcing the
+  proof to carry large counter terms.
+
+- Use the generated stack and memory definitions from the same line
+  range. They exist specifically so agents do not have to reconstruct
+  large final-state terms. If no such definition is present, the final
+  stack or memory was trivial enough to inline.
+
+- Every repeated semantic bytecode segment that is not already covered
+  cleanly by generated summaries becomes one `RD`-combinator lemma,
+  proved once and applied many times. A straight-line segment
+  `pc_in → pc_out` over a stack tail `R` becomes a theorem of the form
+  `RD code … pc_in (args ++ R) … → ∃ k' C', RD code … pc_out (results
+  ++ R) …` (or `→ RDret` / `→ RDrev` for terminal segments). See
+  `RD.routine9c`, `RD.routinebb`, `RD.routinecf`,
+  `RD.erc20DecodeAddrMask`, `RD.erc20MappingHashSuffix`,
+  `RD.erc20RoutineEncodeUint256`.
 
 - These chain directly: `rd |>.routineA … |>.routineB …` (call as
   `RD.foo rd …`, not `rd.foo` — the `RD` type whnf's to an
   `Or`). Factor over a generic tail `R` so the lemma is reused at
   every call site regardless of what else is on the stack.
 
-- Before writing a trace, scan the bytecode for segments solc shares
+- Before introducing a new routine lemma, scan for existing generated
+  summaries and shared `RD.*` lemmas for solc-common segments
   (decoders, the address mask/cleanup, the mapping-hash `keccak`
-  suffix, the uint256 ABI encoder, identity `cleanup_t_*`
-  routines). solc emits these once; prove them once. If you find
-  yourself writing the same `evm_run [...]` block in two functions,
-  stop and extract a lemma.
+  suffix, the uint256 ABI encoder, identity `cleanup_t_*` routines).
+  solc emits these once; prove reusable structure once. If two
+  functions need the same path, factor it through a summary chain or a
+  reusable routine lemma instead of duplicating lower-level steps.
 
 - Generalize hard-coded constants (PCs, widths, types, stack tails)
   into lemma parameters wherever possible, so the lemma is reusable
   across functions. If a lemma is truly contract-independent, flag it
   for promotion to `Reasoning/`.
 
-- Split traces into `have`s, one per sub-trace / routine. A single
-  giant `evm_run` over a compound tail blows the heartbeat/`whnf`
-  budget. Factoring a routine over a generic tail `R` needs
-  `set_option maxHeartbeats 1000000 in` and intermediate `have`s — see
-  the note in `Reasoning/GUIDE.md` and `RD.erc20DecodeAddrMask`.
+- Avoid direct whole-block stepping. A large `evm_run` over a compound
+  tail blows the heartbeat/`whnf` budget and hides the state terms that
+  the generated summaries already name. Direct `evm_run` is reserved
+  for exceptional partial-block proofs where stopping before the
+  summary's exit PC has semantic content, or for diagnosing a generator
+  or bytecode mismatch. In those cases, split the stepping into named
+  `have`s and keep the range as small as possible.
 
-Disassemble — never guess PCs, opcodes, or jump-dests. The biggest
-failure mode in these proofs is guessing contract-specific constants:
-the exact `evm_run … with [push2 ⟨71⟩, dup1, …]` opcode sequence for a
-basic block, the entry/exit PCs, the jump-dest set, the selector
-bytes, the stack shapes. These are a pure function of the bytecode —
-one wrong token fails late and opaquely and wastes a whole cycle. Read
-them off the actual bytecode: disassemble `Bytecode.lean` (a short
-script, `evmasm`/`solc --asm`, or by decoding the byte array) to get
-each block's exact cooked-step list, its PCs, and the jump-dest array
-before writing the trace. Treat the trace as "fill in the
-side-conditions of a known opcode list," not "invent the opcode list."
-When a step fails, re-check it against the disassembly first.
+Disassemble and use the index — never guess PCs, opcodes, or
+jump-dests. The biggest failure mode in these proofs is guessing
+contract-specific constants: entry/exit PCs, jump-dest set, selector
+bytes, stack shapes, or a cooked opcode sequence for a partial-block
+fallback. These are a pure function of the bytecode — one wrong token
+fails late and opaquely and wastes a whole cycle. For ordinary block
+execution, trust the generated summary and its index entry. When
+partial stepping is genuinely needed, read the opcodes from the actual
+bytecode by disassembling `Bytecode.lean` (a short script,
+`evmasm`/`solc --asm`, or by decoding the byte array), then treat the
+trace as "fill in the side-conditions of a known opcode list," not
+"invent the opcode list." When a step fails, re-check it against the
+summary/index/disassembly first.
 
 ---
 
