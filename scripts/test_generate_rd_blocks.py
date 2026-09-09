@@ -107,10 +107,10 @@ class SequencePatternTests(unittest.TestCase):
         )
         rendered = "\n".join(units)
         self.assertIn("def runtime_block_0_stack {R : List UInt256}", rendered)
-        self.assertIn("def runtime_block_0_memory {mem : ByteArray}", rendered)
         self.assertIn("theorem runtime_block_0_packed", rendered)
         self.assertIn("∃ (aw' : UInt256) (k' C' : ℕ), RD runtimeBytecode", rendered)
-        self.assertIn("(runtime_block_0_memory (mem := mem)) aw' rdata", rendered)
+        self.assertNotIn("def runtime_block_0_memory", rendered)
+        self.assertIn("(runtime_block_0_stack (R := R)) mem aw' rdata", rendered)
         self.assertIn("RD.pack (runtime_block_0 hstack h)", rendered)
 
     def test_final_value_definitions_scan_needed_parameters(self) -> None:
@@ -124,14 +124,21 @@ class SequencePatternTests(unittest.TestCase):
             "{R : List UInt256} : List UInt256 :=",
             generated_line(rendered, "def runtime_block_0_stack"),
         )
-        self.assertEqual(
-            "def runtime_block_0_memory {mem : ByteArray} : ByteArray :=",
-            generated_line(rendered, "def runtime_block_0_memory"),
-        )
+        self.assertNotIn("def runtime_block_0_memory", rendered)
         self.assertIn(
-            "(runtime_block_0_stack (ee := ee) (x0 := x0) (R := R))",
+            "(runtime_block_0_stack (ee := ee) (x0 := x0) (R := R)) mem",
             rendered,
         )
+
+    def test_trivial_final_values_do_not_emit_definitions(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("5b"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        rendered = "\n".join(units)
+        self.assertNotIn("def runtime_block_0_stack", rendered)
+        self.assertNotIn("def runtime_block_0_memory", rendered)
+        self.assertIn("RD runtimeBytecode ee g s0 (UInt256.ofNat 1) R mem aw", rendered)
 
     def test_final_memory_definition_scans_stack_input_parameters(self) -> None:
         units = rd.generate_units(

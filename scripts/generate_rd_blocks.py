@@ -550,25 +550,37 @@ def render_final_value_defs(base_name: str, summary: Summary, effective_code_ter
     specs = final_value_param_specs(summary, creation_code)
     stack_name = f"{base_name}_stack"
     memory_name = f"{base_name}_memory"
+    raw_input_stack_body = stack_term(summary.stack_in)
     raw_stack_body = stack_term(summary.stack_out)
     raw_memory_body = summary.mem
     stack_body = raw_stack_body.replace("__CODE__", effective_code_term)
     memory_body = raw_memory_body.replace("__CODE__", effective_code_term)
     stack_deps = final_value_deps(raw_stack_body, specs, creation_code)
     memory_deps = final_value_deps(raw_memory_body, specs, creation_code)
-    lines = [
-        f"/-- Final stack for bytecode block summary `{base_name}`. -/",
-        f"def {stack_name}{render_def_params(stack_deps)} : List UInt256 :=",
-        f"  {stack_body}",
-        "",
-        f"/-- Final memory for bytecode block summary `{base_name}`. -/",
-        f"def {memory_name}{render_def_params(memory_deps)} : ByteArray :=",
-        f"  {memory_body}",
-    ]
+
+    lines: list[str] = []
+    stack_ref = stack_body
+    memory_ref = memory_body
+    if raw_stack_body != raw_input_stack_body:
+        lines.extend([
+            f"/-- Final stack for bytecode block summary `{base_name}`. -/",
+            f"def {stack_name}{render_def_params(stack_deps)} : List UInt256 :=",
+            f"  {stack_body}",
+        ])
+        stack_ref = render_def_app(stack_name, stack_deps)
+    if raw_memory_body != "mem":
+        if lines:
+            lines.append("")
+        lines.extend([
+            f"/-- Final memory for bytecode block summary `{base_name}`. -/",
+            f"def {memory_name}{render_def_params(memory_deps)} : ByteArray :=",
+            f"  {memory_body}",
+        ])
+        memory_ref = render_def_app(memory_name, memory_deps)
     return FinalValueDefs(
         lines,
-        render_def_app(stack_name, stack_deps),
-        render_def_app(memory_name, memory_deps),
+        stack_ref,
+        memory_ref,
     )
 
 
