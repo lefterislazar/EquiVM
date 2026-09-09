@@ -54,6 +54,10 @@ def theorem_headers(units: list[str]) -> list[str]:
     return [unit.split(":= by", 1)[0] for unit in units if ":= by" in unit]
 
 
+def generated_line(rendered: str, prefix: str) -> str:
+    return next(line for line in rendered.splitlines() if line.startswith(prefix))
+
+
 class SequencePatternTests(unittest.TestCase):
     def test_creation_mode_quantifies_tail_and_lifts_prefix_facts(self) -> None:
         # Free-memory-pointer pattern; PUSH1 8; JUMP; JUMPDEST; CODESIZE.
@@ -102,10 +106,65 @@ class SequencePatternTests(unittest.TestCase):
             keep_metadata=True,
         )
         rendered = "\n".join(units)
+        self.assertIn("def runtime_block_0_stack {R : List UInt256}", rendered)
+        self.assertIn("def runtime_block_0_memory {mem : ByteArray}", rendered)
         self.assertIn("theorem runtime_block_0_packed", rendered)
         self.assertIn("∃ (aw' : UInt256) (k' C' : ℕ), RD runtimeBytecode", rendered)
-        self.assertIn("mem aw' rdata", rendered)
+        self.assertIn("(runtime_block_0_memory (mem := mem)) aw' rdata", rendered)
         self.assertIn("RD.pack (runtime_block_0 hstack h)", rendered)
+
+    def test_final_value_definitions_scan_needed_parameters(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("35"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        rendered = "\n".join(units)
+        self.assertEqual(
+            "def runtime_block_0_stack {ee : ExecutionEnv} {x0 : UInt256} "
+            "{R : List UInt256} : List UInt256 :=",
+            generated_line(rendered, "def runtime_block_0_stack"),
+        )
+        self.assertEqual(
+            "def runtime_block_0_memory {mem : ByteArray} : ByteArray :=",
+            generated_line(rendered, "def runtime_block_0_memory"),
+        )
+        self.assertIn(
+            "(runtime_block_0_stack (ee := ee) (x0 := x0) (R := R))",
+            rendered,
+        )
+
+    def test_final_memory_definition_scans_stack_input_parameters(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("52"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        rendered = "\n".join(units)
+        self.assertEqual(
+            "def runtime_block_0_memory {mem : ByteArray} {x0 : UInt256} "
+            "{x1 : UInt256} : ByteArray :=",
+            generated_line(rendered, "def runtime_block_0_memory"),
+        )
+        self.assertIn(
+            "(runtime_block_0_memory (mem := mem) (x0 := x0) (x1 := x1))",
+            rendered,
+        )
+
+    def test_final_stack_definition_scans_existential_word_parameters(self) -> None:
+        units = rd.generate_units(
+            bytes.fromhex("6000545a"), "runtime", "runtimeBytecode",
+            keep_metadata=True,
+        )
+        rendered = "\n".join(units)
+        self.assertEqual(
+            "def runtime_block_0_stack {ee : ExecutionEnv} {σ : AccountMap} "
+            "{R : List UInt256} {gasWord0 : UInt256} : List UInt256 :=",
+            generated_line(rendered, "def runtime_block_0_stack"),
+        )
+        self.assertIn(
+            "(runtime_block_0_stack (ee := ee) (σ := σ) (R := R) "
+            "(gasWord0 := gasWord0))",
+            rendered,
+        )
 
     def test_packed_summary_repackages_existential_counter_blocks(self) -> None:
         units = rd.generate_units(
@@ -123,8 +182,23 @@ class SequencePatternTests(unittest.TestCase):
             keep_metadata=True, creation_code=True,
         )
         rendered = "\n".join(units)
+        self.assertEqual(
+            "def creation_block_0_stack {tail : ByteArray} {R : List UInt256} "
+            ": List UInt256 :=",
+            generated_line(rendered, "def creation_block_0_stack"),
+        )
         self.assertIn("(UInt256.ofNat (creationBytecode ++ tail).size)", rendered)
         self.assertNotIn("__CODE__", rendered)
+
+        namespaced_units = rd.generate_units(
+            bytes.fromhex("38"), "creation", "Creation.C.bytecode",
+            keep_metadata=True, creation_code=True,
+        )
+        self.assertEqual(
+            "def creation_block_0_stack {tail : ByteArray} {R : List UInt256} "
+            ": List UInt256 :=",
+            generated_line("\n".join(namespaced_units), "def creation_block_0_stack"),
+        )
 
     def test_terminal_blocks_do_not_emit_packed_summaries(self) -> None:
         units = rd.generate_units(

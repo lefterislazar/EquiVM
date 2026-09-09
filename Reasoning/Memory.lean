@@ -1047,17 +1047,17 @@ theorem toByteArray_write_read_window_of_gap
 
 /-! ## 4. Two-word scratch memory for mapping-slot hashes -/
 
-noncomputable def wordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+def wordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem 0 32
 
-noncomputable def wordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+def wordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem 32 32
 
-noncomputable def twoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
+def twoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
   wordAt32Mem slot (wordAt0Mem key mem)
 
 /-- The alternative Solidity scratch-write order: slot first, then key. -/
-noncomputable def twoWordHashMemSlotFirst (key slot : UInt256) (mem : ByteArray) : ByteArray :=
+def twoWordHashMemSlotFirst (key slot : UInt256) (mem : ByteArray) : ByteArray :=
   wordAt0Mem key (wordAt32Mem slot mem)
 
 theorem wordAt0Mem_read0 (word : UInt256) (mem : ByteArray) :

@@ -485,6 +485,93 @@ def stack_term(values: list[str]) -> str:
     return "R" if not values else "(" + " :: ".join(values + ["R"]) + ")"
 
 
+@dataclass(frozen=True)
+class LeanParam:
+    name: str
+    typ: str
+
+
+def term_mentions_name(term: str, name: str) -> bool:
+    return re.search(rf"(?<![\w']){re.escape(name)}(?![\w'])", term) is not None
+
+
+def final_value_param_specs(summary: Summary, creation_code: bool) -> list[LeanParam]:
+    specs: list[LeanParam] = []
+    if creation_code:
+        specs.append(LeanParam("tail", "ByteArray"))
+    specs.extend([
+        LeanParam("ee", "ExecutionEnv"),
+        LeanParam("g", "Sat256"),
+        LeanParam("s0", "State"),
+        LeanParam("mem", "ByteArray"),
+        LeanParam("aw", "UInt256"),
+        LeanParam("rdata", "ByteArray"),
+        LeanParam("cA", "Batteries.RBSet AccountAddress compare"),
+        LeanParam("σ", "AccountMap"),
+        LeanParam("k", "ℕ"),
+        LeanParam("C", "ℕ"),
+    ])
+    specs.extend(LeanParam(name, "UInt256") for name in summary.stack_in)
+    specs.append(LeanParam("R", "List UInt256"))
+    specs.extend(LeanParam(name, "UInt256") for name in summary.existential_words)
+    return specs
+
+
+def final_value_deps(term: str, specs: list[LeanParam],
+                     creation_code: bool = False) -> list[LeanParam]:
+    deps = [spec for spec in specs
+            if spec.name != "tail" and term_mentions_name(term, spec.name)]
+    if creation_code and "__CODE__" in term:
+        tail = next(spec for spec in specs if spec.name == "tail")
+        deps.insert(0, tail)
+    return deps
+
+
+def render_def_params(deps: list[LeanParam]) -> str:
+    return "".join(f" {{{dep.name} : {dep.typ}}}" for dep in deps)
+
+
+def render_def_app(name: str, deps: list[LeanParam]) -> str:
+    if not deps:
+        return name
+    args = " ".join(f"({dep.name} := {dep.name})" for dep in deps)
+    return f"({name} {args})"
+
+
+@dataclass(frozen=True)
+class FinalValueDefs:
+    lines: list[str]
+    stack: str
+    memory: str
+
+
+def render_final_value_defs(base_name: str, summary: Summary, effective_code_term: str,
+                            creation_code: bool) -> FinalValueDefs:
+    specs = final_value_param_specs(summary, creation_code)
+    stack_name = f"{base_name}_stack"
+    memory_name = f"{base_name}_memory"
+    raw_stack_body = stack_term(summary.stack_out)
+    raw_memory_body = summary.mem
+    stack_body = raw_stack_body.replace("__CODE__", effective_code_term)
+    memory_body = raw_memory_body.replace("__CODE__", effective_code_term)
+    stack_deps = final_value_deps(raw_stack_body, specs, creation_code)
+    memory_deps = final_value_deps(raw_memory_body, specs, creation_code)
+    lines = [
+        f"/-- Final stack for bytecode block summary `{base_name}`. -/",
+        f"def {stack_name}{render_def_params(stack_deps)} : List UInt256 :=",
+        f"  {stack_body}",
+        "",
+        f"/-- Final memory for bytecode block summary `{base_name}`. -/",
+        f"def {memory_name}{render_def_params(memory_deps)} : ByteArray :=",
+        f"  {memory_body}",
+    ]
+    return FinalValueDefs(
+        lines,
+        render_def_app(stack_name, stack_deps),
+        render_def_app(memory_name, memory_deps),
+    )
+
+
 # (minimum stack depth before the opcode, pop count, push count)
 def stack_shape(ins: Instruction) -> tuple[int, int, int]:
     op = ins.opcode
@@ -1413,12 +1500,14 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
     )
     assumptions.append(f"(h : {input_rd})")
 
+    final_defs: FinalValueDefs | None = None
     if summary.terminal:
         result = summary.terminal
     else:
+        final_defs = render_final_value_defs(name, summary, effective_code_term, creation_code)
         result_rd = (
-            f"RD {effective_code_term} ee g s0 {summary.pc} {stack_term(summary.stack_out)} "
-            f"{summary.mem} {summary.aw} rdata (cA, {summary.world_map})"
+            f"RD {effective_code_term} ee g s0 {summary.pc} {final_defs.stack} "
+            f"{final_defs.memory} {summary.aw} rdata (cA, {summary.world_map})"
         )
         if summary.existential_counters:
             word_binders = "" if not summary.existential_words else (
@@ -1432,8 +1521,14 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
             )
     result = result.replace("__CODE__", effective_code_term)
 
-    lines = [f"/-- Automatically generated RD summary for bytecode block at pc {block[0].pc}. -/",
-             f"theorem {name} {params}"]
+    lines = []
+    if final_defs is not None:
+        lines.extend(final_defs.lines)
+        lines.append("")
+    lines.extend([
+        f"/-- Automatically generated RD summary for bytecode block at pc {block[0].pc}. -/",
+        f"theorem {name} {params}",
+    ])
     lines.extend(f"    {a}" for a in assumptions)
     lines.append(f"    : {result} := by")
     lines.append("  let r0 := h")
@@ -1461,17 +1556,19 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
     if not summary.terminal:
         lines.append("")
         lines.extend(
-            render_packed_summary(name, params, assumptions, effective_code_term, summary)
+            render_packed_summary(name, params, assumptions, effective_code_term, summary,
+                                  final_defs)
         )
     return "\n".join(lines)
 
 
 def render_packed_summary(base_name: str, params: str, assumptions: list[str],
-                          effective_code_term: str, summary: Summary) -> list[str]:
+                          effective_code_term: str, summary: Summary,
+                          final_defs: FinalValueDefs) -> list[str]:
     packed_name = f"{base_name}_packed"
     result_rd = (
-        f"RD {effective_code_term} ee g s0 {summary.pc} {stack_term(summary.stack_out)} "
-        f"{summary.mem} aw' rdata (cA, {summary.world_map})"
+        f"RD {effective_code_term} ee g s0 {summary.pc} {final_defs.stack} "
+        f"{final_defs.memory} aw' rdata (cA, {summary.world_map})"
     )
     word_binders = "" if not summary.existential_words else (
         "(" + " ".join(summary.existential_words) + " : UInt256) "
@@ -1603,7 +1700,7 @@ def shard_units(units: list[str], shard_size: int) -> list[list[str]]:
     current: list[str] = []
     summaries = 0
     for unit in units:
-        is_summary = unit.startswith("/-- Automatically generated RD summary")
+        is_summary = "/-- Automatically generated RD summary" in unit
         if is_summary and summaries == shard_size:
             shards.append(current)
             current = []
