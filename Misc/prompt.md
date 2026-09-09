@@ -198,30 +198,37 @@ paired proof based on `Reasoning.Refinement` and
    describe varying stack shapes, locals, memory, or other invariants;
    do not introduce a new relation for every path entry.
 
-2. Prove the path as `BlockRefinesFrom` when the starting cursor is
-   concrete, or `StmtsRefine` when it should be reusable for every
-   related cursor at a PC. Use `BlockRefinesFrom.seqOfRD` when a prefix
-   is most conveniently summarized by separate RD and Solm execution facts.
-   This should be the case for most opcodes except `GAS` and calls,
-   because the summaries will cover those segments.
+2. Choose the paired-proof judgement by proof shape. Use
+   `BlockProgress` for concrete straight-line execution from a known
+   cursor; it has less involved hypotheses and is usually enough for
+   local prefixes and suffixes. Use `BlockRefinesFrom` when the proof
+   must be reusable over an incoming relation or must fit a complex
+   control-flow rule, especially loop rules. Use `StmtsRefine` when it
+   should be reusable for every related cursor at a PC. Use the
+   matching `seqOfRD` variant for the judgement you chose when a prefix
+   is most conveniently summarized by separate RD and Solm execution
+   facts.
 
 3. Compose the provided block-summary lemmas, or the ones in the 
    reasoning library, to reach semantic boundaries.
-   Manual decoding of blocks can happen only if itp rovides important
+   Manual decoding of blocks can happen only if it provides important
    semantics information, but is generally discouraged.
    Summaries may deliberately stop before a source-visible `GAS`, the
    forwarding `GAS` immediately before a CALL-family opcode, the call
    itself, and result-decoder branches.
 
-4. At an external-call boundary, apply the appropriate paired
-   `BlockRefinesFrom` call rule (`externalCall`, `lowLevelCall`,
-   `checkedCall`, or `delegateCall`). Establish its operand-stack,
-   target, calldata, value, and `CallStateRel` hypotheses from the
-   entry relation and the provided summaries. The rule synchronizes
-   the EVM call attempt with the Solm call and hides the call-depth,
-   balance, gas, and callee-outcome case split. For an ordinary typed
-   call, the false-status obligation should normally be only
-   `post-call RD → RDrev`.
+4. At an external-call boundary, apply the appropriate paired call rule
+   in the judgement you are using (`externalCall`, `lowLevelCall`,
+   `checkedCall`, or `delegateCall`). Prefer the `BlockProgress` rule
+   for concrete straight-line call paths; use the `BlockRefinesFrom`
+   rule when a relational/reusable theorem or complex control-flow rule
+   requires it. Establish the operand-stack, target, calldata, value,
+   and `CallStateRel` hypotheses from the entry relation and the
+   provided summaries. The rule synchronizes the EVM call attempt with
+   the Solm call and hides the call-depth, balance, gas, and
+   callee-outcome case split. For an ordinary typed call, the
+   false-status obligation should normally be only `post-call RD →
+   RDrev`.
 
 5. Prove the post-call bytecode status and return-decoder paths using
    the provided summaries. A successful continuation receives the
@@ -231,11 +238,11 @@ paired proof based on `Reasoning.Refinement` and
    suffix. Continue over the remaining Solm statements. Match failed status or failed
    decoding with `RDrev` as required by the call rule.
 
-6. At the function boundary, use
-   `BlockRefinesFrom.toRuntimeEquivalenceFor` (or the corresponding
-   reusable refinement bridge) to obtain `runtimeEquivalenceFor`.
-   Call-free dispatcher and malformed-calldata paths may continue to
-   use the ordinary connect lemmas.
+6. At the function boundary, use the bridge matching the proof you
+   built: `BlockProgress.toRuntimeEquivalenceFor` for a concrete paired
+   proof, or `BlockRefinesFrom.toRuntimeEquivalenceFor` for a reusable
+   relational proof. Call-free dispatcher and malformed-calldata paths
+   may continue to use the ordinary connect lemmas.
 
 ---
 
@@ -476,19 +483,24 @@ Function calls should be proven modularly. In particular:
 
 - External calls (calls to other contracts):
 
-  Prove a call-bearing path as paired progression, using
-  `BlockRefinesFrom` or `StmtsRefine`; do not run the complete EVM and
-  Solm paths independently and connect them only after both have
-  terminated. Use the provided RD summaries to reach the call setup,
-  retaining the concrete cursor/stack/memory facts and `CallStateRel`.
-  Reuse the known entry relation; package additional facts into a
-  richer `StateRel` when a reusable call-prefix or continuation lemma
-  needs it. Facts fixed by concrete theorem arguments need not also
-  be encoded in the relation.
+  Prove a call-bearing path as paired progression. Use
+  `BlockProgress` for concrete straight-line call setup and
+  continuation paths; use `BlockRefinesFrom` when a reusable relation
+  or complex control-flow rule needs that shape. Use `StmtsRefine` for
+  statement-level reusable proofs. Do not run the complete EVM and Solm
+  paths independently and connect them only after both have terminated.
+  Use the provided RD summaries to reach the call setup, retaining the
+  concrete cursor/stack/memory facts and `CallStateRel`. Reuse the known
+  entry relation; package additional facts into a richer `StateRel`
+  when a reusable call-prefix or continuation lemma needs it. Facts
+  fixed by concrete theorem arguments need not also be encoded in the
+  relation.
 
   At the CALL-family opcode, apply the matching rule from
-  `Reasoning.CallRefinement`: `BlockRefinesFrom.externalCall`,
-  `.lowLevelCall`, `.checkedCall`, or `.delegateCall`. These rules
+  `Reasoning.CallRefinement` in the judgement you are proving:
+  `BlockProgress.externalCall`, `.lowLevelCall`, `.checkedCall`, or
+  `.delegateCall` for concrete paths, and the corresponding
+  `BlockRefinesFrom` rule for relational/reusable paths. These rules
   prove that both sides make the same opaque call and choose the same
   result. They internally handle call depth, insufficient balance,
   forwarded gas, callee execution, returndata, and account-map
@@ -499,11 +511,11 @@ Function calls should be proven modularly. In particular:
   this obligation does not need another typed-call hypothesis. From
   status `true`, use the provided returndata and decoder summaries. If
   source ABI decoding fails, prove the corresponding EVM decoder path
-  reaches `RDrev`. If it succeeds, continue with `BlockRefinesFrom`
-  for the tail of the source statement list. The continuation receives
-  the actual EVM cursor, returndata, resulting Solm state, changed
-  world, counters, and `CallStateRel`; do not throw those witnesses
-  away and reconstruct them later.
+  reaches `RDrev`. If it succeeds, continue with the judgement shape
+  already chosen for the tail of the source statement list. The
+  continuation receives the actual EVM cursor, returndata, resulting
+  Solm state, changed world, counters, and `CallStateRel`; do not throw
+  those witnesses away and reconstruct them later.
 
   For static external calls, you may also use the proved fact that the
   accounts storage is preserved by the call.
@@ -511,14 +523,16 @@ Function calls should be proven modularly. In particular:
 - Gas paths:
 
   Treat `GAS` as a paired boundary only when it has source-level
-  meaning or supplies a call operand. Use `BlockRefinesFrom.letGas`
+  meaning or supplies a call operand. Use `BlockProgress.letGas` or
+  `BlockRefinesFrom.letGas`, matching the judgement you are proving,
   when the source statement at the head of the list is `.letGas`; it
   puts the same gas word on the EVM stack and in the Solm local. Use
-  `BlockRefinesFrom.gas` for a compiler-inserted forwarding `GAS`
-  before a CALL-family opcode while leaving the source state
-  unchanged. If a provided summary has already consumed `GAS` and
-  exposes its word, use `BlockRefinesFrom.letGasOfRD` rather than
-  stepping it again.
+  `BlockProgress.gas` or `BlockRefinesFrom.gas` for a
+  compiler-inserted forwarding `GAS` before a CALL-family opcode while
+  leaving the source state unchanged. If a provided summary has already
+  consumed `GAS` and exposes its word, use `BlockProgress.letGasOfRD`
+  or `BlockRefinesFrom.letGasOfRD`, matching the current judgement,
+  rather than stepping it again.
 
   A source `gasleft()` followed by a condition should keep the gas word
   in the path relation and branch on that same value on both sides.
@@ -537,18 +551,20 @@ Function calls should be proven modularly. In particular:
   evaluation, function lookup, parameter binding, and the callee body
   proof.
 
-  During a refinement-style proof, prove its body
-  once as `BlockRefinesFrom`/`StmtsRefine`, with `internalCallExit`
-  describing its return and revert endpoints, then apply
-  `BlockRefinesFrom.internalCall`. Supply argument evaluation,
-  function lookup, parameter binding, the relation at the callee
-  entry, and refinements for the caller continuations. This is
-  especially important when the internal callee itself contains an
-  external call: the callee proof owns that paired call, while callers
-  reuse its body refinement.
-  If the internall call does not contain an external call itself,
-  it may be delt with as in the plain RD proof segments,
-  using `BlockRefinesFrom.seqOfRD`.
+  During a refinement-style proof, prove its body as `BlockProgress`
+  for a concrete straight-line caller, or as `BlockRefinesFrom` /
+  `StmtsRefine` when a reusable callee theorem or complex control-flow
+  rule needs that shape, with `internalCallExit` describing its return
+  and revert endpoints. Apply `BlockProgress.internalCall` or
+  `BlockRefinesFrom.internalCall` to match the caller proof. Supply
+  argument evaluation, function lookup, parameter binding, the relation
+  at the callee entry, and refinements for the caller continuations.
+  This is especially important when the internal callee itself contains
+  an external call: the callee proof owns that paired call, while
+  callers reuse its body refinement.
+  If the internal call does not contain an external call itself,
+  it may be dealt with as in the plain RD proof segments,
+  using the `seqOfRD` variant for the current judgement.
 
   This is also true when a public function is also called internally
   by another function of the contract. The callee body is proved once,
@@ -568,7 +584,10 @@ Function calls should be proven modularly. In particular:
   copy or encoding routines), use the RD loop rules and available
   block summaries. Prove any corresponding Solm execution separately;
   within a larger refinement proof, compose these facts using
-  `seqOfRD` or advance only the EVM using `BlockRefinesFrom.ofRD`.
+  `BlockProgress.seqOfRD` / `BlockProgress.ofRD` for concrete
+  straight-line pieces, or `BlockRefinesFrom.seqOfRD` /
+  `BlockRefinesFrom.ofRD` when the surrounding loop/refinement rule
+  requires a relational theorem.
 
   Use the refinement loop rules only for more complex loops that
   benefit from a coupled EVM/Solm proof—for example, bodies with calls
