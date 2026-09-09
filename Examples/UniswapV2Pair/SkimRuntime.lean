@@ -159,8 +159,7 @@ theorem skimSafeTransferMem2_read64 (self : UInt256) {o : ByteArray}
 
 theorem skimSafeTransferMem2_mload64 (self : UInt256) {o : ByteArray}
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (skimSafeTransferMem2 self o).size
-        ∨ (⟨64⟩ : UInt256) ≥ balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (skimSafeTransferMem2 self o).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSafeTransferMem2 self o).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -216,8 +215,7 @@ theorem skimSafeTransferMem4_read64
 theorem skimSafeTransferMem4_mload64
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (skimSafeTransferMem4 self o toWord value).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (skimSafeTransferMem4 self o toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSafeTransferMem4 self o toWord value).readWithPadding
@@ -252,8 +250,7 @@ theorem skimSafeTransferMem6_size
 theorem skimSafeTransferMem6_mload224
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
-    (if (⟨224⟩ : UInt256).toNat ≥ (skimSafeTransferMem6 self o toWord value).size
-        ∨ (⟨224⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨224⟩ : UInt256).toNat ≥ (skimSafeTransferMem6 self o toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSafeTransferMem6 self o toWord value).readWithPadding

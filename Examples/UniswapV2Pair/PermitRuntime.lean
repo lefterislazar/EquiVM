@@ -247,8 +247,7 @@ theorem permitRuntimeStructHashDataMem_mload64 {baseMem : ByteArray}
     (hbaseRead64 :
       baseMem.readWithPadding 64 32 = UInt256.toByteArray (⟨128⟩ : UInt256)) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (permitRuntimeStructHashDataMem baseMem owner spender value nonce deadline).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
+          (permitRuntimeStructHashDataMem baseMem owner spender value nonce deadline).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitRuntimeStructHashDataMem baseMem owner spender value nonce deadline).readWithPadding
@@ -326,8 +325,7 @@ theorem permitRuntimeStructHashMem_mload128 {baseMem : ByteArray}
     (owner spender value nonce deadline : UInt256)
     (hbaseSize : baseMem.size = 96) :
     (if (⟨128⟩ : UInt256).toNat ≥
-          (permitRuntimeStructHashMem baseMem owner spender value nonce deadline).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
+          (permitRuntimeStructHashMem baseMem owner spender value nonce deadline).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitRuntimeStructHashMem baseMem owner spender value nonce deadline).readWithPadding
@@ -359,8 +357,7 @@ theorem permitRuntimeStructHashMem_mload64 {baseMem : ByteArray}
     (owner spender value nonce deadline : UInt256)
     (hbaseSize : baseMem.size = 96) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (permitRuntimeStructHashMem baseMem owner spender value nonce deadline).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
+          (permitRuntimeStructHashMem baseMem owner spender value nonce deadline).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitRuntimeStructHashMem baseMem owner spender value nonce deadline).readWithPadding
@@ -674,8 +671,7 @@ theorem permitRuntimeDigestDataMem_mload64 {baseMem : ByteArray}
     (hbaseRead64 :
       baseMem.readWithPadding 64 32 = UInt256.toByteArray (⟨352⟩ : UInt256)) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (permitRuntimeDigestDataMem baseMem domain structHash).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 15 * ⟨32⟩ then ⟨0⟩
+          (permitRuntimeDigestDataMem baseMem domain structHash).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitRuntimeDigestDataMem baseMem domain structHash).readWithPadding
@@ -747,8 +743,7 @@ theorem permitRuntimeDigestMem_mload352 {baseMem : ByteArray}
     (domain structHash : UInt256)
     (hbaseSize : baseMem.size = 352) :
     (if (⟨352⟩ : UInt256).toNat ≥
-          (permitRuntimeDigestMem baseMem domain structHash).size
-        ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 15 * ⟨32⟩ then ⟨0⟩
+          (permitRuntimeDigestMem baseMem domain structHash).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitRuntimeDigestMem baseMem domain structHash).readWithPadding
@@ -1026,8 +1021,7 @@ theorem permitRuntimeEcrecoverInputMem_mload64 {baseMem : ByteArray}
     (digest v r s : UInt256)
     (hbaseSize : baseMem.size = 450) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (permitRuntimeEcrecoverInputMem baseMem digest v r s).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 20 * ⟨32⟩ then ⟨0⟩
+          (permitRuntimeEcrecoverInputMem baseMem digest v r s).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitRuntimeEcrecoverInputMem baseMem digest v r s).readWithPadding
@@ -1206,8 +1200,7 @@ theorem permitRuntimeEcrecoverStaticcallMem_mload64_of_size_ge {baseMem : ByteAr
     (hbaseSize : baseMem.size = 450)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 20 * ⟨32⟩ then ⟨0⟩
+          (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o).readWithPadding
@@ -1227,8 +1220,7 @@ theorem permitRuntimeEcrecoverStaticcallMem_mload64_of_size_lt {baseMem : ByteAr
     (hbaseSize : baseMem.size = 450)
     (hshort : o.size < 32) (hoSize : o.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 20 * ⟨32⟩ then ⟨0⟩
+          (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o).readWithPadding
@@ -1327,8 +1319,7 @@ theorem permitRuntimeEcrecoverStaticcallMem_mload450_of_size_lt {baseMem : ByteA
     (hbaseSize : baseMem.size = 450)
     (hshort : o.size < 32) (hoSize : o.size < UInt256.size) :
     (if (⟨450⟩ : UInt256).toNat ≥
-          (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o).size
-        ∨ (⟨450⟩ : UInt256) ≥ UInt256.ofNat 20 * ⟨32⟩ then ⟨0⟩
+          (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o).readWithPadding
@@ -1362,8 +1353,7 @@ theorem permitRuntimeEcrecoverStaticcallMem_mload450_of_size_ge {baseMem : ByteA
     (hbaseSize : baseMem.size = 450)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
     (if (⟨450⟩ : UInt256).toNat ≥
-          (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o).size
-        ∨ (⟨450⟩ : UInt256) ≥ UInt256.ofNat 20 * ⟨32⟩ then ⟨0⟩
+          (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o).readWithPadding
@@ -1401,8 +1391,7 @@ theorem RD.uniswapPermitStructHash {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       (permitRuntimeStructHashMem baseMem owner spender value nonce deadline)
       (UInt256.ofNat 11) rdata (cA, σ) k' C' := by
   have hbaseMload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ baseMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ baseMem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (baseMem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -2022,8 +2011,7 @@ theorem RD.uniswapPermitApproveEmitAndJump20 {g : Sat256} {s0 : State} {ee : Exe
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd40, hd41, hd42, hd43, hd44,
       hd45, hd46, hd47, hd48, hd49, hd50, hd51, hd52⟩
   have hmload :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 20 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨482⟩ := by
@@ -2042,8 +2030,7 @@ theorem RD.uniswapPermitApproveEmitAndJump20 {g : Sat256} {s0 : State} {ee : Exe
     exact hfree
   have hlogMload :
       (if (⟨64⟩ : UInt256).toNat ≥
-            ((UInt256.toByteArray value).write 0 mem 482 32).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 20 * ⟨32⟩ then ⟨0⟩
+            ((UInt256.toByteArray value).write 0 mem 482 32).size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           (((UInt256.toByteArray value).write 0 mem 482 32).readWithPadding

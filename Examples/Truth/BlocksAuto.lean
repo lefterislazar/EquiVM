@@ -152,7 +152,7 @@ theorem truthAuto_block_42 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : 
 theorem truthAuto_block_48 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 4 ≤ 1024)
     (h : RD truthBytecode ee g s0 (UInt256.ofNat 48) (x0 :: R) mem aw rdata (cA, σ) k C)
-    : RD truthBytecode ee g s0 (UInt256.ofNat 100) ((memLoad (UInt256.ofNat 64) aw mem) :: x0 :: (UInt256.ofNat 59) :: R) mem (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata (cA, σ) (k + 8) (C + ((27) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
+    : RD truthBytecode ee g s0 (UInt256.ofNat 100) ((memLoad (UInt256.ofNat 64) mem) :: x0 :: (UInt256.ofNat 59) :: R) mem (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata (cA, σ) (k + 8) (C + ((27) + (memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)))) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 64) (by native_decide) (by evm_ov)
@@ -169,7 +169,7 @@ theorem truthAuto_block_48 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : 
 theorem truthAuto_block_59 {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ} {x0 : UInt256} {R : List UInt256}
     (hstack : R.length + 3 ≤ 1024)
     (h : RD truthBytecode ee g s0 (UInt256.ofNat 59) (x0 :: R) mem aw rdata (cA, σ) k C)
-    : RDret truthBytecode g s0 (cA, σ) (mem.readWithPadding (memLoad (UInt256.ofNat 64) aw mem).toNat (UInt256.sub x0 (memLoad (UInt256.ofNat 64) aw mem)).toNat) := by
+    : RDret truthBytecode g s0 (cA, σ) (mem.readWithPadding (memLoad (UInt256.ofNat 64) mem).toNat (UInt256.sub x0 (memLoad (UInt256.ofNat 64) mem)).toNat) := by
   let r0 := h
   have r1 := r0.jumpdest (by native_decide) (by evm_ov)
   have r2 := r1.push1 (UInt256.ofNat 64) (by native_decide) (by evm_ov)

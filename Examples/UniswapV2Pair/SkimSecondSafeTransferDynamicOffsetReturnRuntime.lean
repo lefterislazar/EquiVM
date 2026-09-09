@@ -836,8 +836,7 @@ theorem skimSecondSafeTransferDynamicCallMem2_mload96_zero
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (⟨96⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value).size
-        ∨ (⟨96⟩ : UInt256) ≥ skimSecondSafeTransferDynamicWordsCall2 out1 * ⟨32⟩ then
+          (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value).size then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -964,9 +963,7 @@ theorem skimSecondSafeTransferDynamicReturnDataMem_mloadCallPtr
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size)
     (houtNe : out.size ≠ 0) (houtSmall : out.size < 2 ^ 138) :
     (if (skimSecondSafeTransferDynamicCallPtr out1).toNat ≥
-          (skimSecondSafeTransferDynamicReturnDataMem self o toWord prevValue out1 out2 value out).size
-        ∨ skimSecondSafeTransferDynamicCallPtr out1 ≥
-          skimSecondSafeTransferDynamicReturnDataActiveWords out1 out * ⟨32⟩ then
+          (skimSecondSafeTransferDynamicReturnDataMem self o toWord prevValue out1 out2 value out).size then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -1031,9 +1028,7 @@ theorem skimSecondSafeTransferDynamicReturnDataMem_mloadRetPtr
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size)
     (hout32 : 32 ≤ out.size) (houtSmall : out.size < 2 ^ 138) :
     (if (skimSecondSafeTransferDynamicRetPtr out1).toNat ≥
-          (skimSecondSafeTransferDynamicReturnDataMem self o toWord prevValue out1 out2 value out).size
-        ∨ skimSecondSafeTransferDynamicRetPtr out1 ≥
-          skimSecondSafeTransferDynamicReturnDataActiveWords out1 out * ⟨32⟩ then
+          (skimSecondSafeTransferDynamicReturnDataMem self o toWord prevValue out1 out2 value out).size then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -1380,7 +1375,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
       mem aw out acc k C) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   let fp0 : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then
+    if (⟨64⟩ : UInt256).toNat ≥ mem.size then
       ⟨0⟩
     else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 64 32))
   let aw1 : UInt256 := UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32)
@@ -1447,7 +1442,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd6763 := evm_run rd6762 with [swap1]
   let fp1 : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ err3.size ∨ (⟨64⟩ : UInt256) ≥ aw5 * ⟨32⟩ then
+    if (⟨64⟩ : UInt256).toNat ≥ err3.size then
       ⟨0⟩
     else UInt256.ofNat (fromByteArrayBigEndian (err3.readWithPadding 64 32))
   let aw6 : UInt256 := UInt256.ofNat (MachineState.M aw5.toNat (⟨64⟩ : UInt256).toNat 32)

@@ -748,7 +748,7 @@ def simulate(block: list[Instruction], branch: str | None,
             old_aw = aw
             costs.append(f"memExpansionCost {old_aw} {address} {WORD32}")
             stack.insert(0, address)
-            stack.insert(0, f"(memLoad {address} {old_aw} {mem})")
+            stack.insert(0, f"(memLoad {address} {mem})")
             aw = f"(M {old_aw} {address} {WORD32})"
         elif effect is SequenceEffect.ERROR_SELECTOR_STORE:
             base = stack[0]
@@ -1164,7 +1164,7 @@ def simulate(block: list[Instruction], branch: str | None,
             proof.append(f"  have {after} := {before}.calldataload {decode} {ov}")
         elif op == 0x51:
             a = stack.pop(0)
-            stack.insert(0, f"(memLoad {a} {aw} {mem})")
+            stack.insert(0, f"(memLoad {a} {mem})")
             costs.append(f"memExpansionCost {aw} {a} {WORD32}")
             aw = f"(M {aw} {a} {WORD32})"
             proof.append(f"  have {after} := RD.mload {before} {decode} {ov}")

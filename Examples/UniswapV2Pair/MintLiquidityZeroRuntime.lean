@@ -31,13 +31,12 @@ theorem uniswapMintRuntimeLiquidityZeroReverts
   rw [hgt] at rd3849pre
   have rd3850 := evm_run rd3849pre with [jumpiNT (by decide)]
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (aw := feeToStaticcallActiveWords)
-      (by rw [hmem]; decide) (by native_decide) hmem64
+    mloadFreePtrValue
+      (by rw [hmem]; decide) hmem64
   have rd3853 := evm_run rd3850 with [
     push1 ⟨64⟩,
     raw rawMload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
@@ -99,8 +98,7 @@ theorem uniswapMintRuntimeLiquidityZeroReverts
       (write_read_below_end_from uniswapV2PairBytecode mem2 8741 40 64
         (by decide) (by native_decide) (by rw [hmem2]; omega)).trans hread64_mem2
   have hmload64_mem3 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem3.size
-          ∨ (⟨64⟩ : UInt256) ≥ (UInt256.ofNat 8) * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem3.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem3.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=

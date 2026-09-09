@@ -810,8 +810,7 @@ theorem skimSecondSafeTransferDynamicMem2_mload64
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferDynamicMem2 self o toWord prevValue out1 out2).size
-        ∨ (⟨64⟩ : UInt256) ≥ skimSecondSafeTransferDynamicWordsMem2 out1 * ⟨32⟩ then
+          (skimSecondSafeTransferDynamicMem2 self o toWord prevValue out1 out2).size then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -976,8 +975,7 @@ theorem skimSecondSafeTransferDynamicMem4_mload64
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferDynamicMem4 self o toWord prevValue out1 out2 value).size
-        ∨ (⟨64⟩ : UInt256) ≥ skimSecondSafeTransferDynamicWordsMem4 out1 * ⟨32⟩ then
+          (skimSecondSafeTransferDynamicMem4 self o toWord prevValue out1 out2 value).size then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -1121,9 +1119,7 @@ theorem skimSecondSafeTransferDynamicMem6_mload_base96
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩).toNat ≥
-          (skimSecondSafeTransferDynamicMem6 self o toWord prevValue out1 out2 value).size
-        ∨ (skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩) ≥
-          skimSecondSafeTransferDynamicWordsMem4 out1 * ⟨32⟩ then
+          (skimSecondSafeTransferDynamicMem6 self o toWord prevValue out1 out2 value).size then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -1293,8 +1289,7 @@ theorem skimSecondSafeTransferDynamicMem7_mload64
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value).size
-        ∨ (⟨64⟩ : UInt256) ≥ skimSecondSafeTransferDynamicWordsMem4 out1 * ⟨32⟩ then
+          (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value).size then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -1408,9 +1403,7 @@ theorem skimSecondSafeTransferDynamicMem7_mload_base64
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩).toNat ≥
-          (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value).size
-        ∨ (skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩) ≥
-          skimSecondSafeTransferDynamicWordsMem4 out1 * ⟨32⟩ then
+          (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value).size then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -1484,9 +1477,7 @@ theorem skimSecondSafeTransferDynamicMem7_mload_base96
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩).toNat ≥
-          (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value).size
-        ∨ (skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩) ≥
-          skimSecondSafeTransferDynamicWordsMem4 out1 * ⟨32⟩ then
+          (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value).size then
       ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
@@ -1748,9 +1739,7 @@ theorem skimSecondSafeTransferDynamicCallMem0_mload_base128
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (skimSecondSafeTransferDynamicBasePtr out1 + ⟨128⟩).toNat ≥
-          (skimSecondSafeTransferDynamicCallMem0 self o toWord prevValue out1 out2 value).size
-        ∨ (skimSecondSafeTransferDynamicBasePtr out1 + ⟨128⟩) ≥
-          skimSecondSafeTransferDynamicWordsCall0 out1 * ⟨32⟩ then
+          (skimSecondSafeTransferDynamicCallMem0 self o toWord prevValue out1 out2 value).size then
       ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
@@ -1787,9 +1776,7 @@ theorem skimSecondSafeTransferDynamicCallMem1_mload_base160
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (skimSecondSafeTransferDynamicBasePtr out1 + ⟨160⟩).toNat ≥
-          (skimSecondSafeTransferDynamicCallMem1 self o toWord prevValue out1 out2 value).size
-        ∨ (skimSecondSafeTransferDynamicBasePtr out1 + ⟨160⟩) ≥
-          skimSecondSafeTransferDynamicWordsCall1 out1 * ⟨32⟩ then
+          (skimSecondSafeTransferDynamicCallMem1 self o toWord prevValue out1 out2 value).size then
       ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
@@ -1875,8 +1862,7 @@ theorem skimSecondSafeTransferDynamicCallMem2_mload64
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value).size
-        ∨ (⟨64⟩ : UInt256) ≥ skimSecondSafeTransferDynamicWordsCall2 out1 * ⟨32⟩ then
+          (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value).size then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -2197,9 +2183,7 @@ theorem skimSecondSafeTransferDynamicCallMem1_mload_base228
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (skimSecondSafeTransferDynamicBasePtr out1 + ⟨228⟩).toNat ≥
-          (skimSecondSafeTransferDynamicCallMem1 self o toWord prevValue out1 out2 value).size
-        ∨ (skimSecondSafeTransferDynamicBasePtr out1 + ⟨228⟩) ≥
-          skimSecondSafeTransferDynamicWordsCall1 out1 * ⟨32⟩ then
+          (skimSecondSafeTransferDynamicCallMem1 self o toWord prevValue out1 out2 value).size then
       ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian

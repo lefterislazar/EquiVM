@@ -235,8 +235,7 @@ theorem skimSecondSafeTransferMem2_mload64
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferMem2 self o toWord prevValue out2).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 13 * ⟨32⟩ then ⟨0⟩
+          (skimSecondSafeTransferMem2 self o toWord prevValue out2).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondSafeTransferMem2 self o toWord prevValue out2).readWithPadding
@@ -274,8 +273,7 @@ theorem skimSecondSafeTransferMem4_mload64
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferMem4 self o toWord prevValue out2 value).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 15 * ⟨32⟩ then ⟨0⟩
+          (skimSecondSafeTransferMem4 self o toWord prevValue out2 value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondSafeTransferMem4 self o toWord prevValue out2 value).readWithPadding
@@ -357,8 +355,7 @@ theorem skimSecondSafeTransferMem7_mload64
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferMem7 self o toWord prevValue out2 value).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 15 * ⟨32⟩ then ⟨0⟩
+          (skimSecondSafeTransferMem7 self o toWord prevValue out2 value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondSafeTransferMem7 self o toWord prevValue out2 value).readWithPadding
@@ -400,8 +397,7 @@ theorem skimSecondSafeTransferMem7_mload356
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     (if (⟨356⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferMem7 self o toWord prevValue out2 value).size
-        ∨ (⟨356⟩ : UInt256) ≥ UInt256.ofNat 15 * ⟨32⟩ then ⟨0⟩
+          (skimSecondSafeTransferMem7 self o toWord prevValue out2 value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondSafeTransferMem7 self o toWord prevValue out2 value).readWithPadding
@@ -422,8 +418,7 @@ theorem skimSecondSafeTransferMem6_mload388
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     (if (⟨388⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferMem6 self o toWord prevValue out2 value).size
-        ∨ (⟨388⟩ : UInt256) ≥ UInt256.ofNat 15 * ⟨32⟩ then ⟨0⟩
+          (skimSecondSafeTransferMem6 self o toWord prevValue out2 value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondSafeTransferMem6 self o toWord prevValue out2 value).readWithPadding
@@ -454,8 +449,7 @@ theorem skimSecondSafeTransferMem7_mload388
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     (if (⟨388⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferMem7 self o toWord prevValue out2 value).size
-        ∨ (⟨388⟩ : UInt256) ≥ UInt256.ofNat 15 * ⟨32⟩ then ⟨0⟩
+          (skimSecondSafeTransferMem7 self o toWord prevValue out2 value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondSafeTransferMem7 self o toWord prevValue out2 value).readWithPadding
@@ -622,8 +616,7 @@ theorem skimSecondSafeTransferCallMem0_mload420
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     (if (⟨420⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferCallMem0 self o toWord prevValue out2 value).size
-        ∨ (⟨420⟩ : UInt256) ≥ UInt256.ofNat 16 * ⟨32⟩ then ⟨0⟩
+          (skimSecondSafeTransferCallMem0 self o toWord prevValue out2 value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondSafeTransferCallMem0 self o toWord prevValue out2 value).readWithPadding
@@ -646,8 +639,7 @@ theorem skimSecondSafeTransferCallMem1_mload452
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     (if (⟨452⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferCallMem1 self o toWord prevValue out2 value).size
-        ∨ (⟨452⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+          (skimSecondSafeTransferCallMem1 self o toWord prevValue out2 value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondSafeTransferCallMem1 self o toWord prevValue out2 value).readWithPadding
@@ -670,8 +662,7 @@ theorem skimSecondSafeTransferCallMem1_mload520
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     (if (⟨520⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferCallMem1 self o toWord prevValue out2 value).size
-        ∨ (⟨520⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+          (skimSecondSafeTransferCallMem1 self o toWord prevValue out2 value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondSafeTransferCallMem1 self o toWord prevValue out2 value).readWithPadding
@@ -817,8 +808,7 @@ theorem skimSecondSafeTransferCallMem2_mload64
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (skimSecondSafeTransferCallMem2 self o toWord prevValue out2 value).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+          (skimSecondSafeTransferCallMem2 self o toWord prevValue out2 value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondSafeTransferCallMem2 self o toWord prevValue out2 value).readWithPadding

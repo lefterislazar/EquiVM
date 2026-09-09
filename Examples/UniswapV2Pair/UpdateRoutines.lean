@@ -68,7 +68,7 @@ theorem RD.uniswapUpdateOverflowStringRevertTail_aw6_size164 {g : Sat256} {s0 : 
     push1 ⟨64⟩, dup1,
     raw rawMload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rd7002 := rd6998.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
     (by decide) (by decide) (by evm_ov)
@@ -484,7 +484,7 @@ theorem RD.uniswapUpdateEmitSyncAndJump {g : Sat256} {s0 : State}
         elapsed :: timestamp :: reserve1 :: reserve0 :: balance1 :: balance0 :: ret :: R →
       memoryExpansionCost s .MLOAD = mcostLoad)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩)
     (hawLoad : UInt256.ofNat (MachineState.M aw.toNat 64 32) = awLoad)
@@ -507,8 +507,7 @@ theorem RD.uniswapUpdateEmitSyncAndJump {g : Sat256} {s0 : State}
         reserve1 :: reserve0 :: balance1 :: balance0 :: ret :: R →
       memoryExpansionCost s .MLOAD = mcostLoadLog)
     (hmload64Log :
-      (if (⟨64⟩ : UInt256).toNat ≥ (uniswapSyncLogMem packed mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ awLog * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (uniswapSyncLogMem packed mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((uniswapSyncLogMem packed mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =

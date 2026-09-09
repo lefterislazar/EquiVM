@@ -206,7 +206,7 @@ theorem RD.solcSummaryAddressMask
 theorem RD.solcSummaryFreeMemoryPointerLoad
     (hwf : solcSummaryFreeMemoryPointerLoadWf code ee g s0 pc stk mem aw rdata acc k C) :
     RD code ee g s0 (pc + UInt256.ofNat 4)
-      (memLoad (UInt256.ofNat 64) aw mem :: UInt256.ofNat 64 :: stk) mem
+      (memLoad (UInt256.ofNat 64) mem :: UInt256.ofNat 64 :: stk) mem
       (M aw (UInt256.ofNat 64) (⟨32⟩ : UInt256)) rdata acc (k + 3)
       (C + (9 + memExpansionCost aw (UInt256.ofNat 64) (⟨32⟩ : UInt256))) := by
   rcases hwf with ⟨h, hd0, hd1, hd2, hov⟩
@@ -886,8 +886,7 @@ theorem RD.solcSummaryMappingHashKeyFirst
       (k + 10)
       (C + (27 + memExpansionCost aw ⟨0⟩ ⟨32⟩ +
         memExpansionCost aw1 ⟨32⟩ ⟨32⟩ + memExpansionCost aw2 ⟨0⟩ ⟨64⟩ +
-        (GasConstants.Gkeccak256 + GasConstants.Gkeccak256word *
-          (((⟨64⟩ : UInt256).toNat + 31) / 32)))) := by
+        42)) := by
   rcases hwf with ⟨h, h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, hov⟩
   have r1 := h.push1 ⟨0⟩ h0 (by evm_ov)
   have r2 := r1.swap1 h1 (by evm_ov)
@@ -907,7 +906,10 @@ theorem RD.solcSummaryMappingHashKeyFirst
   have rFinalPc := RD.normalizePC (pc' := pc + UInt256.ofNat 14) r10
     (by simp only [show (⟨1⟩ : UInt256) = UInt256.ofNat 1 from rfl,
       u256_add_ofNat_ofNat, Nat.reduceAdd])
-  exact RD.normalizeCounters rFinalPc (by omega) (by omega)
+  exact RD.normalizeCounters rFinalPc (by omega)
+    (by
+      simp [show (((⟨64⟩ : UInt256).toNat + 31) / 32) = 2 from by decide]
+      omega)
 
 @[reducible] def solcSummaryMappingHashSlotFirstWf (code : ByteArray)
     (ee : ExecutionEnv) (g : Sat256) (s0 : State) (pc key slot : UInt256)
@@ -945,8 +947,7 @@ theorem RD.solcSummaryMappingHashSlotFirst
       (k + 10)
       (C + (27 + memExpansionCost aw ⟨32⟩ ⟨32⟩ +
         memExpansionCost aw1 ⟨0⟩ ⟨32⟩ + memExpansionCost aw2 ⟨0⟩ ⟨64⟩ +
-        (GasConstants.Gkeccak256 + GasConstants.Gkeccak256word *
-          (((⟨64⟩ : UInt256).toNat + 31) / 32)))) := by
+        42)) := by
   rcases hwf with ⟨h, h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, hov⟩
   have r1 := h.push1 slot h0 (by evm_ov)
   have r2 := r1.push1 ⟨32⟩ h1 (by evm_ov)
@@ -966,7 +967,10 @@ theorem RD.solcSummaryMappingHashSlotFirst
   have rFinalPc := RD.normalizePC (pc' := pc + UInt256.ofNat 14) r10
     (by simp only [show (⟨1⟩ : UInt256) = UInt256.ofNat 1 from rfl,
       u256_add_ofNat_ofNat, Nat.reduceAdd])
-  exact RD.normalizeCounters rFinalPc (by omega) (by omega)
+  exact RD.normalizeCounters rFinalPc (by omega)
+    (by
+      simp [show (((⟨64⟩ : UInt256).toNat + 31) / 32) = 2 from by decide]
+      omega)
 
 @[reducible] def solcNestedMappingInnerPrefixWf
     (code : ByteArray) (pc slot : UInt256) : Prop :=
@@ -1016,8 +1020,7 @@ theorem RD.solcSummaryNestedMappingInnerHash
       (twoWordHashMemSlotFirst owner slot mem) aw3 rdata acc (k + 14)
       (C + (37 + memExpansionCost aw ⟨32⟩ ⟨32⟩ +
         memExpansionCost aw1 ⟨0⟩ ⟨32⟩ + memExpansionCost aw2 ⟨0⟩ ⟨64⟩ +
-        (GasConstants.Gkeccak256 + GasConstants.Gkeccak256word *
-          (((⟨64⟩ : UInt256).toNat + 31) / 32)))) := by
+        42)) := by
   rcases hwf with ⟨h, hw, hov⟩
   rcases hw with
     ⟨h0, h1, h3, h5, h6, h7, h8, h10, h11, h12, h13, h15, h16, h17⟩
@@ -1045,7 +1048,10 @@ theorem RD.solcSummaryNestedMappingInnerHash
     (by simp only [show (⟨1⟩ : UInt256) = UInt256.ofNat 1 from rfl,
       u256_add_ofNat_ofNat, Nat.reduceAdd])
   simpa [solcNestedMappingGetterAfterInnerHashPc, u256_add_ofNat_ofNat] using
-    RD.normalizeCounters rFinalPc (by omega) (by omega)
+    RD.normalizeCounters rFinalPc (by omega)
+      (by
+        simp [show (((⟨64⟩ : UInt256).toNat + 31) / 32) = 2 from by decide]
+        omega)
 
 @[reducible] def solcSummaryNestedMappingOuterHashWf (code : ByteArray)
     (ee : ExecutionEnv) (g : Sat256) (s0 : State) (pc innerSlot spender : UInt256)
@@ -1075,8 +1081,7 @@ theorem RD.solcSummaryNestedMappingOuterHash
       aw3 rdata acc (k + 8)
       (C + (21 + memExpansionCost aw ⟨32⟩ ⟨32⟩ +
         memExpansionCost aw1 ⟨0⟩ ⟨32⟩ + memExpansionCost aw2 ⟨0⟩ ⟨64⟩ +
-        (GasConstants.Gkeccak256 + GasConstants.Gkeccak256word *
-          (((⟨64⟩ : UInt256).toNat + 31) / 32)))) := by
+        42)) := by
   rcases hwf with ⟨h, h0, h1, h2, h3, h4, h5, h6, h7, hov⟩
   have r1 := h.swap1 h0 (by evm_ov)
   have r2 := r1.swap2 h1 (by evm_ov)
@@ -1094,6 +1099,9 @@ theorem RD.solcSummaryNestedMappingOuterHash
   have rFinalPc := RD.normalizePC (pc' := pc + UInt256.ofNat 8) r8
     (by simp only [show (⟨1⟩ : UInt256) = UInt256.ofNat 1 from rfl,
       u256_add_ofNat_ofNat, Nat.reduceAdd])
-  exact RD.normalizeCounters rFinalPc (by omega) (by omega)
+  exact RD.normalizeCounters rFinalPc (by omega)
+    (by
+      simp [show (((⟨64⟩ : UInt256).toNat + 31) / 32) = 2 from by decide]
+      omega)
 
 end Reasoning.Theory
