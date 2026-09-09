@@ -47,8 +47,8 @@ accepted trusted base below.
 
 Use the generated summaries before writing a bytecode trace by hand:
 
-- Search the generated files for `_block_<pc>` to locate the theorem for a
-  block's entry program counter, then import the shard containing it.
+- Search `RuntimeBlocks.index` or `CreationBlocks.index` for the program
+  counter to locate the theorem and shard, then read only the listed range.
 - Read the theorem's stack, memory, account-map, and side-condition binders;
   generated summaries start from a symbolic `RD` cursor and may require facts
   such as stack capacity, jump-destination membership, permissions, or branch
@@ -309,7 +309,10 @@ The proof of a contract `<Name>` goes in a directory `<Name>/`:
 | `<Name>.sol` | the Solidity source + the exact compiler invocation used. |
 | `Spec.lean` | the Solm `ContractDecl`, storage layout, `Config`. |
 | `Bytecode.lean` | runtime bytecode + selector/jump-dest trusted facts. |
-| `Blocks.lean` | provided proved RD summaries, especially for call-bearing paths; do not regenerate or edit. |
+| `RuntimeBlocks_*.lean` | provided proved runtime RD summaries, especially for call-bearing paths; do not regenerate or edit. |
+| `RuntimeBlocks.index` | compact theorem index for `RuntimeBlocks_*.lean`: theorem name, shard file, line range, and PCs. |
+| `CreationBlocks_*.lean` | provided proved creation RD summaries, especially for call-bearing paths; do not regenerate or edit. |
+| `CreationBlocks.index` | compact theorem index for `CreationBlocks_*.lean`: theorem name, shard file, line range, and PCs. |
 | `Common.lean` | contract-wide ABI / memory / selector / return / other helpers shared by ≥2 functions. |
 | `Storage.lean` | contract-wide storage load/store + RBMap preservation + bool-return facts (only if it has storage). |
 | `CallTraces.lean` | optional contract-specific composition of provided summaries around call boundaries, status paths, and return decoders. |
@@ -656,7 +659,7 @@ Generated block summaries are the first tool for concrete bytecode
 reachability. Chain them as small named `have`s, one block/routine at a
 time, and keep the proof at the `RD`/`RDret`/`RDrev` boundary.
 The summary-generation work has already been done for a proof
-directory with supplied `Blocks.lean` files. Do not re-prove a covered
+directory with supplied `*Blocks_*.lean` files. Do not re-prove a covered
 block with `evm_run`, and do not regenerate or edit the summaries.
 Compose them into contract-specific path lemmas for reaching call, gas,
 decoder, loop, and continuation boundaries. If a required bytecode edge
