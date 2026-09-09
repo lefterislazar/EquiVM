@@ -3386,6 +3386,95 @@ theorem RD.execForLoopOrRevertCarryFull {cfg : Config} {contract : ContractDecl}
               ⟨ExecForLoop.continueIter (htrue v a L evm hInv) hbodyCont hpost hloop,
                 hrdRev⟩
 
+/-- Coupled variant-indexed loop rule for a solc bytecode loop and a Solm `for` loop, allowing
+    `continue`, `break`, and paired reverts from the source body.
+
+This generalizes `RD.execForLoopOrRevertCarryFull` with a separate `Done` predicate.  A `break`
+can exit before the variant reaches zero, so the final source/bytecode state need not satisfy
+`Inv 0`; callers prove `Done` both for the ordinary false-condition exit and for each body
+`break` path. -/
+theorem RD.execForLoopOrRevertBreakContinueCarryFull {cfg : Config} {contract : ContractDecl}
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {rdata : ByteArray} {α : Type}
+    (header bodyHeader exit : UInt256) (condExpr : Expr) (post body : List Stmt)
+    (Inv : ℕ → α → Store → EVM.State → Prop) (Done : α → Store → EVM.State → Prop)
+    (stk : α → List UInt256) (mem : α → ByteArray) (aw : α → UInt256)
+    (acc : α → Batteries.RBSet AccountAddress compare × AccountMap)
+    (exitStk : α → List UInt256)
+    (hfalse : ∀ a L evm, Inv 0 a L evm →
+      evalExpr? cfg { contract := contract, locals := L } evm condExpr = .ok (.bool false))
+    (hdoneFalse : ∀ a L evm, Inv 0 a L evm → Done a L evm)
+    (hexit : ∀ a L evm, Done a L evm → ∀ k C,
+      RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
+      ∃ k' C', RD code ee g s0 exit (exitStk a) (mem a) (aw a) rdata (acc a) k' C')
+    (htrue : ∀ v a L evm, Inv (v + 1) a L evm →
+      evalExpr? cfg { contract := contract, locals := L } evm condExpr = .ok (.bool true))
+    (henter : ∀ v a L evm, Inv (v + 1) a L evm → ∀ k C,
+      RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
+      ∃ k' C', RD code ee g s0 bodyHeader (stk a) (mem a) (aw a) rdata (acc a) k' C')
+    (hbody : ∀ v a L evm, Inv (v + 1) a L evm → ∀ k C,
+      RD code ee g s0 bodyHeader (stk a) (mem a) (aw a) rdata (acc a) k C →
+      (ExecBlock cfg { contract := contract, locals := L } evm body .reverted ∧
+        RDrev code g s0) ∨
+      (∃ a' L1 evm1 k' C',
+        ExecBlock cfg { contract := contract, locals := L } evm body
+          (.break { contract := contract, locals := L1 } evm1) ∧
+        Done a' L1 evm1 ∧
+        RD code ee g s0 exit (exitStk a') (mem a') (aw a') rdata (acc a') k' C') ∨
+      ∃ a' L1 evm1 L2 evm2 k' C',
+        (ExecBlock cfg { contract := contract, locals := L } evm body
+            (.ok { contract := contract, locals := L1 } evm1) ∨
+          ExecBlock cfg { contract := contract, locals := L } evm body
+            (.continue { contract := contract, locals := L1 } evm1)) ∧
+        ExecBlock cfg { contract := contract, locals := L1 } evm1 post
+          (.ok { contract := contract, locals := L2 } evm2) ∧
+        Inv v a' L2 evm2 ∧
+        RD code ee g s0 header (stk a') (mem a') (aw a') rdata (acc a') k' C') :
+    ∀ v a L evm, Inv v a L evm → ∀ k C,
+      RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
+      (∃ a' L' evm' k' C',
+        ExecForLoop cfg { contract := contract, locals := L } evm condExpr post body
+          (.ok { contract := contract, locals := L' } evm') ∧
+        Done a' L' evm' ∧
+        RD code ee g s0 exit (exitStk a') (mem a') (aw a') rdata (acc a') k' C') ∨
+      (ExecForLoop cfg { contract := contract, locals := L } evm condExpr post body .reverted ∧
+        RDrev code g s0) := by
+  intro v
+  induction v with
+  | zero =>
+      intro a L evm hInv k C rd
+      have hDone : Done a L evm := hdoneFalse a L evm hInv
+      obtain ⟨k', C', rdExit⟩ := hexit a L evm hDone k C rd
+      exact Or.inl ⟨a, L, evm, k', C', ExecForLoop.falseDone (hfalse a L evm hInv),
+        hDone, rdExit⟩
+  | succ v ih =>
+      intro a L evm hInv k C rd
+      obtain ⟨k1, C1, rdBody⟩ := henter v a L evm hInv k C rd
+      rcases hbody v a L evm hInv k1 C1 rdBody with hrev | hbodyNonRevert
+      · exact Or.inr ⟨ExecForLoop.bodyRevert (htrue v a L evm hInv) hrev.1, hrev.2⟩
+      · rcases hbodyNonRevert with hbreak | hstep
+        · rcases hbreak with ⟨a', L1, evm1, k', C', hbodyBreak, hDone, rdExit⟩
+          exact Or.inl ⟨a', L1, evm1, k', C',
+            ExecForLoop.bodyBreak (htrue v a L evm hInv) hbodyBreak, hDone, rdExit⟩
+        · rcases hstep with
+            ⟨a', L1, evm1, L2, evm2, k2, C2, hbodyStep, hpost, hInv', rdNext⟩
+          rcases ih a' L2 evm2 hInv' k2 C2 rdNext with hdone | hloopRev
+          · rcases hdone with ⟨a'', L', evm', k', C', hloop, hDone, rdExit⟩
+            rcases hbodyStep with hbodyOk | hbodyCont
+            · exact Or.inl ⟨a'', L', evm', k', C',
+                ExecForLoop.iterate (htrue v a L evm hInv) hbodyOk hpost hloop,
+                hDone, rdExit⟩
+            · exact Or.inl ⟨a'', L', evm', k', C',
+                ExecForLoop.continueIter (htrue v a L evm hInv) hbodyCont hpost hloop,
+                hDone, rdExit⟩
+          · rcases hloopRev with ⟨hloop, hrdRev⟩
+            rcases hbodyStep with hbodyOk | hbodyCont
+            · exact Or.inr
+                ⟨ExecForLoop.iterate (htrue v a L evm hInv) hbodyOk hpost hloop, hrdRev⟩
+            · exact Or.inr
+                ⟨ExecForLoop.continueIter (htrue v a L evm hInv) hbodyCont hpost hloop,
+                  hrdRev⟩
+
 /-- A terminal opcode whose gas check fails leaves the whole run out of gas (shared by
     `RD.ret`/`RD.rev`).  `stepOOG` does not apply — it wants the *continue* control `.none`,
     whereas a halt step carries `.some (_, o)` — so we peel the erroring `Xstep` directly. -/
