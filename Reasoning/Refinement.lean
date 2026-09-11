@@ -113,7 +113,7 @@ theorem BlockRefinesFrom.gas {code ee g s0 cfg cur k C frame evm P stmts Q}
   apply BlockRefinesFrom.ofRD (next := gasCursor cur) (steps := fun _ => k + 1)
     (costs := fun _ => C + 2) (R := fun _ f e => P cur f e) ?_ hnext
   intro rd hp
-  obtain ⟨gas, rd'⟩ := rd.rawGas hdec hov
+  obtain ⟨gas, rd'⟩ := RD.rawGas rd hdec hov
   exact ⟨gas, rd', hp⟩
 
 /-- Package separately proved Solm and RD block effects, after comparing their states. -/
@@ -332,6 +332,185 @@ theorem BlockRefinesFrom.seqOrExit {code ee g s0 cfg cur k C frame evm P front t
     BlockRefinesFrom code ee g s0 cfg cur k C frame evm P (front ++ tail) Q := by
   intro rd hP
   exact BlockProgress.seqOrExit (hfront rd hP) htail
+
+/-- Lift selected-then-branch progression to a source `if/else` statement.
+The branch proof may already include the enclosing tail, so branch returns,
+reverts, breaks, and continues keep their endpoint and skip that tail according
+to the branch proof's `Q`. -/
+theorem BlockProgress.iteTrue {code ee g s0 cfg frame evm cond thenB elseB stmts Q}
+    (hcond : evalExpr? cfg frame evm cond = .ok (.bool true))
+    (hthen : BlockProgress code ee g s0 cfg frame evm (thenB ++ stmts) Q) :
+    BlockProgress code ee g s0 cfg frame evm (.ite cond thenB elseB :: stmts) Q :=
+  BlockProgress.wrapPrefix (branch := thenB) (branchFrame := frame) (branchEvm := evm)
+    (fun _ hb => ExecStmt.iteTrue hcond hb) hthen
+
+/-- Lift selected-else-branch progression to a source `if/else` statement. -/
+theorem BlockProgress.iteFalse {code ee g s0 cfg frame evm cond thenB elseB stmts Q}
+    (hcond : evalExpr? cfg frame evm cond = .ok (.bool false))
+    (helse : BlockProgress code ee g s0 cfg frame evm (elseB ++ stmts) Q) :
+    BlockProgress code ee g s0 cfg frame evm (.ite cond thenB elseB :: stmts) Q :=
+  BlockProgress.wrapPrefix (branch := elseB) (branchFrame := frame) (branchEvm := evm)
+    (fun _ hb => ExecStmt.iteFalse hcond hb) helse
+
+/-- A reverting source condition makes the whole conditional revert and skip its tail. -/
+theorem BlockProgress.iteCondRevert {code ee g s0 cfg frame evm cond thenB elseB stmts Q}
+    (hcond : evalExpr? cfg frame evm cond = .revert)
+    (hrev : RDrev code g s0) (hQ : Q .reverted .reverted) :
+    BlockProgress code ee g s0 cfg frame evm (.ite cond thenB elseB :: stmts) Q :=
+  ⟨.reverted, .reverted,
+    ExecBlock.consRevert (ExecStmt.iteCondRevert hcond), hrev, hQ⟩
+
+/-- Fixed-start true-branch conditional refinement. `henter` covers the EVM
+condition/branching code without executing source statements; `hthen` refines
+the chosen source branch together with the enclosing tail. -/
+theorem BlockRefinesFrom.iteTrue {code ee g s0 cfg cur k C frame evm P cond thenB elseB stmts}
+    {branchPc : UInt256} {Branch : StateRel} {Q : ExitRel}
+    (hcond : P cur frame evm → evalExpr? cfg frame evm cond = .ok (.bool true))
+    (henter : BlockRefinesFrom code ee g s0 cfg cur k C frame evm P []
+      (fallthrough branchPc Branch))
+    (hthen : StmtsRefine code ee g s0 cfg branchPc Branch (thenB ++ stmts) Q) :
+    BlockRefinesFrom code ee g s0 cfg cur k C frame evm P
+      (.ite cond thenB elseB :: stmts) Q := by
+  intro rd hp
+  have hbranch : BlockProgress code ee g s0 cfg frame evm ([] ++ (thenB ++ stmts)) Q :=
+    BlockProgress.seq (front := []) (tail := thenB ++ stmts) (henter rd hp) hthen
+  exact BlockProgress.iteTrue (hcond hp) (by simpa only [List.nil_append] using hbranch)
+
+/-- Fixed-start false-branch conditional refinement. -/
+theorem BlockRefinesFrom.iteFalse {code ee g s0 cfg cur k C frame evm P cond thenB elseB stmts}
+    {branchPc : UInt256} {Branch : StateRel} {Q : ExitRel}
+    (hcond : P cur frame evm → evalExpr? cfg frame evm cond = .ok (.bool false))
+    (henter : BlockRefinesFrom code ee g s0 cfg cur k C frame evm P []
+      (fallthrough branchPc Branch))
+    (helse : StmtsRefine code ee g s0 cfg branchPc Branch (elseB ++ stmts) Q) :
+    BlockRefinesFrom code ee g s0 cfg cur k C frame evm P
+      (.ite cond thenB elseB :: stmts) Q := by
+  intro rd hp
+  have hbranch : BlockProgress code ee g s0 cfg frame evm ([] ++ (elseB ++ stmts)) Q :=
+    BlockProgress.seq (front := []) (tail := elseB ++ stmts) (henter rd hp) helse
+  exact BlockProgress.iteFalse (hcond hp) (by simpa only [List.nil_append] using hbranch)
+
+/-- Fixed-start conditional refinement for a reverting source condition. -/
+theorem BlockRefinesFrom.iteCondRevert {code ee g s0 cfg cur k C frame evm P cond thenB elseB stmts Q}
+    (hcond : P cur frame evm → evalExpr? cfg frame evm cond = .revert)
+    (hrev : RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C →
+      P cur frame evm → RDrev code g s0)
+    (hQ : Q .reverted .reverted) :
+    BlockRefinesFrom code ee g s0 cfg cur k C frame evm P
+      (.ite cond thenB elseB :: stmts) Q := by
+  intro rd hp
+  exact BlockProgress.iteCondRevert (hcond hp) (hrev rd hp) hQ
+
+/-- Fixed-start conditional refinement with both branch obligations present.
+Each selected branch refines only its own source block to a shared join relation;
+this rule sequences the enclosing tail from that join. Branch returns, reverts,
+breaks, and continues still skip the tail via `sequenceExit`. The entry refinements
+are selected by the source condition value, because the same bytecode branch
+instruction normally reaches different cursors on the true and false paths.
+Condition reversion is handled by `BlockRefinesFrom.iteCondRevert`. -/
+theorem BlockRefinesFrom.ite {code ee g s0 cfg cur k C frame evm P cond thenB elseB stmts}
+    {thenPc elsePc joinPc : UInt256} {Then Else Join : StateRel} {Q : ExitRel}
+    (hcond : P cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool true) ∨
+      evalExpr? cfg frame evm cond = .ok (.bool false))
+    (henterThen : P cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool true) →
+      BlockRefinesFrom code ee g s0 cfg cur k C frame evm P []
+        (fallthrough thenPc Then))
+    (henterElse : P cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool false) →
+      BlockRefinesFrom code ee g s0 cfg cur k C frame evm P []
+        (fallthrough elsePc Else))
+    (hthen : StmtsRefine code ee g s0 cfg thenPc Then thenB
+      (sequenceExit joinPc Join Q))
+    (helse : StmtsRefine code ee g s0 cfg elsePc Else elseB
+      (sequenceExit joinPc Join Q))
+    (htail : StmtsRefine code ee g s0 cfg joinPc Join stmts Q) :
+    BlockRefinesFrom code ee g s0 cfg cur k C frame evm P
+      (.ite cond thenB elseB :: stmts) Q := by
+  intro rd hp
+  rcases hcond hp with htrue | hfalse
+  · have hbranch0 : BlockProgress code ee g s0 cfg frame evm ([] ++ thenB)
+        (sequenceExit joinPc Join Q) :=
+      BlockProgress.seq (front := []) (tail := thenB) (henterThen hp htrue rd hp) hthen
+    have hbranch : BlockProgress code ee g s0 cfg frame evm (thenB ++ stmts) Q :=
+      BlockProgress.seqOrExit (by simpa only [List.nil_append] using hbranch0) htail
+    exact BlockProgress.iteTrue htrue hbranch
+  · have hbranch0 : BlockProgress code ee g s0 cfg frame evm ([] ++ elseB)
+        (sequenceExit joinPc Join Q) :=
+      BlockProgress.seq (front := []) (tail := elseB) (henterElse hp hfalse rd hp) helse
+    have hbranch : BlockProgress code ee g s0 cfg frame evm (elseB ++ stmts) Q :=
+      BlockProgress.seqOrExit (by simpa only [List.nil_append] using hbranch0) htail
+    exact BlockProgress.iteFalse hfalse hbranch
+
+/-- Universally quantified true-branch conditional refinement. -/
+theorem StmtsRefine.iteTrue {code ee g s0 cfg entry P cond thenB elseB stmts}
+    {branchPc : UInt256} {Branch : StateRel} {Q : ExitRel}
+    (hcond : ∀ cur frame evm, P cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool true))
+    (henter : StmtsRefine code ee g s0 cfg entry P [] (fallthrough branchPc Branch))
+    (hthen : StmtsRefine code ee g s0 cfg branchPc Branch (thenB ++ stmts) Q) :
+    StmtsRefine code ee g s0 cfg entry P (.ite cond thenB elseB :: stmts) Q := by
+  intro cur k C frame evm hpc
+  exact BlockRefinesFrom.iteTrue (fun hp => hcond cur frame evm hp)
+    (henter cur k C frame evm hpc) hthen
+
+/-- Universally quantified false-branch conditional refinement. -/
+theorem StmtsRefine.iteFalse {code ee g s0 cfg entry P cond thenB elseB stmts}
+    {branchPc : UInt256} {Branch : StateRel} {Q : ExitRel}
+    (hcond : ∀ cur frame evm, P cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool false))
+    (henter : StmtsRefine code ee g s0 cfg entry P [] (fallthrough branchPc Branch))
+    (helse : StmtsRefine code ee g s0 cfg branchPc Branch (elseB ++ stmts) Q) :
+    StmtsRefine code ee g s0 cfg entry P (.ite cond thenB elseB :: stmts) Q := by
+  intro cur k C frame evm hpc
+  exact BlockRefinesFrom.iteFalse (fun hp => hcond cur frame evm hp)
+    (henter cur k C frame evm hpc) helse
+
+/-- Universally quantified conditional refinement with both branch obligations present.
+This is the preferred rule when a proof generator has summaries for both branch
+bodies and a separate summary for the common tail. -/
+theorem StmtsRefine.ite {code ee g s0 cfg entry P cond thenB elseB stmts}
+    {thenPc elsePc joinPc : UInt256} {Then Else Join : StateRel} {Q : ExitRel}
+    (hcond : ∀ cur frame evm, P cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool true) ∨
+      evalExpr? cfg frame evm cond = .ok (.bool false))
+    (henterThen : ∀ cur k C frame evm,
+      cur.pc = entry →
+      P cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool true) →
+      BlockRefinesFrom code ee g s0 cfg cur k C frame evm P []
+        (fallthrough thenPc Then))
+    (henterElse : ∀ cur k C frame evm,
+      cur.pc = entry →
+      P cur frame evm →
+      evalExpr? cfg frame evm cond = .ok (.bool false) →
+      BlockRefinesFrom code ee g s0 cfg cur k C frame evm P []
+        (fallthrough elsePc Else))
+    (hthen : StmtsRefine code ee g s0 cfg thenPc Then thenB
+      (sequenceExit joinPc Join Q))
+    (helse : StmtsRefine code ee g s0 cfg elsePc Else elseB
+      (sequenceExit joinPc Join Q))
+    (htail : StmtsRefine code ee g s0 cfg joinPc Join stmts Q) :
+    StmtsRefine code ee g s0 cfg entry P (.ite cond thenB elseB :: stmts) Q := by
+  intro cur k C frame evm hpc
+  exact BlockRefinesFrom.ite (fun hp => hcond cur frame evm hp)
+    (fun hp htrue => henterThen cur k C frame evm hpc hp htrue)
+    (fun hp hfalse => henterElse cur k C frame evm hpc hp hfalse)
+    hthen helse htail
+
+/-- Universally quantified conditional refinement for a reverting source condition. -/
+theorem StmtsRefine.iteCondRevert {code ee g s0 cfg entry P cond thenB elseB stmts Q}
+    (hcond : ∀ cur frame evm, P cur frame evm → evalExpr? cfg frame evm cond = .revert)
+    (hrev : ∀ cur k C frame evm,
+      cur.pc = entry →
+      RD code ee g s0 cur.pc cur.stack cur.mem cur.aw cur.rdata cur.world k C →
+      P cur frame evm → RDrev code g s0)
+    (hQ : Q .reverted .reverted) :
+    StmtsRefine code ee g s0 cfg entry P (.ite cond thenB elseB :: stmts) Q := by
+  intro cur k C frame evm hpc
+  exact BlockRefinesFrom.iteCondRevert (fun hp => hcond cur frame evm hp)
+    (fun rd hp => hrev cur k C frame evm hpc rd hp) hQ
 
 /-- Route a loop body's normal/continue outcomes to the post-step. A break becomes
 normal loop completion; returns and reverts use the enclosing loop's exit relation. -/
