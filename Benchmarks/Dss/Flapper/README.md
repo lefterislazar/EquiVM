@@ -57,3 +57,38 @@ Scaffold notes:
 - Events are intentionally omitted from the Solm specs, matching the existing event-bearing DSS
   benchmarks whose equivalence relation ignores logs/substate.
 - Proof status is tracked by `flapperContractCorrect` in `Correct.lean`.
+
+## Generated RD block summaries
+
+Primitive-opcode RD summaries are provided for both deployed runtime bytecode and creation
+bytecode. They were deliberately generated with sequence-pattern detection disabled, so their
+proofs do not invoke registered multi-opcode pattern theorems.
+
+- `RuntimeBlocks_001.lean` through `RuntimeBlocks_007.lean`: 302 runtime summaries, plus 242
+  packed variants; `RuntimeBlocks.index` maps every theorem to its shard, line range, and PCs.
+- `CreationBlocks_001.lean` through `CreationBlocks_007.lean`: 311 creation summaries, plus 247
+  packed variants; `CreationBlocks.index` provides the corresponding lookup index. These
+  summaries quantify the constructor-argument tail appended to the fixed creation bytecode.
+
+The files were produced with:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/generate_rd_blocks.py \
+  Benchmarks/Dss/Flapper/Bytecode.lean \
+  --name flapperRuntime \
+  --code-term Benchmarks.Dss.Flapper.flapperBytecode \
+  --bytecode-import Benchmarks.Dss.Flapper.Bytecode \
+  --output Benchmarks/Dss/Flapper/RuntimeBlocks.lean \
+  --shard-size 50 \
+  --no-sequence-patterns
+
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/generate_rd_blocks.py \
+  Benchmarks/Dss/Flapper/Bytecode.lean \
+  --name flapperCreation \
+  --code-term Benchmarks.Dss.Flapper.flapperCreationBytecode \
+  --bytecode-import Benchmarks.Dss.Flapper.Bytecode \
+  --output Benchmarks/Dss/Flapper/CreationBlocks.lean \
+  --shard-size 50 \
+  --no-sequence-patterns \
+  --creation-code
+```
