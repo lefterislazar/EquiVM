@@ -125,7 +125,7 @@ applying them. `Misc/prompt.md` and `Reasoning/STRUCTURE.md` provide more detail
 | Constructor | `Reasoning.Constructor`, `Reasoning.Initcode`, and supplied creation summaries. |
 | Small stepping gaps | `evm_run ... with [ ... ]`, `Reasoning.Reach`, and `Reasoning.Stepping`, after checking existing summaries and routines. |
 | Side conditions | `native_decide` for bytecode decode, `decide` for small propositions, `jump_dest` for jump membership, and `evm_ov` for stack-capacity bounds. |
-| Bytecode inspection | Supplied indexes and actual bytecode disassembly using a local script, `evmasm`, `solc --asm` with the recorded settings, or byte-array decoding, as available. |
+| Bytecode inspection | Supplied indexes and the summary proofs |
 | Validation | Targeted `lake build <Module>`, `lake env lean <File>`, `rg`, and Lean's `#print axioms`. |
 
 Reading references from the original prompt: `Examples/Ballot` for binary
@@ -151,9 +151,9 @@ library; current Solm returns use lists (`returnType := [T]`, `.return [e]`).
   prove a local helper for the gap. Report missing summaries if required inputs
   were not supplied; do not assume the gap executes successfully.
 - Reserve direct `evm_run` stepping for uncovered edges, meaningful partial-block
-  boundaries, or diagnosis. Do not re-prove already covered blocks. Disassemble
-  actual bytecode before a fallback; never guess PCs, opcodes, jump destinations,
-  selectors, or stack shapes.
+  boundaries, or diagnosis. Do not re-prove already covered blocks. Look at the
+  corresponding summary before a fallback; never guess PCs, opcodes,
+  jump destinations, selectors, or stack shapes.
 
 ### Calls, gas, and loops
 
