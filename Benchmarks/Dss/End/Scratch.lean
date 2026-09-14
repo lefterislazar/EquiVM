@@ -4,13 +4,6 @@ import Reasoning.SolmBody
 import Reasoning.Storage
 import Reasoning.SummaryPatterns
 
-/-!
-# MakerDAO/Sky DSS End constructor correctness
-
-The optimized creation bytecode installs the runtime bytecode after initializing `wards[msg.sender]`
-and `live`.
--/
-
 open Solm ABI Ethereum Ethereum.EVM
 open Reasoning.Theory Reasoning.Reach
 
@@ -19,6 +12,29 @@ namespace Benchmarks.Dss.End
 theorem endCreation_runtime_window :
     endCreationBytecode.extract 94 (94 + 10265) = endBytecode := by
   native_decide
+
+example {tail mem : ByteArray} {ee : ExecutionEnv} :
+    ((endCreationBytecode ++ tail).write (UInt256.ofNat 94).toNat
+        ((UInt256.ofNat 0).toByteArray.write 0
+          ((UInt256.ofNat ee.source.val).toByteArray.write 0 mem (UInt256.ofNat 0).toNat 32)
+          (UInt256.ofNat 32).toNat 32)
+        (UInt256.ofNat 0).toNat (UInt256.ofNat 10265).toNat).readWithPadding
+      (UInt256.ofNat 0).toNat (UInt256.ofNat 10265).toNat = endBytecode := by
+  rw [show (UInt256.ofNat 94).toNat = 94 by decide,
+    show (UInt256.ofNat 0).toNat = 0 by decide,
+    show (UInt256.ofNat 32).toNat = 32 by decide,
+    show (UInt256.ofNat 10265).toNat = 10265 by decide]
+  rw [write0_read_back_from_gen (endCreationBytecode ++ tail)
+    ((UInt256.ofNat 0).toByteArray.write 0
+      ((UInt256.ofNat ee.source.val).toByteArray.write 0 mem 0 32) 32 32)
+    94 10265 (by decide) (by
+      rw [ByteArray.size_append]
+      have hsize : endCreationBytecode.size = 10359 := by native_decide
+      rw [hsize]
+      omega) (by decide)]
+  rw [extract_append_left endCreationBytecode tail 94 (94 + 10265) (by
+    native_decide)]
+  exact endCreation_runtime_window
 
 theorem endCreation_return_data_eq {tail mem : ByteArray} {ee : ExecutionEnv} :
     ((endCreationBytecode ++ tail).write (UInt256.ofNat 94).toNat
@@ -313,7 +329,7 @@ theorem RDret.xiResultAcc {createdAccounts : Batteries.RBSet AccountAddress comp
     rw [hcA, hσ] at hxi
     exact Or.inr ⟨_, _, hxi⟩
 
-theorem endConstructorCorrect :
+theorem endConstructorCorrectScratch :
     constructorEquivalence config endCreationBytecode contract endBytecode := by
   refine constructorEquivalence.intro ?_
   intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
