@@ -1,0 +1,75 @@
+contract PotNoop
+
+constructor()
+creates
+
+transition move(address src, address dst, uint256 rad)
+updates
+
+contract PotMocked
+
+constructor(address<PotNoop> mock_)
+creates
+  mapping(address => uint256) wards := [CALLER => 1]
+  mapping(address => uint256) pie := []
+  uint256 Pie := 0
+  uint256 chi := 1000000000000000000000000000
+  uint256 live := 1
+  PotNoop mock := mock_
+
+transition wards(address usr) : uint256
+updates
+returns wards[usr]
+
+transition pie(address usr) : uint256
+updates
+returns pie[usr]
+
+transition Pie() : uint256
+updates
+returns Pie
+
+transition chi() : uint256
+updates
+returns chi
+
+transition live() : uint256
+updates
+returns live
+
+transition mock() : address<PotNoop>
+updates
+returns mock
+
+transition rely(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 1]
+
+transition deny(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 0]
+
+transition cage()
+iff wards[CALLER] == 1
+updates
+  live := 0
+
+transition join(uint256 wad)
+iff
+  inRange(uint256, pie[CALLER] + wad)
+  inRange(uint256, Pie + wad)
+  inRange(uint256, chi * wad)
+updates
+  pie := pie[CALLER => pie[CALLER] + wad]
+  Pie := Pie + wad
+
+transition exit(uint256 wad)
+iff
+  wad <= pie[CALLER]
+  wad <= Pie
+  inRange(uint256, chi * wad)
+updates
+  pie := pie[CALLER => pie[CALLER] - wad]
+  Pie := Pie - wad

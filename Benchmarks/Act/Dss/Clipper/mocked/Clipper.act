@@ -1,0 +1,98 @@
+contract ClipperNoop
+constructor()
+creates
+transition suck(address src, address dst, uint256 rad)
+updates
+transition flux(bytes32 ilk, address src, address dst, uint256 wad)
+updates
+transition move(address src, address dst, uint256 rad)
+updates
+transition digs(bytes32 ilk, uint256 rad)
+updates
+transition callback(address usr, uint256 owe, uint256 slice)
+updates
+transition dust(bytes32 ilk) : uint256
+updates
+returns 1000000000000000000
+transition chop(bytes32 ilk) : uint256
+updates
+returns 1000000000000000000
+contract ClipperMocked
+constructor(address<ClipperNoop> mock_, bytes32 ilk_)
+creates
+  mapping(address => uint256) wards := [CALLER => 1]
+  mapping(uint256 => uint256) saleTab := []
+  mapping(uint256 => uint256) saleLot := []
+  mapping(uint256 => address) saleUsr := []
+  bytes32 ilk := ilk_
+  uint256 kicks := 0
+  uint256 stopped := 0
+  uint256 chost := 0
+  address vow := address(0)
+  ClipperNoop mock := mock_
+transition wards(address usr) : uint256
+updates
+returns wards[usr]
+transition saleTab(uint256 id) : uint256
+updates
+returns saleTab[id]
+transition saleLot(uint256 id) : uint256
+updates
+returns saleLot[id]
+transition saleUsr(uint256 id) : address
+updates
+returns saleUsr[id]
+transition ilk() : bytes32
+updates
+returns ilk
+transition kicks() : uint256
+updates
+returns kicks
+transition stopped() : uint256
+updates
+returns stopped
+transition chost() : uint256
+updates
+returns chost
+transition vow() : address
+updates
+returns vow
+transition mock() : address<ClipperNoop>
+updates
+returns mock
+transition rely(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 1]
+transition deny(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 0]
+transition fileStopped(uint256 data)
+iff wards[CALLER] == 1
+updates
+  stopped := data
+transition fileVow(address data)
+iff wards[CALLER] == 1
+updates
+  vow := data
+transition kick(uint256 tab, uint256 lot, address usr, address kpr) : uint256
+iff
+  wards[CALLER] == 1
+  stopped < 1
+  tab > 0
+  lot > 0
+  usr != address(0)
+  inRange(uint256, kicks + 1)
+updates
+  kicks := kicks + 1
+returns kicks + 1
+transition redo(uint256 id, address kpr)
+iff stopped < 2 and saleUsr[id] != address(0)
+updates
+transition upchost()
+updates
+  chost := 1000000000000000000
+transition yank(uint256 id)
+iff wards[CALLER] == 1 and saleUsr[id] != address(0)
+updates

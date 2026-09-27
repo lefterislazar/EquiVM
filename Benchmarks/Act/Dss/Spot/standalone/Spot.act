@@ -1,0 +1,72 @@
+contract SpotVat
+constructor()
+creates
+ uint256 writes:=0
+ bytes32 lastIlk:=0
+ uint256 lastSpot:=0
+transition writes():uint256
+updates
+returns writes
+transition lastIlk():bytes32
+updates
+returns lastIlk
+transition lastSpot():uint256
+updates
+returns lastSpot
+transition file(bytes32 i,uint256 s)
+iff inRange(uint256,writes+1)
+updates
+ writes:=writes+1
+ lastIlk:=i
+ lastSpot:=s
+contract SpotStandalone
+constructor(address<SpotVat> v)
+creates
+ mapping(address=>uint256) wards:=[CALLER=>1]
+ mapping(bytes32=>uint256) ilkMat:=[]
+ uint256 par:=1000000000000000000000000000
+ uint256 live:=1
+ SpotVat vat:=v
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition ilkMat(bytes32 i):uint256
+updates
+returns ilkMat[i]
+transition par():uint256
+updates
+returns par
+transition live():uint256
+updates
+returns live
+transition vat():address<SpotVat>
+updates
+returns vat
+transition rely(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition fileMat(bytes32 i,uint256 x)
+iff wards[CALLER]==1 and live==1
+updates
+ ilkMat:=ilkMat[i=>x]
+transition cage()
+iff wards[CALLER]==1
+updates
+ live:=0
+transition poke(bytes32 i,uint256 val,bool valid)
+iff inRange(uint256,vat.writes+1)
+case valid:
+ updates
+  vat.writes:=vat.writes+1
+  vat.lastIlk:=i
+ vat.lastSpot:=val
+case not valid:
+ updates
+  vat.writes:=vat.writes+1
+  vat.lastIlk:=i
+  vat.lastSpot:=0

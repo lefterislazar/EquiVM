@@ -1,0 +1,56 @@
+contract GemJoinVat
+constructor()
+creates
+ uint256 slips:=0
+transition slips():uint256
+updates
+returns slips
+transition slip(bytes32 ilk,address usr,int256 dink)
+iff inRange(uint256,slips+1)
+updates
+ slips:=slips+1
+
+contract GemJoinStandalone
+constructor(address<GemJoinVat> vat_,bytes32 ilk_)
+creates
+ mapping(address=>uint256) wards:=[CALLER=>1]
+ bytes32 ilk:=ilk_
+ uint256 live:=1
+ GemJoinVat vat:=vat_
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition ilk():bytes32
+updates
+returns ilk
+transition live():uint256
+updates
+returns live
+transition vat():address<GemJoinVat>
+updates
+returns vat
+transition rely(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition cage()
+iff wards[CALLER]==1
+updates
+ live:=0
+transition join(address usr,uint256 wad)
+iff
+ live==1
+ wad <= 2^255 - 1
+ inRange(uint256,vat.slips+1)
+updates
+ vat.slips:=vat.slips+1
+transition exit(address usr,uint256 wad)
+iff
+ wad <= 2^255 - 1
+ inRange(uint256,vat.slips+1)
+updates
+ vat.slips:=vat.slips+1

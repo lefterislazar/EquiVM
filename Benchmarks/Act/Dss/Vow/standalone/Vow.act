@@ -1,0 +1,159 @@
+contract VowVat
+constructor()
+creates
+ uint256 healed:=0
+transition healed():uint256
+updates
+returns healed
+transition heal(uint256 rad)
+iff inRange(uint256,healed+rad)
+updates
+ healed:=healed+rad
+
+contract VowFlapper
+constructor()
+creates
+ uint256 kicks:=0
+ uint256 cages:=0
+transition kicks():uint256
+updates
+returns kicks
+transition cages():uint256
+updates
+returns cages
+transition kick(uint256 lot,uint256 bid):uint256
+iff inRange(uint256,kicks+1)
+updates
+ kicks:=kicks+1
+returns kicks+1
+transition cage(uint256 rad)
+iff inRange(uint256,cages+1)
+updates
+ cages:=cages+1
+
+contract VowFlopper
+constructor()
+creates
+ uint256 kicks:=0
+ uint256 cages:=0
+transition kicks():uint256
+updates
+returns kicks
+transition cages():uint256
+updates
+returns cages
+transition kick(address gal,uint256 lot,uint256 bid):uint256
+iff inRange(uint256,kicks+1)
+updates
+ kicks:=kicks+1
+returns kicks+1
+transition cage()
+iff inRange(uint256,cages+1)
+updates
+ cages:=cages+1
+
+contract VowStandalone
+constructor(address<VowVat> vat_,address<VowFlapper> flapper_,address<VowFlopper> flopper_)
+iff
+ address(vat_)!=address(flapper_)
+ address(vat_)!=address(flopper_)
+ address(flapper_)!=address(flopper_)
+creates
+ mapping(address=>uint256) wards:=[CALLER=>1]
+ uint256 Ash:=0
+ uint256 wait:=0
+ uint256 dump:=0
+ uint256 sump:=0
+ uint256 bump:=0
+ uint256 hump:=0
+ uint256 live:=1
+ VowVat vat:=vat_
+ VowFlapper flapper:=flapper_
+ VowFlopper flopper:=flopper_
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition Ash():uint256
+updates
+returns Ash
+transition wait():uint256
+updates
+returns wait
+transition dump():uint256
+updates
+returns dump
+transition sump():uint256
+updates
+returns sump
+transition bump():uint256
+updates
+returns bump
+transition hump():uint256
+updates
+returns hump
+transition live():uint256
+updates
+returns live
+transition vat():address<VowVat>
+updates
+returns vat
+transition flapper():address<VowFlapper>
+updates
+returns flapper
+transition flopper():address<VowFlopper>
+updates
+returns flopper
+transition rely(address u)
+iff wards[CALLER]==1 and live==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition fileWait(uint256 x)
+iff wards[CALLER]==1
+updates
+ wait:=x
+transition fileDump(uint256 x)
+iff wards[CALLER]==1
+updates
+ dump:=x
+transition fileSump(uint256 x)
+iff wards[CALLER]==1
+updates
+ sump:=x
+transition fileBump(uint256 x)
+iff wards[CALLER]==1
+updates
+ bump:=x
+transition fileHump(uint256 x)
+iff wards[CALLER]==1
+updates
+ hump:=x
+transition heal(uint256 rad)
+iff inRange(uint256,vat.healed+rad)
+updates
+ vat.healed:=vat.healed+rad
+transition flop():uint256
+iff live==1 and inRange(uint256,Ash+sump) and inRange(uint256,flopper.kicks+1)
+updates
+ Ash:=Ash+sump
+ flopper.kicks:=flopper.kicks+1
+returns flopper.kicks+1
+transition flap():uint256
+iff live==1 and inRange(uint256,flapper.kicks+1)
+updates
+ flapper.kicks:=flapper.kicks+1
+returns flapper.kicks+1
+transition cage()
+iff
+ wards[CALLER]==1
+ live==1
+ inRange(uint256,flapper.cages+1)
+ inRange(uint256,flopper.cages+1)
+updates
+ live:=0
+ Ash:=0
+ flapper.cages:=flapper.cages+1
+ flopper.cages:=flopper.cages+1

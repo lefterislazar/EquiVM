@@ -1,0 +1,56 @@
+contract WETH9Standalone
+constructor()
+creates
+ mapping(address=>uint256) balanceOf := []
+ mapping(address=>mapping(address=>uint256)) allowance := []
+transition decimals():uint8
+updates
+returns 18
+transition balanceOf(address u):uint256
+updates
+returns balanceOf[u]
+transition allowance(address a,address b):uint256
+updates
+returns allowance[a][b]
+transition deposit() payable
+iff inRange(uint256,balanceOf[CALLER]+CALLVALUE) and inRange(uint256,BALANCE+CALLVALUE)
+updates
+ balanceOf:=balanceOf[CALLER=>balanceOf[CALLER]+CALLVALUE]
+ BALANCE:=BALANCE+CALLVALUE
+transition totalSupply():uint256
+updates
+returns BALANCE
+transition approve(address u,uint256 x):bool
+updates
+ allowance:=allowance[CALLER=>allowance[CALLER][u=>x]]
+returns true
+transition transfer(address d,uint256 x):bool
+iff x<=balanceOf[CALLER] and (CALLER!=d ==> inRange(uint256,balanceOf[d]+x))
+case CALLER==d:
+ updates
+ returns true
+case CALLER!=d:
+ updates
+  balanceOf:=balanceOf[CALLER=>balanceOf[CALLER]-x,d=>balanceOf[d]+x]
+ returns true
+transition transferFrom(address s,address d,uint256 x):bool
+iff
+ (s==CALLER or x<=allowance[s][CALLER])
+ x<=balanceOf[s]
+ s!=d ==> inRange(uint256,balanceOf[d]+x)
+case s==CALLER and s==d:
+ updates
+ returns true
+case s==CALLER and s!=d:
+ updates
+  balanceOf:=balanceOf[s=>balanceOf[s]-x,d=>balanceOf[d]+x]
+ returns true
+case s!=CALLER and s==d:
+ updates
+  allowance:=allowance[s=>allowance[s][CALLER=>allowance[s][CALLER]-x]]
+ returns true
+case s!=CALLER and s!=d:
+ updates
+  allowance:=allowance[s=>allowance[s][CALLER=>allowance[s][CALLER]-x]]
+  balanceOf:=balanceOf[s=>balanceOf[s]-x,d=>balanceOf[d]+x]
+ returns true

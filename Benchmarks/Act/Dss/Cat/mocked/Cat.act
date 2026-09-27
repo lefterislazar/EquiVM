@@ -1,0 +1,100 @@
+contract CatNoop
+constructor()
+creates
+transition nope(address usr)
+updates
+transition hope(address usr)
+updates
+transition grab(bytes32 ilk, address urn, address a, address b, int256 dink, int256 dart)
+updates
+transition fess(uint256 rad)
+updates
+transition kick(address urn, address gal, uint256 tab, uint256 lot, uint256 bid) : uint256
+updates
+returns 1
+
+contract CatMocked
+constructor(address<CatNoop> mock_)
+creates
+  mapping(address => uint256) wards := [CALLER => 1]
+  mapping(bytes32 => address) ilkFlip := []
+  mapping(bytes32 => uint256) ilkChop := []
+  mapping(bytes32 => uint256) ilkDunk := []
+  uint256 live := 1
+  uint256 box := 0
+  uint256 litter := 0
+  address vow := address(0)
+  CatNoop mock := mock_
+
+transition wards(address usr) : uint256
+updates
+returns wards[usr]
+transition ilkFlip(bytes32 ilk) : address
+updates
+returns ilkFlip[ilk]
+transition ilkChop(bytes32 ilk) : uint256
+updates
+returns ilkChop[ilk]
+transition ilkDunk(bytes32 ilk) : uint256
+updates
+returns ilkDunk[ilk]
+transition live() : uint256
+updates
+returns live
+transition box() : uint256
+updates
+returns box
+transition litter() : uint256
+updates
+returns litter
+transition vow() : address
+updates
+returns vow
+transition mock() : address<CatNoop>
+updates
+returns mock
+
+transition rely(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 1]
+transition deny(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 0]
+transition fileBox(uint256 data)
+iff wards[CALLER] == 1
+updates
+  box := data
+transition fileVow(address data)
+iff wards[CALLER] == 1
+updates
+  vow := data
+transition fileIlk(bytes32 ilk, uint256 chop, uint256 dunk)
+iff wards[CALLER] == 1
+updates
+  ilkChop := ilkChop[ilk => chop]
+  ilkDunk := ilkDunk[ilk => dunk]
+transition fileFlip(bytes32 ilk, address flip)
+iff wards[CALLER] == 1
+updates
+  ilkFlip := ilkFlip[ilk => flip]
+transition claw(uint256 rad)
+iff wards[CALLER] == 1 and rad <= litter
+updates
+  litter := litter - rad
+transition cage()
+iff wards[CALLER] == 1
+updates
+  live := 0
+transition bite(bytes32 ilk, address urn) : uint256
+iff
+  live == 1
+  ilkDunk[ilk] != 0
+  ilkChop[ilk] != 0
+  litter <= box
+  box - litter >= 1000000000000000000000000000
+  inRange(uint256, litter + 1000000000000000000000000000)
+updates
+  litter := litter + 1000000000000000000000000000
+returns 1

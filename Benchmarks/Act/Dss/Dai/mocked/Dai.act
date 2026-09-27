@@ -1,0 +1,110 @@
+contract DaiNoop
+constructor()
+creates
+transition checkPermit(address holder, address spender, uint256 nonce, uint256 expiry, bool allowed, uint8 v, bytes32 r, bytes32 s) : bool
+updates
+returns true
+
+contract DaiMocked
+constructor(uint256 chainId, address<DaiNoop> mock_)
+creates
+  mapping(address => uint256) wards := [CALLER => 1]
+  uint256 totalSupply := 0
+  mapping(address => uint256) balanceOf := []
+  mapping(address => mapping(address => uint256)) allowance := []
+  mapping(address => uint256) nonces := []
+  DaiNoop mock := mock_
+transition wards(address usr) : uint256
+updates
+returns wards[usr]
+transition totalSupply() : uint256
+updates
+returns totalSupply
+transition balanceOf(address usr) : uint256
+updates
+returns balanceOf[usr]
+transition allowance(address src, address usr) : uint256
+updates
+returns allowance[src][usr]
+transition nonces(address usr) : uint256
+updates
+returns nonces[usr]
+transition mock() : address<DaiNoop>
+updates
+returns mock
+transition decimals() : uint8
+updates
+returns 18
+transition rely(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 1]
+transition deny(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 0]
+transition approve(address usr, uint256 wad) : bool
+updates
+  allowance := allowance[CALLER => allowance[CALLER][usr => wad]]
+returns true
+transition transfer(address dst, uint256 wad) : bool
+iff
+  wad <= balanceOf[CALLER]
+  CALLER != dst ==> inRange(uint256, balanceOf[dst] + wad)
+case CALLER == dst:
+  updates
+  returns true
+case CALLER != dst:
+  updates
+    balanceOf := balanceOf[CALLER => balanceOf[CALLER] - wad, dst => balanceOf[dst] + wad]
+  returns true
+transition transferFrom(address src, address dst, uint256 wad) : bool
+iff
+  wad <= balanceOf[src]
+  CALLER != src ==> wad <= allowance[src][CALLER]
+  src != dst ==> inRange(uint256, balanceOf[dst] + wad)
+case CALLER == src and src == dst:
+  updates
+  returns true
+case CALLER == src and src != dst:
+  updates
+    balanceOf := balanceOf[src => balanceOf[src] - wad, dst => balanceOf[dst] + wad]
+  returns true
+case CALLER != src and src == dst:
+  updates
+    allowance := allowance[src => allowance[src][CALLER => allowance[src][CALLER] - wad]]
+  returns true
+case CALLER != src and src != dst:
+  updates
+    allowance := allowance[src => allowance[src][CALLER => allowance[src][CALLER] - wad]]
+    balanceOf := balanceOf[src => balanceOf[src] - wad, dst => balanceOf[dst] + wad]
+  returns true
+transition mint(address usr, uint256 wad)
+iff
+  wards[CALLER] == 1
+  inRange(uint256, balanceOf[usr] + wad)
+  inRange(uint256, totalSupply + wad)
+updates
+  balanceOf := balanceOf[usr => balanceOf[usr] + wad]
+  totalSupply := totalSupply + wad
+transition burn(address usr, uint256 wad)
+iff
+  usr == CALLER
+  wad <= balanceOf[usr]
+  wad <= totalSupply
+updates
+  balanceOf := balanceOf[usr => balanceOf[usr] - wad]
+  totalSupply := totalSupply - wad
+transition permit(address holder, address spender, uint256 nonce, uint256 expiry, bool allowed, uint8 v, bytes32 r, bytes32 s)
+iff
+  holder != address(0)
+  nonce == nonces[holder]
+  inRange(uint256, nonces[holder] + 1)
+case allowed:
+  updates
+    nonces := nonces[holder => nonces[holder] + 1]
+    allowance := allowance[holder => allowance[holder][spender => 2^256 - 1]]
+case not allowed:
+  updates
+    nonces := nonces[holder => nonces[holder] + 1]
+    allowance := allowance[holder => allowance[holder][spender => 0]]

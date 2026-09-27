@@ -1,0 +1,63 @@
+contract FlipperNoop
+constructor()
+creates
+transition flux(bytes32 ilk, address src, address dst, uint256 wad)
+updates
+transition move(address src, address dst, uint256 rad)
+updates
+transition claw(uint256 rad)
+updates
+contract FlipperMocked
+constructor(address<FlipperNoop> mock_, bytes32 ilk_)
+creates
+  mapping(address => uint256) wards := [CALLER => 1]
+  mapping(uint256 => uint256) bid := []
+  mapping(uint256 => uint256) lot := []
+  mapping(uint256 => uint256) tab := []
+  mapping(uint256 => address) guy := []
+  uint256 kicks := 0
+  bytes32 ilk := ilk_
+  FlipperNoop mock := mock_
+transition wards(address usr) : uint256
+updates
+returns wards[usr]
+transition bid(uint256 id) : uint256
+updates
+returns bid[id]
+transition lot(uint256 id) : uint256
+updates
+returns lot[id]
+transition tab(uint256 id) : uint256
+updates
+returns tab[id]
+transition guy(uint256 id) : address
+updates
+returns guy[id]
+transition kicks() : uint256
+updates
+returns kicks
+transition ilk() : bytes32
+updates
+returns ilk
+transition mock() : address<FlipperNoop>
+updates
+returns mock
+transition rely(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 1]
+transition deny(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 0]
+transition kick(address usr, address gal, uint256 tab_, uint256 lot_, uint256 bid_) : uint256
+iff wards[CALLER] == 1 and inRange(uint256, kicks + 1)
+updates
+  kicks := kicks + 1
+returns kicks + 1
+transition yank(uint256 id)
+iff
+  wards[CALLER] == 1
+  guy[id] != address(0)
+  bid[id] < tab[id]
+updates

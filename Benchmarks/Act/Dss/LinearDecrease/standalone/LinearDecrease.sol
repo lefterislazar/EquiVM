@@ -1,0 +1,2 @@
+pragma solidity ^0.8.28;
+contract LinearDecreaseStandalone { mapping(address=>uint256) public wards; uint256 public tau; modifier auth(){require(wards[msg.sender]==1);_;} constructor(){wards[msg.sender]=1;} function rely(address u) external auth{wards[u]=1;} function deny(address u) external auth{wards[u]=0;} function fileTau(uint256 x) external auth{tau=x;} function price(uint256 top,uint256 dur) external view returns(uint256){if(dur>=tau)return 0;return top*(tau-dur)/tau;} }

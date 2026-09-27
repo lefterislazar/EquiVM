@@ -1,0 +1,118 @@
+contract ClipperVat
+constructor()
+creates
+ uint256 sucked:=0
+ uint256 fluxed:=0
+transition sucked():uint256
+updates
+returns sucked
+transition fluxed():uint256
+updates
+returns fluxed
+transition suck(address src,address dst,uint256 rad)
+iff inRange(uint256,sucked+rad)
+updates
+ sucked:=sucked+rad
+transition flux(bytes32 ilk,address src,address dst,uint256 wad)
+iff inRange(uint256,fluxed+wad)
+updates
+ fluxed:=fluxed+wad
+
+contract ClipperDog
+constructor()
+creates
+ uint256 dug:=0
+transition dug():uint256
+updates
+returns dug
+transition digs(bytes32 ilk,uint256 rad)
+iff inRange(uint256,dug+rad)
+updates
+ dug:=dug+rad
+
+contract ClipperStandalone
+constructor(address<ClipperVat> vat_,address<ClipperDog> dog_,bytes32 ilk_)
+iff address(vat_)!=address(dog_)
+creates
+ mapping(address=>uint256) wards:=[CALLER=>1]
+ mapping(uint256=>uint256) saleTab:=[]
+ mapping(uint256=>uint256) saleLot:=[]
+ mapping(uint256=>address) saleUsr:=[]
+ bytes32 ilk:=ilk_
+ uint256 kicks:=0
+ uint256 stopped:=0
+ address vow:=address(0)
+ ClipperVat vat:=vat_
+ ClipperDog dog:=dog_
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition saleTab(uint256 id):uint256
+updates
+returns saleTab[id]
+transition saleLot(uint256 id):uint256
+updates
+returns saleLot[id]
+transition saleUsr(uint256 id):address
+updates
+returns saleUsr[id]
+transition ilk():bytes32
+updates
+returns ilk
+transition kicks():uint256
+updates
+returns kicks
+transition stopped():uint256
+updates
+returns stopped
+transition vow():address
+updates
+returns vow
+transition vat():address<ClipperVat>
+updates
+returns vat
+transition dog():address<ClipperDog>
+updates
+returns dog
+transition rely(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition fileStopped(uint256 x)
+iff wards[CALLER]==1
+updates
+ stopped:=x
+transition fileVow(address x)
+iff wards[CALLER]==1
+updates
+ vow:=x
+transition kick(uint256 tab,uint256 lot,address usr,address kpr):uint256
+iff
+ wards[CALLER]==1
+ stopped<1
+ tab>0
+ lot>0
+ usr!=address(0)
+ inRange(uint256,kicks+1)
+ inRange(uint256,vat.sucked+1)
+updates
+ kicks:=kicks+1
+ vat.sucked:=vat.sucked+1
+returns kicks+1
+transition redo(uint256 id,address kpr)
+iff stopped<2 and saleUsr[id]!=address(0) and inRange(uint256,vat.sucked+1)
+updates
+ vat.sucked:=vat.sucked+1
+transition yank(uint256 id)
+iff
+ wards[CALLER]==1
+ saleUsr[id]!=address(0)
+ inRange(uint256,dog.dug+saleTab[id])
+ inRange(uint256,vat.fluxed+saleLot[id])
+updates
+ dog.dug:=dog.dug+saleTab[id]
+ vat.fluxed:=vat.fluxed+saleLot[id]

@@ -1,0 +1,69 @@
+contract FlopperNoop
+constructor()
+creates
+transition suck(address src, address dst, uint256 rad)
+updates
+transition mint(address usr, uint256 wad)
+updates
+contract FlopperMocked
+constructor(address<FlopperNoop> mock_)
+creates
+  mapping(address => uint256) wards := [CALLER => 1]
+  mapping(uint256 => uint256) bid := []
+  mapping(uint256 => uint256) lot := []
+  mapping(uint256 => address) guy := []
+  uint256 kicks := 0
+  uint256 live := 1
+  address vow := address(0)
+  FlopperNoop mock := mock_
+transition wards(address usr) : uint256
+updates
+returns wards[usr]
+transition bid(uint256 id) : uint256
+updates
+returns bid[id]
+transition lot(uint256 id) : uint256
+updates
+returns lot[id]
+transition guy(uint256 id) : address
+updates
+returns guy[id]
+transition kicks() : uint256
+updates
+returns kicks
+transition live() : uint256
+updates
+returns live
+transition vow() : address
+updates
+returns vow
+transition mock() : address<FlopperNoop>
+updates
+returns mock
+transition rely(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 1]
+transition deny(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 0]
+transition kick(address gal, uint256 lot_, uint256 bid_) : uint256
+iff
+  wards[CALLER] == 1
+  live == 1
+  inRange(uint256, kicks + 1)
+updates
+  kicks := kicks + 1
+returns kicks + 1
+transition deal(uint256 id)
+iff live == 1 and guy[id] != address(0)
+updates
+transition cage()
+iff wards[CALLER] == 1
+updates
+  live := 0
+  vow := CALLER
+transition yank(uint256 id)
+iff live == 0 and guy[id] != address(0)
+updates

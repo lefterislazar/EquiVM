@@ -1,0 +1,31 @@
+contract LinearDecreaseStandalone
+constructor()
+creates
+ mapping(address=>uint256) wards := [CALLER=>1]
+ uint256 tau := 0
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition tau():uint256
+updates
+returns tau
+transition rely(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition fileTau(uint256 x)
+iff wards[CALLER]==1
+updates
+ tau:=x
+transition price(uint256 top,uint256 dur):uint256
+iff dur<tau ==> inRange(uint256,top*(tau-dur))
+case dur>=tau:
+ updates
+ returns 0
+case dur<tau:
+ updates
+ returns top*(tau-dur)/tau

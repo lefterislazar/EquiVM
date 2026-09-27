@@ -1,0 +1,136 @@
+contract VowNoop
+
+constructor()
+creates
+
+transition hope(address usr)
+updates
+transition nope(address usr)
+updates
+transition dai(address usr) : uint256
+updates
+returns 0
+transition sin(address usr) : uint256
+updates
+returns 0
+transition heal(uint256 rad)
+updates
+transition kickFlop(address gal, uint256 lot, uint256 bid) : uint256
+updates
+returns 1
+transition kickFlap(uint256 lot, uint256 bid) : uint256
+updates
+returns 1
+transition cageFlap(uint256 rad)
+updates
+transition cageFlop()
+updates
+
+contract VowMocked
+
+constructor(address<VowNoop> mock_)
+creates
+  mapping(address => uint256) wards := [CALLER => 1]
+  uint256 Sin := 0
+  uint256 Ash := 0
+  uint256 wait := 0
+  uint256 dump := 0
+  uint256 sump := 0
+  uint256 bump := 0
+  uint256 hump := 0
+  uint256 live := 1
+  VowNoop mock := mock_
+
+transition wards(address usr) : uint256
+updates
+returns wards[usr]
+transition Sin() : uint256
+updates
+returns Sin
+transition Ash() : uint256
+updates
+returns Ash
+transition wait() : uint256
+updates
+returns wait
+transition dump() : uint256
+updates
+returns dump
+transition sump() : uint256
+updates
+returns sump
+transition bump() : uint256
+updates
+returns bump
+transition hump() : uint256
+updates
+returns hump
+transition live() : uint256
+updates
+returns live
+transition mock() : address<VowNoop>
+updates
+returns mock
+
+transition rely(address usr)
+iff wards[CALLER] == 1 and live == 1
+updates
+  wards := wards[usr => 1]
+transition deny(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 0]
+transition fileWait(uint256 data)
+iff wards[CALLER] == 1
+updates
+  wait := data
+transition fileDump(uint256 data)
+iff wards[CALLER] == 1
+updates
+  dump := data
+transition fileSump(uint256 data)
+iff wards[CALLER] == 1
+updates
+  sump := data
+transition fileBump(uint256 data)
+iff wards[CALLER] == 1
+updates
+  bump := data
+transition fileHump(uint256 data)
+iff wards[CALLER] == 1
+updates
+  hump := data
+
+transition heal(uint256 rad)
+iff rad == 0 and Sin == 0 and Ash == 0
+updates
+
+transition kiss(uint256 rad)
+iff rad == 0
+updates
+  Ash := Ash - rad
+
+transition flop() : uint256
+iff
+  Sin == 0
+  Ash == 0
+  sump == 0
+updates
+  Ash := Ash + sump
+returns 1
+
+transition flap() : uint256
+iff
+  Sin == 0
+  Ash == 0
+  bump == 0
+  hump == 0
+updates
+returns 1
+
+transition cage()
+iff wards[CALLER] == 1 and live == 1
+updates
+  live := 0
+  Sin := 0
+  Ash := 0

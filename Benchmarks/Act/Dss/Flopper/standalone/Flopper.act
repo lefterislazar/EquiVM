@@ -1,0 +1,90 @@
+contract FlopperVat
+constructor()
+creates
+ uint256 sucked:=0
+transition sucked():uint256
+updates
+returns sucked
+transition suck(address src,address dst,uint256 rad)
+iff inRange(uint256,sucked+rad)
+updates
+ sucked:=sucked+rad
+
+contract FlopperGem
+constructor()
+creates
+ uint256 minted:=0
+transition minted():uint256
+updates
+returns minted
+transition mint(address usr,uint256 wad)
+iff inRange(uint256,minted+wad)
+updates
+ minted:=minted+wad
+
+contract FlopperStandalone
+constructor(address<FlopperVat> vat_,address<FlopperGem> gem_)
+iff address(vat_)!=address(gem_)
+creates
+ mapping(address=>uint256) wards:=[CALLER=>1]
+ mapping(uint256=>uint256) bid:=[]
+ mapping(uint256=>uint256) lot:=[]
+ mapping(uint256=>address) guy:=[]
+ uint256 kicks:=0
+ uint256 live:=1
+ address vow:=address(0)
+ FlopperVat vat:=vat_
+ FlopperGem gem:=gem_
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition bid(uint256 id):uint256
+updates
+returns bid[id]
+transition lot(uint256 id):uint256
+updates
+returns lot[id]
+transition guy(uint256 id):address
+updates
+returns guy[id]
+transition kicks():uint256
+updates
+returns kicks
+transition live():uint256
+updates
+returns live
+transition vow():address
+updates
+returns vow
+transition vat():address<FlopperVat>
+updates
+returns vat
+transition gem():address<FlopperGem>
+updates
+returns gem
+transition rely(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition kick(address gal,uint256 lot_,uint256 bid_):uint256
+iff wards[CALLER]==1 and live==1 and inRange(uint256,kicks+1)
+updates
+ kicks:=kicks+1
+returns kicks+1
+transition deal(uint256 id)
+iff live==1 and guy[id]!=address(0) and inRange(uint256,gem.minted+lot[id])
+updates
+ gem.minted:=gem.minted+lot[id]
+transition cage()
+iff wards[CALLER]==1
+updates
+ live:=0
+ vow:=CALLER
+transition yank(uint256 id)
+iff live==0 and guy[id]!=address(0) and inRange(uint256,vat.sucked+bid[id])
+updates
+ vat.sucked:=vat.sucked+bid[id]

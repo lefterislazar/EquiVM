@@ -1,0 +1,3 @@
+pragma solidity ^0.8.28;
+contract JugVat { uint256 public folds; function fold(bytes32,address,int256) external { folds += 1; } }
+contract JugStandalone { mapping(address=>uint256) public wards; mapping(bytes32=>uint256) public rho; uint256 public base; address public vow; JugVat public vat; modifier auth(){require(wards[msg.sender]==1);_;} constructor(address v){wards[msg.sender]=1;vat=JugVat(v);} function rely(address u) external auth{wards[u]=1;} function deny(address u) external auth{wards[u]=0;} function fileBase(uint256 x) external auth{base=x;} function fileVow(address x) external auth{vow=x;} function drip(bytes32 i) external returns(uint256){vat.fold(i,vow,0);rho[i]+=1;return 10**27;} }

@@ -1,0 +1,94 @@
+contract WETH9NoopPayee
+
+constructor()
+creates
+
+transition pay() payable
+iff inRange(uint256, BALANCE + CALLVALUE)
+updates
+  BALANCE := BALANCE + CALLVALUE
+
+contract WETH9Mocked
+
+constructor(address<WETH9NoopPayee> mock_)
+creates
+  mapping(address => uint256) balanceOf := []
+  mapping(address => mapping(address => uint256)) allowance := []
+  WETH9NoopPayee mock := mock_
+
+transition decimals() : uint8
+updates
+returns 18
+
+transition balanceOf(address usr) : uint256
+updates
+returns balanceOf[usr]
+
+transition allowance(address src, address guy) : uint256
+updates
+returns allowance[src][guy]
+
+transition mock() : address<WETH9NoopPayee>
+updates
+returns mock
+
+transition deposit() payable
+iff
+  inRange(uint256, balanceOf[CALLER] + CALLVALUE)
+  inRange(uint256, BALANCE + CALLVALUE)
+updates
+  balanceOf := balanceOf[CALLER => balanceOf[CALLER] + CALLVALUE]
+  BALANCE := BALANCE + CALLVALUE
+
+transition withdraw(uint256 wad)
+iff
+  wad <= balanceOf[CALLER]
+  wad <= BALANCE
+  inRange(uint256, mock.BALANCE + wad)
+updates
+  balanceOf := balanceOf[CALLER => balanceOf[CALLER] - wad]
+  BALANCE := BALANCE - wad
+  mock.BALANCE := mock.BALANCE + wad
+
+transition totalSupply() : uint256
+updates
+returns BALANCE
+
+transition approve(address guy, uint256 wad) : bool
+updates
+  allowance := allowance[CALLER => allowance[CALLER][guy => wad]]
+returns true
+
+transition transfer(address dst, uint256 wad) : bool
+iff
+  wad <= balanceOf[CALLER]
+  CALLER != dst ==> inRange(uint256, balanceOf[dst] + wad)
+case CALLER == dst:
+  updates
+  returns true
+case CALLER != dst:
+  updates
+    balanceOf := balanceOf[CALLER => balanceOf[CALLER] - wad, dst => balanceOf[dst] + wad]
+  returns true
+
+transition transferFrom(address src, address dst, uint256 wad) : bool
+iff
+  wad <= balanceOf[src]
+  CALLER != src ==> wad <= allowance[src][CALLER]
+  src != dst ==> inRange(uint256, balanceOf[dst] + wad)
+case src == dst and (CALLER == src or allowance[src][CALLER] == 2^256 - 1):
+  updates
+  returns true
+case src == dst and CALLER != src and allowance[src][CALLER] < 2^256 - 1:
+  updates
+    allowance := allowance[src => allowance[src][CALLER => allowance[src][CALLER] - wad]]
+  returns true
+case src != dst and (CALLER == src or allowance[src][CALLER] == 2^256 - 1):
+  updates
+    balanceOf := balanceOf[src => balanceOf[src] - wad, dst => balanceOf[dst] + wad]
+  returns true
+case src != dst and CALLER != src and allowance[src][CALLER] < 2^256 - 1:
+  updates
+    allowance := allowance[src => allowance[src][CALLER => allowance[src][CALLER] - wad]]
+    balanceOf := balanceOf[src => balanceOf[src] - wad, dst => balanceOf[dst] + wad]
+  returns true

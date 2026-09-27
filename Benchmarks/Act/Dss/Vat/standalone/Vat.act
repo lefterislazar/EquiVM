@@ -1,0 +1,68 @@
+contract VatStandalone
+constructor()
+creates
+ mapping(address=>uint256) wards := [CALLER=>1]
+ mapping(address=>mapping(address=>uint256)) can := []
+ mapping(bytes32=>mapping(address=>uint256)) gem := []
+ mapping(address=>uint256) dai := []
+ mapping(address=>uint256) sin := []
+ uint256 debt := 0
+ uint256 vice := 0
+ uint256 Line := 0
+ uint256 live := 1
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition can(address a,address b):uint256
+updates
+returns can[a][b]
+transition gem(bytes32 i,address u):uint256
+updates
+returns gem[i][u]
+transition dai(address u):uint256
+updates
+returns dai[u]
+transition sin(address u):uint256
+updates
+returns sin[u]
+transition debt():uint256
+updates
+returns debt
+transition vice():uint256
+updates
+returns vice
+transition Line():uint256
+updates
+returns Line
+transition live():uint256
+updates
+returns live
+transition rely(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition hope(address u)
+updates
+ can:=can[CALLER=>can[CALLER][u=>1]]
+transition nope(address u)
+updates
+ can:=can[CALLER=>can[CALLER][u=>0]]
+transition fileLine(uint256 x)
+iff wards[CALLER]==1
+updates
+ Line:=x
+transition cage()
+iff wards[CALLER]==1
+updates
+ live:=0
+transition heal(uint256 x)
+iff x<=dai[CALLER] and x<=sin[CALLER] and x<=debt and x<=vice
+updates
+ dai:=dai[CALLER=>dai[CALLER]-x]
+ sin:=sin[CALLER=>sin[CALLER]-x]
+ debt:=debt-x
+ vice:=vice-x

@@ -1,0 +1,31 @@
+contract StairstepExponentialDecreaseStandalone
+constructor()
+creates
+ mapping(address=>uint256) wards := [CALLER=>1]
+ uint256 step := 0
+ uint256 cut := 0
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition step():uint256
+updates
+returns step
+transition cut():uint256
+updates
+returns cut
+transition rely(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition fileStep(uint256 x)
+iff wards[CALLER]==1
+updates
+ step:=x
+transition fileCut(uint256 x)
+iff wards[CALLER]==1 and x<=1000000000000000000000000000
+updates
+ cut:=x

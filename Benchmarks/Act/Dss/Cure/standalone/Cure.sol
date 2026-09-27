@@ -1,0 +1,2 @@
+pragma solidity ^0.8.28;
+contract CureStandalone { mapping(address=>uint256) public wards; uint256 public live=1; uint256 public wait; modifier auth(){require(wards[msg.sender]==1);_;} constructor(){wards[msg.sender]=1;} function rely(address u) external auth{require(live==1);wards[u]=1;} function deny(address u) external auth{require(live==1);wards[u]=0;} function fileWait(uint256 x) external auth{require(live==1);wait=x;} }

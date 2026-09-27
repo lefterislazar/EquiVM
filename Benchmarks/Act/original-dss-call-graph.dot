@@ -1,0 +1,136 @@
+digraph OriginalDssCalls {
+  graph [
+    label="Original DSS benchmark: inter-contract call graph\n(red clusters and edges are call cycles)",
+    labelloc=t,
+    fontsize=20,
+    fontname="Helvetica",
+    rankdir=LR,
+    bgcolor="white",
+    pad=0.25,
+    nodesep=0.35,
+    ranksep=1.15,
+    splines=spline,
+    compound=true
+  ];
+  node [shape=box, style="rounded,filled", fillcolor="#e8f1fb", color="#4472a3", fontname="Helvetica", fontsize=10, margin="0.10,0.06"];
+  edge [color="#53657a", fontcolor="#34495e", fontname="Helvetica", fontsize=8, arrowsize=0.7];
+
+  subgraph cluster_legacy_liquidation_cycle {
+    label="cycle: legacy liquidation";
+    color="#c62828";
+    fontcolor="#a31515";
+    penwidth=2.2;
+    style="rounded,filled";
+    fillcolor="#fff3f3";
+    Cat [fillcolor="#ffd9d9", color="#c62828", penwidth=1.8];
+    Flipper [fillcolor="#ffd9d9", color="#c62828", penwidth=1.8];
+  }
+
+  subgraph cluster_liquidation_cycle {
+    label="cycle: liquidation 2.0";
+    color="#c62828";
+    fontcolor="#a31515";
+    penwidth=2.2;
+    style="rounded,filled";
+    fillcolor="#fff3f3";
+    Dog [fillcolor="#ffd9d9", color="#c62828", penwidth=1.8];
+    Clipper [fillcolor="#ffd9d9", color="#c62828", penwidth=1.8];
+  }
+
+  subgraph cluster_debt_auction_cycle {
+    label="cycle: debt auction";
+    color="#c62828";
+    fontcolor="#a31515";
+    penwidth=2.2;
+    style="rounded,filled";
+    fillcolor="#fff3f3";
+    Vow [fillcolor="#ffd9d9", color="#c62828", penwidth=1.8];
+    Flopper [fillcolor="#ffd9d9", color="#c62828", penwidth=1.8];
+  }
+
+  Vat;
+  Dai;
+  DaiJoin;
+  GemJoin;
+  Pot;
+  Jug;
+  Spot [label="Spot / Spotter"];
+  Cure;
+  End;
+  Flapper;
+  LinearDecrease;
+  StairstepExponentialDecrease;
+  ExponentialDecrease;
+
+  GemToken [label="Gem token", shape=ellipse, fillcolor="#f2f2f2", color="#777777"];
+  Oracle [label="Oracle / Pip", shape=ellipse, fillcolor="#f2f2f2", color="#777777"];
+  CureSource [label="dynamic Cure source", shape=ellipse, fillcolor="#f2f2f2", color="#777777"];
+  Callback [label="arbitrary clipperCall recipient", shape=ellipse, fillcolor="#f2f2f2", color="#777777"];
+  Ecrecover [label="ecrecover precompile", shape=ellipse, fillcolor="#f2f2f2", color="#777777"];
+
+  Cat -> Flipper [label="bite → kick", color="#c62828", fontcolor="#a31515", penwidth=2.8, style=dashed];
+  Flipper -> Cat [label="deal/yank → claw", color="#c62828", fontcolor="#a31515", penwidth=2.8];
+
+  Dog -> Clipper [label="file/bark → ilk/kick", color="#c62828", fontcolor="#a31515", penwidth=2.8, style=dashed];
+  Clipper -> Dog [label="take/upchost/yank → digs/chop", color="#c62828", fontcolor="#a31515", penwidth=2.8];
+
+  Vow -> Flopper [label="flop/cage → kick/cage", color="#c62828", fontcolor="#a31515", penwidth=2.8];
+  Flopper -> Vow [label="dent → Ash/kiss", color="#c62828", fontcolor="#a31515", penwidth=2.8, style=dashed];
+
+  Cat -> Vat [label="nope/hope/ilks/urns/grab"];
+  Cat -> Vow [label="bite → fess"];
+  Flipper -> Vat [label="flux/move"];
+
+  Dog -> Vat [label="urns/ilks/grab"];
+  Dog -> Vow [label="bark → fess"];
+  Clipper -> Vat [label="suck/flux/move/ilks"];
+  Clipper -> Spot [label="ilks/par"];
+  Clipper -> Oracle [label="peek", style=dashed];
+  Clipper -> LinearDecrease [label="calc.price", style=dashed];
+  Clipper -> StairstepExponentialDecrease [label="calc.price", style=dashed];
+  Clipper -> ExponentialDecrease [label="calc.price", style=dashed];
+  Clipper -> Callback [label="take → clipperCall", style=dashed];
+
+  Vow -> Vat [label="hope/nope/dai/sin/heal"];
+  Vow -> Flapper [label="flap/cage → kick/cage"];
+  Flapper -> Vat [label="move"];
+  Flapper -> GemToken [label="move/burn"];
+  Flopper -> Vat [label="move/suck"];
+  Flopper -> GemToken [label="mint"];
+
+  DaiJoin -> Vat [label="move"];
+  DaiJoin -> Dai [label="burn/mint"];
+  GemJoin -> Vat [label="slip"];
+  GemJoin -> GemToken [label="decimals/transferFrom/transfer"];
+  Pot -> Vat [label="suck/move"];
+  Jug -> Vat [label="ilks/fold"];
+  Spot -> Vat [label="file"];
+  Spot -> Oracle [label="peek", style=dashed];
+  Cure -> CureSource [label="load → cure", style=dashed];
+  Dai -> Ecrecover [label="permit", style=dashed];
+
+  End -> Vat [label="cage/accounting"];
+  End -> Cat [label="cage/ilks"];
+  End -> Dog [label="cage/ilks"];
+  End -> Vow [label="cage"];
+  End -> Pot [label="cage"];
+  End -> Spot [label="cage/ilks/par"];
+  End -> Cure [label="cage/tell"];
+  End -> Flipper [label="skip → bids/yank", style=dashed];
+  End -> Clipper [label="snip → sales/yank", style=dashed];
+  End -> Oracle [label="cage(ilk) → read", style=dashed];
+
+  subgraph cluster_legend {
+    label="legend";
+    color="#bbbbbb";
+    style="rounded,dashed";
+    fontsize=9;
+    key_dss [label="DSS benchmark contract", fillcolor="#e8f1fb", color="#4472a3"];
+    key_external [label="external / arbitrary target", shape=ellipse, fillcolor="#f2f2f2", color="#777777"];
+    key_cycle_a [label="cycle member", fillcolor="#ffd9d9", color="#c62828"];
+    key_cycle_b [label="cycle member", fillcolor="#ffd9d9", color="#c62828"];
+    key_dss -> key_external [label="typed/fixed call"];
+    key_cycle_a -> key_cycle_b [label="cycle edge", color="#c62828", fontcolor="#a31515", penwidth=2.8];
+    key_external -> key_dss [label="runtime-selected target", style=dashed, constraint=false];
+  }
+}

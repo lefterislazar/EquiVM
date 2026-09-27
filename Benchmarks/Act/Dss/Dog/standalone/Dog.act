@@ -1,0 +1,128 @@
+contract DogVat
+constructor()
+creates
+ uint256 grabs:=0
+transition grabs():uint256
+updates
+returns grabs
+transition grab(bytes32 ilk,address urn,address clip,address vow,int256 dink,int256 dart)
+iff inRange(uint256,grabs+1)
+updates
+ grabs:=grabs+1
+
+contract DogVow
+constructor()
+creates
+ uint256 fessed:=0
+transition fessed():uint256
+updates
+returns fessed
+transition fess(uint256 rad)
+iff inRange(uint256,fessed+rad)
+updates
+ fessed:=fessed+rad
+
+contract DogClipper
+constructor()
+creates
+ uint256 kicks:=0
+transition kicks():uint256
+updates
+returns kicks
+transition kick(uint256 tab,uint256 lot,address usr,address kpr):uint256
+iff inRange(uint256,kicks+1)
+updates
+ kicks:=kicks+1
+returns kicks+1
+
+contract DogStandalone
+constructor(address<DogVat> vat_,address<DogVow> vow_,address<DogClipper> clip_)
+iff
+ address(vat_)!=address(vow_)
+ address(vat_)!=address(clip_)
+ address(vow_)!=address(clip_)
+creates
+ mapping(address=>uint256) wards:=[CALLER=>1]
+ mapping(bytes32=>uint256) ilkChop:=[]
+ mapping(bytes32=>uint256) ilkHole:=[]
+ mapping(bytes32=>uint256) ilkDirt:=[]
+ uint256 live:=1
+ uint256 Hole:=0
+ uint256 Dirt:=0
+ DogVat vat:=vat_
+ DogVow vow:=vow_
+ DogClipper clip:=clip_
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition ilkChop(bytes32 ilk):uint256
+updates
+returns ilkChop[ilk]
+transition ilkHole(bytes32 ilk):uint256
+updates
+returns ilkHole[ilk]
+transition ilkDirt(bytes32 ilk):uint256
+updates
+returns ilkDirt[ilk]
+transition live():uint256
+updates
+returns live
+transition Hole():uint256
+updates
+returns Hole
+transition Dirt():uint256
+updates
+returns Dirt
+transition vat():address<DogVat>
+updates
+returns vat
+transition vow():address<DogVow>
+updates
+returns vow
+transition clip():address<DogClipper>
+updates
+returns clip
+transition rely(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition fileHole(uint256 x)
+iff wards[CALLER]==1
+updates
+ Hole:=x
+transition fileIlk(bytes32 ilk,uint256 chop,uint256 hole)
+iff wards[CALLER]==1 and chop>=1000000000000000000
+updates
+ ilkChop:=ilkChop[ilk=>chop]
+ ilkHole:=ilkHole[ilk=>hole]
+transition digs(bytes32 ilk,uint256 rad)
+iff wards[CALLER]==1 and rad<=Dirt and rad<=ilkDirt[ilk]
+updates
+ Dirt:=Dirt-rad
+ ilkDirt:=ilkDirt[ilk=>ilkDirt[ilk]-rad]
+transition cage()
+iff wards[CALLER]==1
+updates
+ live:=0
+transition bark(bytes32 ilk,address urn,address kpr):uint256
+iff
+ live==1
+ ilkChop[ilk]>=1000000000000000000
+ Hole>Dirt
+ ilkHole[ilk]>ilkDirt[ilk]
+ inRange(uint256,vat.grabs+1)
+ inRange(uint256,vow.fessed+1)
+ inRange(uint256,Dirt+1)
+ inRange(uint256,ilkDirt[ilk]+1)
+ inRange(uint256,clip.kicks+1)
+updates
+ vat.grabs:=vat.grabs+1
+ vow.fessed:=vow.fessed+1
+ Dirt:=Dirt+1
+ ilkDirt:=ilkDirt[ilk=>ilkDirt[ilk]+1]
+ clip.kicks:=clip.kicks+1
+returns clip.kicks+1

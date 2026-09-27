@@ -1,0 +1,56 @@
+contract JugVat
+constructor()
+creates
+ uint256 folds:=0
+transition folds():uint256
+updates
+returns folds
+transition fold(bytes32 i,address v,int256 d)
+iff inRange(uint256,folds+1)
+updates
+ folds:=folds+1
+contract JugStandalone
+constructor(address<JugVat> v)
+creates
+ mapping(address=>uint256) wards:=[CALLER=>1]
+ mapping(bytes32=>uint256) rho:=[]
+ uint256 base:=0
+ address vow:=address(0)
+ JugVat vat:=v
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition rho(bytes32 i):uint256
+updates
+returns rho[i]
+transition base():uint256
+updates
+returns base
+transition vow():address
+updates
+returns vow
+transition vat():address<JugVat>
+updates
+returns vat
+transition rely(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition fileBase(uint256 x)
+iff wards[CALLER]==1
+updates
+ base:=x
+transition fileVow(address x)
+iff wards[CALLER]==1
+updates
+ vow:=x
+transition drip(bytes32 i):uint256
+iff inRange(uint256,vat.folds+1) and inRange(uint256,rho[i]+1)
+updates
+ vat.folds:=vat.folds+1
+ rho:=rho[i=>rho[i]+1]
+returns 1000000000000000000000000000

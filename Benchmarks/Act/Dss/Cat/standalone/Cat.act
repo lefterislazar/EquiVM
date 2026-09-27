@@ -1,0 +1,122 @@
+contract CatVat
+constructor()
+creates
+ uint256 grabs := 0
+transition grabs():uint256
+updates
+returns grabs
+transition grab(bytes32 ilk,address urn,address a,address b,int256 dink,int256 dart)
+iff inRange(uint256,grabs+1)
+updates
+ grabs := grabs+1
+
+contract CatVow
+constructor()
+creates
+ uint256 fessed := 0
+transition fessed():uint256
+updates
+returns fessed
+transition fess(uint256 rad)
+iff inRange(uint256,fessed+rad)
+updates
+ fessed := fessed+rad
+
+contract CatFlipper
+constructor()
+creates
+ uint256 kicks := 0
+transition kicks():uint256
+updates
+returns kicks
+transition kick(address urn,address gal,uint256 tab,uint256 lot,uint256 bid):uint256
+iff inRange(uint256,kicks+1)
+updates
+ kicks := kicks+1
+returns kicks+1
+
+contract CatStandalone
+constructor(address<CatVat> vat_,address<CatVow> vow_,address<CatFlipper> flip_)
+iff
+ address(vat_) != address(vow_)
+ address(vat_) != address(flip_)
+ address(vow_) != address(flip_)
+creates
+ mapping(address=>uint256) wards := [CALLER=>1]
+ mapping(bytes32=>uint256) ilkChop := []
+ mapping(bytes32=>uint256) ilkDunk := []
+ uint256 live := 1
+ uint256 box := 0
+ uint256 litter := 0
+ CatVat vat := vat_
+ CatVow vow := vow_
+ CatFlipper flip := flip_
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition ilkChop(bytes32 ilk):uint256
+updates
+returns ilkChop[ilk]
+transition ilkDunk(bytes32 ilk):uint256
+updates
+returns ilkDunk[ilk]
+transition live():uint256
+updates
+returns live
+transition box():uint256
+updates
+returns box
+transition litter():uint256
+updates
+returns litter
+transition vat():address<CatVat>
+updates
+returns vat
+transition vow():address<CatVow>
+updates
+returns vow
+transition flip():address<CatFlipper>
+updates
+returns flip
+transition rely(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition fileBox(uint256 x)
+iff wards[CALLER]==1
+updates
+ box:=x
+transition fileIlk(bytes32 ilk,uint256 chop,uint256 dunk)
+iff wards[CALLER]==1
+updates
+ ilkChop:=ilkChop[ilk=>chop]
+ ilkDunk:=ilkDunk[ilk=>dunk]
+transition claw(uint256 x)
+iff wards[CALLER]==1 and x<=litter
+updates
+ litter:=litter-x
+transition cage()
+iff wards[CALLER]==1
+updates
+ live:=0
+transition bite(bytes32 ilk,address urn):uint256
+iff
+ live==1
+ ilkDunk[ilk]!=0
+ ilkChop[ilk]!=0
+ litter<=box
+ box-litter>=1000000000000000000000000000
+ inRange(uint256,vat.grabs+1)
+ inRange(uint256,vow.fessed+1000000000000000000000000000)
+ inRange(uint256,litter+1000000000000000000000000000)
+ inRange(uint256,flip.kicks+1)
+updates
+ vat.grabs:=vat.grabs+1
+ vow.fessed:=vow.fessed+1000000000000000000000000000
+ litter:=litter+1000000000000000000000000000
+ flip.kicks:=flip.kicks+1
+returns flip.kicks+1

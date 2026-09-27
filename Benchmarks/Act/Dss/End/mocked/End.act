@@ -1,0 +1,124 @@
+contract EndNoop
+constructor()
+creates
+transition cageAll()
+updates
+transition readArt(bytes32 ilk) : uint256
+updates
+returns 1
+transition readInk(bytes32 ilk, address usr) : uint256
+updates
+returns 1
+transition readDebt() : uint256
+updates
+returns 1
+transition readDai(address usr) : uint256
+updates
+returns 0
+transition readCure() : uint256
+updates
+returns 0
+transition grab(bytes32 ilk, address urn, address a, address b, int256 dink, int256 dart)
+updates
+transition move(address src, address dst, uint256 rad)
+updates
+transition flux(bytes32 ilk, address src, address dst, uint256 wad)
+updates
+transition suck(address src, address dst, uint256 rad)
+updates
+transition yank(uint256 id)
+updates
+contract EndMocked
+constructor(address<EndNoop> mock_)
+creates
+  mapping(address => uint256) wards := [CALLER => 1]
+  uint256 live := 1
+  uint256 debt := 0
+  mapping(bytes32 => uint256) tag := []
+  mapping(bytes32 => uint256) gap := []
+  mapping(bytes32 => uint256) Art := []
+  mapping(bytes32 => uint256) fix := []
+  mapping(address => uint256) bag := []
+  mapping(bytes32 => mapping(address => uint256)) out := []
+  EndNoop mock := mock_
+transition wards(address usr) : uint256
+updates
+returns wards[usr]
+transition live() : uint256
+updates
+returns live
+transition debt() : uint256
+updates
+returns debt
+transition tag(bytes32 ilk) : uint256
+updates
+returns tag[ilk]
+transition gap(bytes32 ilk) : uint256
+updates
+returns gap[ilk]
+transition Art(bytes32 ilk) : uint256
+updates
+returns Art[ilk]
+transition fix(bytes32 ilk) : uint256
+updates
+returns fix[ilk]
+transition bag(address usr) : uint256
+updates
+returns bag[usr]
+transition out(bytes32 ilk, address usr) : uint256
+updates
+returns out[ilk][usr]
+transition mock() : address<EndNoop>
+updates
+returns mock
+transition rely(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 1]
+transition deny(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 0]
+transition cage()
+iff wards[CALLER] == 1 and live == 1
+updates
+  live := 0
+transition cageIlk(bytes32 ilk)
+iff live == 0 and tag[ilk] == 0
+updates
+  Art := Art[ilk => 1]
+  tag := tag[ilk => 1]
+transition snip(bytes32 ilk, uint256 id)
+iff tag[ilk] != 0 and inRange(uint256, Art[ilk] + 1)
+updates
+  Art := Art[ilk => Art[ilk] + 1]
+transition skip(bytes32 ilk, uint256 id)
+iff tag[ilk] != 0 and inRange(uint256, Art[ilk] + 1)
+updates
+  Art := Art[ilk => Art[ilk] + 1]
+transition skim(bytes32 ilk, address urn)
+iff tag[ilk] != 0 and inRange(uint256, gap[ilk] + 1)
+updates
+  gap := gap[ilk => gap[ilk] + 1]
+transition free(bytes32 ilk)
+iff live == 0
+updates
+transition thaw()
+iff live == 0 and debt == 0
+updates
+  debt := 1
+transition flow(bytes32 ilk)
+iff debt != 0 and fix[ilk] == 0
+updates
+  fix := fix[ilk => 1]
+transition pack(uint256 wad)
+iff debt != 0 and inRange(uint256, bag[CALLER] + wad)
+updates
+  bag := bag[CALLER => bag[CALLER] + wad]
+transition cash(bytes32 ilk, uint256 wad)
+iff
+  fix[ilk] != 0
+  inRange(uint256, out[ilk][CALLER] + wad)
+  out[ilk][CALLER] + wad <= bag[CALLER]
+updates
+  out := out[ilk => out[ilk][CALLER => out[ilk][CALLER] + wad]]

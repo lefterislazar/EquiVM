@@ -1,0 +1,81 @@
+contract DaiJoinVat
+constructor()
+creates
+ uint256 moved:=0
+transition moved():uint256
+updates
+returns moved
+transition move(address src,address dst,uint256 rad)
+iff inRange(uint256,moved+rad)
+updates
+ moved:=moved+rad
+
+contract DaiJoinDai
+constructor()
+creates
+ uint256 minted:=0
+ uint256 burned:=0
+transition minted():uint256
+updates
+returns minted
+transition burned():uint256
+updates
+returns burned
+transition mint(address u,uint256 wad)
+iff inRange(uint256,minted+wad)
+updates
+ minted:=minted+wad
+transition burn(address u,uint256 wad)
+iff inRange(uint256,burned+wad)
+updates
+ burned:=burned+wad
+
+contract DaiJoinStandalone
+constructor(address<DaiJoinVat> vat_,address<DaiJoinDai> dai_)
+iff address(vat_)!=address(dai_)
+creates
+ mapping(address=>uint256) wards:=[CALLER=>1]
+ uint256 live:=1
+ DaiJoinVat vat:=vat_
+ DaiJoinDai dai:=dai_
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition live():uint256
+updates
+returns live
+transition vat():address<DaiJoinVat>
+updates
+returns vat
+transition dai():address<DaiJoinDai>
+updates
+returns dai
+transition rely(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition cage()
+iff wards[CALLER]==1
+updates
+ live:=0
+transition join(address u,uint256 wad)
+iff
+ inRange(uint256,1000000000000000000000000000*wad)
+ inRange(uint256,vat.moved+1000000000000000000000000000*wad)
+ inRange(uint256,dai.burned+wad)
+updates
+ vat.moved:=vat.moved+1000000000000000000000000000*wad
+ dai.burned:=dai.burned+wad
+transition exit(address u,uint256 wad)
+iff
+ live==1
+ inRange(uint256,1000000000000000000000000000*wad)
+ inRange(uint256,vat.moved+1000000000000000000000000000*wad)
+ inRange(uint256,dai.minted+wad)
+updates
+ vat.moved:=vat.moved+1000000000000000000000000000*wad
+ dai.minted:=dai.minted+wad

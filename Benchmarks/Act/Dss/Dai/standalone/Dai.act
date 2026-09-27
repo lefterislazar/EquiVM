@@ -1,0 +1,53 @@
+contract DaiStandalone
+constructor()
+creates
+ mapping(address=>uint256) wards := [CALLER=>1]
+ uint256 totalSupply := 0
+ mapping(address=>uint256) balanceOf := []
+ mapping(address=>mapping(address=>uint256)) allowance := []
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition totalSupply():uint256
+updates
+returns totalSupply
+transition balanceOf(address u):uint256
+updates
+returns balanceOf[u]
+transition allowance(address a,address b):uint256
+updates
+returns allowance[a][b]
+transition decimals():uint8
+updates
+returns 18
+transition rely(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition approve(address u,uint256 x):bool
+updates
+ allowance:=allowance[CALLER=>allowance[CALLER][u=>x]]
+returns true
+transition transfer(address d,uint256 x):bool
+iff x<=balanceOf[CALLER] and (CALLER!=d ==> inRange(uint256,balanceOf[d]+x))
+case CALLER==d:
+ updates
+ returns true
+case CALLER!=d:
+ updates
+  balanceOf:=balanceOf[CALLER=>balanceOf[CALLER]-x,d=>balanceOf[d]+x]
+ returns true
+transition mint(address u,uint256 x)
+iff wards[CALLER]==1 and inRange(uint256,balanceOf[u]+x) and inRange(uint256,totalSupply+x)
+updates
+ balanceOf:=balanceOf[u=>balanceOf[u]+x]
+ totalSupply:=totalSupply+x
+transition burn(uint256 x)
+iff x<=balanceOf[CALLER] and x<=totalSupply
+updates
+ balanceOf:=balanceOf[CALLER=>balanceOf[CALLER]-x]
+ totalSupply:=totalSupply-x

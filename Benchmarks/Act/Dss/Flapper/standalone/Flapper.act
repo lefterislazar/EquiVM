@@ -1,0 +1,69 @@
+contract FlapperVat
+constructor()
+creates
+ uint256 moved:=0
+transition moved():uint256
+updates
+returns moved
+transition move(address src,address dst,uint256 rad)
+iff inRange(uint256,moved+rad)
+updates
+ moved:=moved+rad
+
+contract FlapperStandalone
+constructor(address<FlapperVat> vat_)
+creates
+ mapping(address=>uint256) wards:=[CALLER=>1]
+ uint256 live:=1
+ uint256 lid:=0
+ uint256 fill:=0
+ uint256 kicks:=0
+ FlapperVat vat:=vat_
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition live():uint256
+updates
+returns live
+transition lid():uint256
+updates
+returns lid
+transition fill():uint256
+updates
+returns fill
+transition kicks():uint256
+updates
+returns kicks
+transition vat():address<FlapperVat>
+updates
+returns vat
+transition rely(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition fileLid(uint256 x)
+iff wards[CALLER]==1
+updates
+ lid:=x
+transition kick(uint256 lot,uint256 bid):uint256
+iff
+ wards[CALLER]==1
+ live==1
+ inRange(uint256,fill+lot)
+ fill+lot<=lid
+ inRange(uint256,kicks+1)
+ inRange(uint256,vat.moved+lot)
+updates
+ fill:=fill+lot
+ kicks:=kicks+1
+ vat.moved:=vat.moved+lot
+returns kicks+1
+transition cage(uint256 rad)
+iff wards[CALLER]==1 and inRange(uint256,vat.moved+rad)
+updates
+ live:=0
+ vat.moved:=vat.moved+rad

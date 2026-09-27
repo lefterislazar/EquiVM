@@ -1,0 +1,58 @@
+contract DaiJoinNoop
+
+constructor()
+creates
+
+transition vatMove(address src, address dst, uint256 rad)
+updates
+
+transition burn(address usr, uint256 wad)
+updates
+
+transition mint(address usr, uint256 wad)
+updates
+
+contract DaiJoinMocked
+
+constructor(address<DaiJoinNoop> mock_)
+creates
+  mapping(address => uint256) wards := [CALLER => 1]
+  DaiJoinNoop mock := mock_
+  uint256 live := 1
+
+transition wards(address usr) : uint256
+updates
+returns wards[usr]
+
+transition mock() : address<DaiJoinNoop>
+updates
+returns mock
+
+transition live() : uint256
+updates
+returns live
+
+transition rely(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 1]
+
+transition deny(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 0]
+
+transition cage()
+iff wards[CALLER] == 1
+updates
+  live := 0
+
+transition join(address usr, uint256 wad)
+iff inRange(uint256, 1000000000000000000000000000 * wad)
+updates
+
+transition exit(address usr, uint256 wad)
+iff
+  live == 1
+  inRange(uint256, 1000000000000000000000000000 * wad)
+updates

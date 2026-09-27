@@ -1,0 +1,91 @@
+contract EndVat
+constructor()
+creates
+ uint256 cages:=0
+transition cages():uint256
+updates
+returns cages
+transition cage()
+iff inRange(uint256,cages+1)
+updates
+ cages:=cages+1
+
+contract EndCat
+constructor()
+creates
+ uint256 cages:=0
+transition cages():uint256
+updates
+returns cages
+transition cage()
+iff inRange(uint256,cages+1)
+updates
+ cages:=cages+1
+
+contract EndDog
+constructor()
+creates
+ uint256 cages:=0
+transition cages():uint256
+updates
+returns cages
+transition cage()
+iff inRange(uint256,cages+1)
+updates
+ cages:=cages+1
+
+contract EndStandalone
+constructor(address<EndVat> vat_,address<EndCat> cat_,address<EndDog> dog_)
+iff
+ address(vat_)!=address(cat_)
+ address(vat_)!=address(dog_)
+ address(cat_)!=address(dog_)
+creates
+ mapping(address=>uint256) wards:=[CALLER=>1]
+ uint256 live:=1
+ uint256 wait:=0
+ EndVat vat:=vat_
+ EndCat cat:=cat_
+ EndDog dog:=dog_
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition live():uint256
+updates
+returns live
+transition wait():uint256
+updates
+returns wait
+transition vat():address<EndVat>
+updates
+returns vat
+transition cat():address<EndCat>
+updates
+returns cat
+transition dog():address<EndDog>
+updates
+returns dog
+transition rely(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition fileWait(uint256 x)
+iff wards[CALLER]==1 and live==1
+updates
+ wait:=x
+transition cage()
+iff
+ wards[CALLER]==1
+ live==1
+ inRange(uint256,vat.cages+1)
+ inRange(uint256,cat.cages+1)
+ inRange(uint256,dog.cages+1)
+updates
+ live:=0
+ vat.cages:=vat.cages+1
+ cat.cages:=cat.cages+1
+ dog.cages:=dog.cages+1

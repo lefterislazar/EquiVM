@@ -1,0 +1,74 @@
+contract JugNoop
+
+constructor()
+creates
+
+transition readRate(bytes32 ilk) : uint256
+updates
+returns 1000000000000000000000000000
+
+transition fold(bytes32 ilk, address vow, int256 delta)
+updates
+
+contract JugMocked
+
+constructor(address<JugNoop> mock_)
+creates
+  mapping(address => uint256) wards := [CALLER => 1]
+  mapping(bytes32 => uint256) duty := []
+  mapping(bytes32 => uint256) rho := []
+  uint256 base := 0
+  address vow := address(0)
+  JugNoop mock := mock_
+
+transition wards(address usr) : uint256
+updates
+returns wards[usr]
+transition duty(bytes32 ilk) : uint256
+updates
+returns duty[ilk]
+transition rho(bytes32 ilk) : uint256
+updates
+returns rho[ilk]
+transition base() : uint256
+updates
+returns base
+transition vow() : address
+updates
+returns vow
+transition mock() : address<JugNoop>
+updates
+returns mock
+
+transition rely(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 1]
+transition deny(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 0]
+transition fileBase(uint256 data)
+iff wards[CALLER] == 1
+updates
+  base := data
+transition fileVow(address data)
+iff wards[CALLER] == 1
+updates
+  vow := data
+
+transition init(bytes32 ilk)
+iff wards[CALLER] == 1 and duty[ilk] == 0
+updates
+  duty := duty[ilk => 1000000000000000000000000000]
+
+transition fileDuty(bytes32 ilk, uint256 data)
+iff wards[CALLER] == 1 and duty[ilk] != 0
+updates
+  duty := duty[ilk => data]
+
+transition drip(bytes32 ilk) : uint256
+iff inRange(uint256, rho[ilk] + 1)
+updates
+  rho := rho[ilk => rho[ilk] + 1]
+returns 1000000000000000000000000000

@@ -1,0 +1,74 @@
+contract GemJoinNoop
+
+constructor()
+creates
+
+transition decimals() : uint256
+updates
+returns 18
+
+transition slip(bytes32 ilk, address usr, int256 dink)
+updates
+
+transition transferFrom(address src, address dst, uint256 wad) : bool
+updates
+returns true
+
+transition transfer(address dst, uint256 wad) : bool
+updates
+returns true
+
+contract GemJoinMocked
+
+constructor(address<GemJoinNoop> mock_, bytes32 ilk_)
+creates
+  mapping(address => uint256) wards := [CALLER => 1]
+  GemJoinNoop mock := mock_
+  bytes32 ilk := ilk_
+  uint256 dec := 18
+  uint256 live := 1
+
+transition wards(address usr) : uint256
+updates
+returns wards[usr]
+
+transition mock() : address<GemJoinNoop>
+updates
+returns mock
+
+transition ilk() : bytes32
+updates
+returns ilk
+
+transition dec() : uint256
+updates
+returns dec
+
+transition live() : uint256
+updates
+returns live
+
+transition rely(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 1]
+
+transition deny(address usr)
+iff wards[CALLER] == 1
+updates
+  wards := wards[usr => 0]
+
+transition cage()
+iff wards[CALLER] == 1
+updates
+  live := 0
+
+transition join(address usr, uint256 wad)
+iff
+  live == 1
+  wad <= 2^255 - 1
+updates
+
+transition exit(address usr, uint256 wad)
+iff wad <= 2^255 - 1
+updates

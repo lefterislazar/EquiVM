@@ -1,0 +1,101 @@
+contract FlipperVat
+constructor()
+creates
+ uint256 fluxed:=0
+ uint256 moved:=0
+transition fluxed():uint256
+updates
+returns fluxed
+transition moved():uint256
+updates
+returns moved
+transition flux(bytes32 ilk,address src,address dst,uint256 wad)
+iff inRange(uint256,fluxed+wad)
+updates
+ fluxed:=fluxed+wad
+transition move(address src,address dst,uint256 rad)
+iff inRange(uint256,moved+rad)
+updates
+ moved:=moved+rad
+
+contract FlipperCat
+constructor()
+creates
+ uint256 clawed:=0
+transition clawed():uint256
+updates
+returns clawed
+transition claw(uint256 rad)
+iff inRange(uint256,clawed+rad)
+updates
+ clawed:=clawed+rad
+
+contract FlipperStandalone
+constructor(address<FlipperVat> vat_,address<FlipperCat> cat_,bytes32 ilk_)
+iff address(vat_)!=address(cat_)
+creates
+ mapping(address=>uint256) wards:=[CALLER=>1]
+ mapping(uint256=>uint256) bid:=[]
+ mapping(uint256=>uint256) lot:=[]
+ mapping(uint256=>uint256) tab:=[]
+ mapping(uint256=>address) guy:=[]
+ uint256 kicks:=0
+ bytes32 ilk:=ilk_
+ FlipperVat vat:=vat_
+ FlipperCat cat:=cat_
+transition wards(address u):uint256
+updates
+returns wards[u]
+transition bid(uint256 id):uint256
+updates
+returns bid[id]
+transition lot(uint256 id):uint256
+updates
+returns lot[id]
+transition tab(uint256 id):uint256
+updates
+returns tab[id]
+transition guy(uint256 id):address
+updates
+returns guy[id]
+transition kicks():uint256
+updates
+returns kicks
+transition ilk():bytes32
+updates
+returns ilk
+transition vat():address<FlipperVat>
+updates
+returns vat
+transition cat():address<FlipperCat>
+updates
+returns cat
+transition rely(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>1]
+transition deny(address u)
+iff wards[CALLER]==1
+updates
+ wards:=wards[u=>0]
+transition kick(address usr,address gal,uint256 tab_,uint256 lot_,uint256 bid_):uint256
+iff
+ wards[CALLER]==1
+ inRange(uint256,kicks+1)
+ inRange(uint256,vat.fluxed+lot_)
+updates
+ kicks:=kicks+1
+ vat.fluxed:=vat.fluxed+lot_
+returns kicks+1
+transition yank(uint256 id)
+iff
+ wards[CALLER]==1
+ guy[id]!=address(0)
+ bid[id]<tab[id]
+ inRange(uint256,cat.clawed+tab[id])
+ inRange(uint256,vat.fluxed+lot[id])
+ inRange(uint256,vat.moved+bid[id])
+updates
+ cat.clawed:=cat.clawed+tab[id]
+ vat.fluxed:=vat.fluxed+lot[id]
+ vat.moved:=vat.moved+bid[id]

@@ -1,0 +1,118 @@
+contract CureNoop
+
+constructor()
+creates
+
+transition cure(address src) : uint256
+updates
+returns 1
+
+contract CureMocked
+
+constructor(address<CureNoop> mock_)
+creates
+  mapping(address => uint256) wards := [CALLER => 1]
+  mapping(address => uint256) pos := []
+  mapping(address => uint256) amt := []
+  mapping(address => uint256) loaded := []
+  uint256 sourceCount := 0
+  uint256 lCount := 0
+  uint256 say := 0
+  uint256 live := 1
+  uint256 wait := 0
+  CureNoop mock := mock_
+
+transition wards(address usr) : uint256
+updates
+returns wards[usr]
+transition pos(address src) : uint256
+updates
+returns pos[src]
+transition amt(address src) : uint256
+updates
+returns amt[src]
+transition loaded(address src) : uint256
+updates
+returns loaded[src]
+transition sourceCount() : uint256
+updates
+returns sourceCount
+transition lCount() : uint256
+updates
+returns lCount
+transition say() : uint256
+updates
+returns say
+transition live() : uint256
+updates
+returns live
+transition wait() : uint256
+updates
+returns wait
+transition mock() : address<CureNoop>
+updates
+returns mock
+
+transition rely(address usr)
+iff wards[CALLER] == 1 and live == 1
+updates
+  wards := wards[usr => 1]
+
+transition deny(address usr)
+iff wards[CALLER] == 1 and live == 1
+updates
+  wards := wards[usr => 0]
+
+transition fileWait(uint256 data)
+iff wards[CALLER] == 1 and live == 1
+updates
+  wait := data
+
+transition lift(address src)
+iff
+  wards[CALLER] == 1
+  live == 1
+  pos[src] == 0
+  inRange(uint256, sourceCount + 1)
+updates
+  sourceCount := sourceCount + 1
+  pos := pos[src => 1]
+
+transition drop(address src)
+iff
+  wards[CALLER] == 1
+  live == 1
+  pos[src] != 0
+  sourceCount > 0
+updates
+  pos := pos[src => 0]
+  amt := amt[src => 0]
+  sourceCount := sourceCount - 1
+
+transition cage()
+iff wards[CALLER] == 1 and live == 1
+updates
+  live := 0
+
+transition tell() : uint256
+iff live == 0 and lCount == sourceCount
+updates
+returns say
+
+transition load(address src)
+iff
+  live == 0
+  pos[src] != 0
+  say >= amt[src]
+  inRange(uint256, say - amt[src] + 1)
+  loaded[src] == 0 ==> inRange(uint256, lCount + 1)
+case loaded[src] == 0:
+  updates
+    amt := amt[src => 1]
+    say := say - amt[src] + 1
+    loaded := loaded[src => 1]
+    lCount := lCount + 1
+case loaded[src] != 0:
+  updates
+    amt := amt[src => 1]
+    say := say - amt[src] + 1
