@@ -46,10 +46,15 @@ is elsewhere.
 - The reserve-token transfer selector is `b7760c8f` for this fixture's unusual
   `transfer(uint256,address)` parameter order.
 - `Bytecode.lean` contains exact creation/runtime arrays and their `JUMPDEST` tables.
-- `Constructor.lean` and `Correct.lean` expose the constructor, runtime, and combined equivalence
-  theorems. Their proofs are deliberately `sorry`: they are the benchmark workload.
+- `Correct.lean` proves the ten-way runtime dispatch and its shared revert paths.
+  `TotalSupply.lean`, `BalanceOf.lean`, `Allowance.lean`, `Approve.lean`, `Transfer.lean`,
+  `TransferFrom.lean`, `Mint.lean`, `Burn.lean`, `Swap0.lean`, and `Swap1.lean` prove all ten
+  runtime bodies. `Constructor.lean` proves the creation bytecode against the constructor
+  specification, and `Correct.lean` combines both results into `ammContractCorrect`.
+- `Trusted.lean` records the ten concrete function selectors as trusted facts. The EVMLean
+  Keccak FFI is opaque to Lean's kernel, so the selector equalities cannot be reduced by Lean.
 
-Build the benchmark scaffold with:
+Build the benchmark proof with:
 
 ```sh
 lake build Benchmarks.ActAmm.Correct

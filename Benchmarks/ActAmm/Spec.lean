@@ -239,8 +239,8 @@ def burnTransition : TransitionDecl :=
         tokenTransfer (.storage token0Ref) (.var "amount0") (.var "to") "transfer0Ok",
         tokenTransfer (.storage token1Ref) (.var "amount1") (.var "to") "transfer1Ok",
         tokenBalance (.storage token0Ref) "newBalance0",
-        tokenBalance (.storage token1Ref) "newBalance1",
         .assign .storage reserve0Ref (.var "newBalance0"),
+        tokenBalance (.storage token1Ref) "newBalance1",
         .assign .storage reserve1Ref (.var "newBalance1") ] }
 
 def swap0Transition : TransitionDecl :=
@@ -259,10 +259,10 @@ def swap0Transition : TransitionDecl :=
         .require (.binary .gt (.var "balance0") (.storage reserve0Ref)),
         .letDecl "amount0In" (some uint256)
           (checkedSub (.var "balance0") (.storage reserve0Ref)),
-        .letDecl "kNumerator" (some uint256)
-          (checkedMul (.storage reserve1Ref) (.var "amount0In")),
         .letDecl "kDenominator" (some uint256)
-          (checkedAdd (.storage reserve0Ref) (.var "amount0In")) ] ++
+          (checkedAdd (.storage reserve0Ref) (.var "amount0In")),
+        .letDecl "kNumerator" (some uint256)
+          (checkedMul (.storage reserve1Ref) (.var "amount0In")) ] ++
       checkedDivInto "maxAmount1Out" (.var "kNumerator") (.var "kDenominator") ++
       [ .require (.binary .le (.var "amount1Out") (.var "maxAmount1Out")),
         .assign .storage reserve0Ref (.var "balance0"),
@@ -284,10 +284,10 @@ def swap1Transition : TransitionDecl :=
         .require (.binary .gt (.var "balance1") (.storage reserve1Ref)),
         .letDecl "amount1In" (some uint256)
           (checkedSub (.var "balance1") (.storage reserve1Ref)),
-        .letDecl "kNumerator" (some uint256)
-          (checkedMul (.storage reserve0Ref) (.var "amount1In")),
         .letDecl "kDenominator" (some uint256)
-          (checkedAdd (.storage reserve1Ref) (.var "amount1In")) ] ++
+          (checkedAdd (.storage reserve1Ref) (.var "amount1In")),
+        .letDecl "kNumerator" (some uint256)
+          (checkedMul (.storage reserve0Ref) (.var "amount1In")) ] ++
       checkedDivInto "maxAmount0Out" (.var "kNumerator") (.var "kDenominator") ++
       [ .require (.binary .le (.var "amount0Out") (.var "maxAmount0Out")),
         .assign .storage reserve0Ref (.var "balance0"),
@@ -306,12 +306,12 @@ def constructorDecl : ConstructorDecl :=
         .require (.binary .ne (.var "t0") (.var "t1")),
         .assign .storage token0Ref (.var "t0"),
         .assign .storage token1Ref (.var "t1"),
-        .letDecl "liquiditySquared" (some uint256)
-          (checkedMul (.var "liquidity") (.var "liquidity")),
-        tokenBalance (.storage token0Ref) "initialBalance0",
         tokenBalance (.storage token1Ref) "initialBalance1",
+        tokenBalance (.storage token0Ref) "initialBalance0",
         .letDecl "balanceProduct" (some uint256)
           (checkedMul (.var "initialBalance0") (.var "initialBalance1")),
+        .letDecl "liquiditySquared" (some uint256)
+          (checkedMul (.var "liquidity") (.var "liquidity")),
         .require (.binary .eq (.var "liquiditySquared") (.var "balanceProduct")),
         .require (.binary .gt (.var "liquidity") (.intLit 0)),
         .assign .storage totalSupplyRef (.var "liquidity"),
