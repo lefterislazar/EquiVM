@@ -1,0 +1,91 @@
+{
+  "storage": [
+    {
+      "astId": 3,
+      "contract": "hevm.sol:Amm",
+      "label": "totalSupply",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 7,
+      "contract": "hevm.sol:Amm",
+      "label": "balanceOf",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 13,
+      "contract": "hevm.sol:Amm",
+      "label": "allowance",
+      "offset": 0,
+      "slot": "2",
+      "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))"
+    },
+    {
+      "astId": 193,
+      "contract": "hevm.sol:Amm",
+      "label": "token0",
+      "offset": 0,
+      "slot": "3",
+      "type": "t_contract(Token)161"
+    },
+    {
+      "astId": 196,
+      "contract": "hevm.sol:Amm",
+      "label": "token1",
+      "offset": 0,
+      "slot": "4",
+      "type": "t_contract(Token)161"
+    },
+    {
+      "astId": 198,
+      "contract": "hevm.sol:Amm",
+      "label": "reserve0",
+      "offset": 0,
+      "slot": "5",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 200,
+      "contract": "hevm.sol:Amm",
+      "label": "reserve1",
+      "offset": 0,
+      "slot": "6",
+      "type": "t_uint256"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_contract(Token)161": {
+      "encoding": "inplace",
+      "label": "contract Token",
+      "numberOfBytes": "20"
+    },
+    "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => mapping(address => uint256))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_uint256)"
+    },
+    "t_mapping(t_address,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}

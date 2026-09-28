@@ -1,0 +1,32 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "hevm.sol": {
+      "content": "pragma solidity >=0.8.0;\n\n//interface Token {\n//  function balanceOf(address) external view returns (uint256);\n//  function transferFrom(address from, address to, uint256 value) external returns (uint);\n//  function transfer(uint256 value, address to) external returns (uint);\n//}\ncontract Token {\n    uint256 public totalSupply;\n    mapping (address => uint256) public balanceOf;\n    mapping (address => mapping (address => uint256)) public allowance;\n\n    constructor(uint256 _totalSupply) {\n        totalSupply = _totalSupply;\n        balanceOf[msg.sender] = _totalSupply;\n    }\n\n\n    function approve(address spender, uint256 value) public returns (bool) {\n        if(spender != msg.sender) {\n            allowance[msg.sender][spender] = value;\n        }\n        return true;\n    }\n\n    function transfer(uint256 value, address to) public returns (bool) {\n        balanceOf[msg.sender] = balanceOf[msg.sender] - value;\n        balanceOf[to] = balanceOf[to] + value;\n        return true;\n    }\n\n    function transferFrom(address from, address to, uint256 value) public returns (bool) {\n        if(from != msg.sender && allowance[from][msg.sender] != type(uint256).max) {\n            allowance[from][msg.sender] = allowance[from][msg.sender] - value;\n        }\n        balanceOf[from] = balanceOf[from] - value;\n        balanceOf[to] = balanceOf[to] + value;\n        return true;\n    }\n}\n\ncontract Token0 is Token {\n    constructor(uint256 _totalSupply) Token(_totalSupply) {}\n}\n\ncontract Token1 is Token {\n    constructor(uint256 _totalSupply) Token(_totalSupply) {}\n}\n\ncontract Amm is Token {\n    uint256 internal constant MINIMUM_LIQUIDITY = 1000;\n    Token token0;\n    Token token1;\n    uint256 reserve0;\n    uint256 reserve1;\n    //uint256 totalSupply;\n    //mapping(address => uint256) liquidityOf;\n\n    constructor(address t0, address t1, uint256 liquidity) Token(liquidity - MINIMUM_LIQUIDITY) {\n        require (t0 != t1);\n        token0 = Token(t0);\n        token1 = Token(t1);\n\n        require(liquidity*liquidity == token0.balanceOf(address(this)) * token1.balanceOf(address(this)), \"Invalid initial liquidity\");\n        require(liquidity > 0, 'Invalid initial liquidity');\n        totalSupply = liquidity;\n        balanceOf[address(this)] =  MINIMUM_LIQUIDITY;\n        balanceOf[msg.sender] = liquidity - MINIMUM_LIQUIDITY;\n        reserve0 = token0.balanceOf(address(this));\n        reserve1 = token1.balanceOf(address(this));\n    }\n\n    function mint(address to) public returns (uint256 liquidity) {\n      require(totalSupply != 0);\n\n      uint256 balance0 = token0.balanceOf(address(this));\n      uint256 balance1 = token1.balanceOf(address(this));\n\n      //uint256 product = balance0 * balance1;\n      uint256 amount0 = balance0 - reserve0;\n      uint256 amount1 = balance1 - reserve1;\n\n      //if (totalSupply == 0) {\n      //  liquidity = product - MINIMUM_LIQUIDITY;\n      //  require(amount0 > 0 && amount1 > 0, \"invalid amounts\");\n\n      //  totalSupply += MINIMUM_LIQUIDITY;\n      //} else {\n      uint256 liq0 = amount0 * totalSupply / reserve0;\n      uint256 liq1 = amount1 * totalSupply / reserve1;\n\n      if (liq0 <= liq1) {\n        liquidity = liq0;\n      } else {\n        liquidity = liq1;\n      }\n\n      require(liquidity != 0, \"Insufficient liquidity\");\n      totalSupply += liquidity;\n      balanceOf[to] += liquidity;\n\n      //kLast = product;\n      reserve0 = balance0;\n      reserve1 = balance1;\n    }\n\n    function burn(uint256 liquidity, address to) public {\n      require(totalSupply != 0);\n\n      //uint256 balance0 = token0.balanceOf(address(this));\n      //uint256 balance1 = token1.balanceOf(address(this));\n\n      uint256 amount0 = (liquidity * reserve0) / totalSupply;\n      uint256 amount1 = (liquidity * reserve1) / totalSupply;\n\n      totalSupply -= liquidity;\n      balanceOf[msg.sender] -= liquidity;\n\n      //amount0 = liquidity * balance0 / totalSupply;\n      //amount1 = liquidity * balance1 / totalSupply;\n\n      token0.transfer(amount0, to);\n      token1.transfer(amount1, to);\n\n      reserve0 = token0.balanceOf(address(this));\n      reserve1 = token1.balanceOf(address(this));\n    }\n\n    function swap(uint256 amount0Out, uint256 amount1Out, address to) public {\n      require(amount0Out > 0 || amount1Out > 0, 'Insufficient output amount');\n      require(amount0Out < reserve0 && amount1Out < reserve1, 'Insufficient liquidity');\n      require(to != address(token0) && to != address(token1), 'Invalid TO');\n\n      //if(amount0Out > 0)\n        token0.transfer(amount0Out, to);\n      //if(amount1Out > 0)\n        token1.transfer(amount1Out, to);\n\n      uint256 balance0 = token0.balanceOf(address(this));\n      uint256 balance1 = token1.balanceOf(address(this));\n\n      uint256 amount0In = balance0 > reserve0 - amount0Out ? balance0 - (reserve0 - amount0Out) : 0;\n      uint256 amount1In = balance1 > reserve1 - amount1Out ? balance1 - (reserve1 - amount1Out) : 0;\n      require(amount0In > 0 || amount1In > 0, 'Insufficient input amount');\n\n      require(balance0* balance1 >= reserve0 * reserve1, 'K');\n\n      reserve0 = balance0;\n      reserve1 = balance1;\n    }\n\n}\n"
+    }
+  },
+  "settings": {
+    "viaIR": false,
+    "outputSelection": {
+      "*": {
+        "*": [
+          "metadata",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "abi",
+          "storageLayout",
+          "evm.bytecode.sourceMap",
+          "evm.bytecode.linkReferences",
+          "evm.bytecode.generatedSources",
+          "evm.deployedBytecode.sourceMap",
+          "evm.deployedBytecode.linkReferences",
+          "evm.deployedBytecode.generatedSources",
+          "evm.deployedBytecode.immutableReferences"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    }
+  }
+}
