@@ -46,16 +46,17 @@ checkout.
 - `Spec.lean` models all nine ABI functions, Solidity 0.8 checked arithmetic, and the emitted
   storage layout: `totalSupply` at slot 0, `balanceOf` at slot 1, and `allowance` at slot 2.
 - `Bytecode.lean` contains the exact creation/runtime arrays and generated `JUMPDEST` tables.
-- `Constructor.lean` and `Correct.lean` expose the constructor, runtime, and combined equivalence
-  statements. Their two proofs are deliberately `sorry`: they are the benchmark workload.
+- `Correct.lean` proves the runtime dispatch routing and shared revert paths. All nine ABI
+  functions are proved in their own files. `Constructor.lean` proves deployment argument
+  decoding, both storage writes, runtime return, and constructor equivalence.
 - There are no external calls in this Token target.
 
-Build the prompt-ready benchmark scaffold with:
+Build the completed proof with:
 
 ```sh
 lake build Benchmarks.ActAmmToken.Correct
 ```
 
-The primary theorem is `Benchmarks.ActAmmToken.tokenContractCorrect`. The working directory can be
-given directly to `Misc/prompt.md`; its Phase 1 creates the per-function proof files and shared
-proof helpers.
+The primary theorem is `Benchmarks.ActAmmToken.tokenContractCorrect`. The proof has no
+placeholders. Its axiom footprint consists of Lean's standard axioms, the nine trusted
+selector facts, and generated `native_decide` axioms.
