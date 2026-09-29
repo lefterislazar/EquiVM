@@ -216,8 +216,8 @@ def burnTransition : TransitionDecl :=
         tokenTransfer (.storage token0Ref) (.var "amount0") (.var "to") "transfer0Ok",
         tokenTransfer (.storage token1Ref) (.var "amount1") (.var "to") "transfer1Ok",
         tokenBalance (.storage token0Ref) "newBalance0",
-        tokenBalance (.storage token1Ref) "newBalance1",
         .assign .storage reserve0Ref (.var "newBalance0"),
+        tokenBalance (.storage token1Ref) "newBalance1",
         .assign .storage reserve1Ref (.var "newBalance1") ] }
 
 def swapTransition : TransitionDecl :=
@@ -275,12 +275,12 @@ def constructorDecl : ConstructorDecl :=
         .require (.binary .ne (.var "t0") (.var "t1")),
         .assign .storage token0Ref (.var "t0"),
         .assign .storage token1Ref (.var "t1"),
-        .letDecl "liquiditySquared" (some uint256)
-          (checkedMul (.var "liquidity") (.var "liquidity")),
-        tokenBalance (.storage token0Ref) "initialBalance0",
         tokenBalance (.storage token1Ref) "initialBalance1",
+        tokenBalance (.storage token0Ref) "initialBalance0",
         .letDecl "balanceProduct" (some uint256)
           (checkedMul (.var "initialBalance0") (.var "initialBalance1")),
+        .letDecl "liquiditySquared" (some uint256)
+          (checkedMul (.var "liquidity") (.var "liquidity")),
         .require (.binary .eq (.var "liquiditySquared") (.var "balanceProduct")),
         .require (.binary .gt (.var "liquidity") (.intLit 0)),
         .assign .storage totalSupplyRef (.var "liquidity"),

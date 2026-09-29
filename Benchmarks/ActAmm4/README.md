@@ -50,14 +50,13 @@ elsewhere.
   and enforces the unadjusted product invariant from the Solidity source.
 - The external transfer selector is the fixture's nonstandard
   `transfer(uint256,address)` selector `b7760c8f`.
-- `Constructor.lean` and `Correct.lean` contain the two deliberate proof `sorry`s.
+- `Constructor.lean` and `Correct.lean` contain the completed constructor and runtime proofs.
 
-Build the prompt-ready scaffold with:
+Build the complete correctness theorem with:
 
 ```sh
 lake build Benchmarks.ActAmm4.Correct
 ```
 
-The primary theorem is `Benchmarks.ActAmm4.amm4ContractCorrect`. The directory is suitable as the
-working directory for `Misc/prompt.md`; Phase 1 of that prompt creates per-function proof files and
-the shared proof infrastructure.
+The primary theorem is `Benchmarks.ActAmm4.amm4ContractCorrect`. The constructor proof reuses
+the matching Act AMM creation-code trace after accounting for this fixture's shorter runtime.
