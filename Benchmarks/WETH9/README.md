@@ -35,7 +35,9 @@ Generated artifacts:
 - `StringLayout.lean` / `StringReturn*.lean` / `StringEncode.lean`: the solc-0.5.16 compact-string
   storage hooks and the `name`/`symbol` dynamic-string read+ABI-return machinery.
 - `Correct.lean`: top-level runtime-equivalence theorem plus the whole-contract wrapper
-  `weth9ContractCorrect` — fully proved.
+  `weth9ContractCorrect` — fully proved under the storage well-formedness precondition
+  `weth9StorageWF` (`StringReturnBound.lean`): on zero-value `name`/`symbol` calls, the ABI string return is
+  `< 2^64` bytes. No benchmark-specific axioms.
 
 Source and bytecode hashes:
 

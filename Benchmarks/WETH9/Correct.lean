@@ -27,11 +27,11 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.WETH9
 
 theorem weth9Correct :
-    runtimeRefinement config weth9Bytecode contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize ↦ ?_⟩
+    runtimeRefinementWithWF weth9StorageWF config weth9Bytecode contract := by
+  refine ⟨fun σ σ₀ g A I hcode hsize hwf ↦ ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   · by_cases h0 : selIs I (weth9SelBytes 0)
-    · exact weth9NameBodyCore hcode hsize h0
+    · exact weth9NameBodyCore hcode hsize h0 hwf
     · by_cases h1 : selIs I (weth9SelBytes 1)
       · exact weth9ApproveBodyCoreAnyPerm hcode hsize h1
       · by_cases h2 : selIs I (weth9SelBytes 2)
@@ -45,7 +45,7 @@ theorem weth9Correct :
               · by_cases h6 : selIs I (weth9SelBytes 6)
                 · exact weth9BalanceOfBodyCore hcode hsize h6
                 · by_cases h7 : selIs I (weth9SelBytes 7)
-                  · exact weth9SymbolBodyCore hcode hsize h7
+                  · exact weth9SymbolBodyCore hcode hsize h7 hwf
                   · by_cases h8 : selIs I (weth9SelBytes 8)
                     · exact weth9TransferBodyCore hcode hsize h8
                     · by_cases h9 : selIs I (weth9SelBytes 9)
@@ -69,7 +69,7 @@ theorem weth9Correct :
   · exact weth9ShortFallbackBodyCore hcode hsize (by omega)
 
 theorem weth9ContractCorrect :
-    contractRefinement config weth9CreationBytecode contract :=
-  contractRefinement.of_constant weth9ConstructorCorrect weth9Correct
+    contractRefinementWF weth9StorageWF config weth9CreationBytecode contract :=
+  contractRefinementWF.of_constant weth9ConstructorCorrect weth9Correct
 
 end Benchmarks.WETH9

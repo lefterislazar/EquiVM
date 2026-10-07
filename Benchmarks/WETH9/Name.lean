@@ -219,13 +219,13 @@ theorem weth9Decode_name_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) :
 
 theorem weth9NameBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (hsel : selIs I (weth9SelBytes 0)) :
+    (hsel : selIs I (weth9SelBytes 0)) (hwf : weth9StorageWF σ I) :
     runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 0) (by native_decide) hsel
   by_cases hwv : I.weiValue = ⟨0⟩
   · -- string return: the Solm `.return [.storage nameRef]` body ABI-encodes to the EVM encoder's
-    -- output (`StringReturnLong2.lean`); `weth9NameReturnSizeBound` handles the ≥2^64-byte regime.
+    -- output (`StringReturnLong2.lean`); `weth9StorageWF` excludes the ≥2^64-byte regime.
     have hbody := nonpayableReturnExprBodyReturns (cfg := config) (contract := contract)
       (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) (locals := ∅)
       (by simp only [initState]; exact hwv) weth9NameEval
@@ -256,12 +256,12 @@ theorem weth9NameBodyCore {σ σ₀ A I} {g : UInt256}
           have := weth9LongLen_ge32 hge31; omega
         exact weth9ReEquivExecGen hcode
           (weth9NameStringLongReturns (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel hge31
-            (weth9NameReturnSizeBound σ I))
+            (weth9StorageWF_nameReturnSizeBound hwf hsel hwv))
           (weth9SelectorDispatchName hsel) (weth9Decode_name_ok hsz4)
           (by rw [nameTransition]; exact hbody) rfl
           (returnEquiv_of_encode (by
             rw [if_neg hge32]
-            exact weth9NameEncode_long hge31 (weth9NameReturnSizeBound σ I)))
+            exact weth9NameEncode_long hge31 (weth9StorageWF_nameReturnSizeBound hwf hsel hwv)))
   · -- non-payable revert: EVM reverts at name's callvalue guard (entry 166, gt 178).
     obtain ⟨_, _, h166⟩ := weth9ReachName (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
