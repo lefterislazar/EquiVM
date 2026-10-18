@@ -1,0 +1,2982 @@
+{
+ "versions": [
+  "0.8.0",
+  "0.8.1",
+  "0.8.2",
+  "0.8.3",
+  "0.8.4",
+  "0.8.5",
+  "0.8.6",
+  "0.8.7",
+  "0.8.8",
+  "0.8.9",
+  "0.8.10",
+  "0.8.11",
+  "0.8.12",
+  "0.8.13",
+  "0.8.14",
+  "0.8.15",
+  "0.8.16",
+  "0.8.17",
+  "0.8.18",
+  "0.8.19",
+  "0.8.20",
+  "0.8.21",
+  "0.8.22",
+  "0.8.23",
+  "0.8.24",
+  "0.8.25",
+  "0.8.26",
+  "0.8.27",
+  "0.8.28",
+  "0.8.29",
+  "0.8.30",
+  "0.8.31",
+  "0.8.32",
+  "0.8.33",
+  "0.8.34",
+  "0.8.35",
+  "0.8.36",
+  "0.8.37"
+ ],
+ "boundaries": [
+  {
+   "version": "0.8.1",
+   "classification": "unverified",
+   "change": "Experimental IR codegen being completed (struct/array copies, pushes, packed reads). 0.8.0 emits no via-IR bytecode, so only the IR can be compared.",
+   "ops": [
+    "Bytes.pushv_b",
+    "Bytes.pushv_s",
+    "Bytes.r_b",
+    "Bytes.r_s",
+    "Bytes.w_b_cd",
+    "Bytes.w_b_froms",
+    "Bytes.w_b_lit",
+    "Bytes.w_b_litlong",
+    "Bytes.w_b_mem",
+    "Bytes.w_b_sto",
+    "Bytes.w_s_cd",
+    "Bytes.w_s_mem",
+    "Bytes.w_s_sto",
+    "DynArrays.r_bb",
+    "DynArrays.r_f",
+    "DynArrays.r_ms",
+    "DynArrays.r_nn",
+    "DynArrays.r_p",
+    "DynArrays.w_bb_cd",
+    "DynArrays.w_bb_mem",
+    "DynArrays.w_bb_sto",
+    "DynArrays.w_f_cd",
+    "DynArrays.w_f_mem",
+    "DynArrays.w_f_sto",
+    "DynArrays.w_fa_cd",
+    "DynArrays.w_fa_mem",
+    "DynArrays.w_fa_sto",
+    "DynArrays.w_ms_cd",
+    "DynArrays.w_ms_mem",
+    "DynArrays.w_ms_sto",
+    "DynArrays.w_nn_cd",
+    "DynArrays.w_nn_mem",
+    "DynArrays.w_nn_sto",
+    "DynArrays.w_p_cd",
+    "DynArrays.w_p_mem",
+    "DynArrays.w_p_sto",
+    "DynArrays.wi_ms",
+    "FixedArrays.r_bb",
+    "FixedArrays.r_f",
+    "FixedArrays.r_ms",
+    "FixedArrays.r_nn",
+    "FixedArrays.r_p",
+    "FixedArrays.w_bb_cd",
+    "FixedArrays.w_bb_mem",
+    "FixedArrays.w_bb_sto",
+    "FixedArrays.w_f_cd",
+    "FixedArrays.w_f_mem",
+    "FixedArrays.w_f_sto",
+    "FixedArrays.w_ms_cd",
+    "FixedArrays.w_ms_mem",
+    "FixedArrays.w_ms_sto",
+    "FixedArrays.w_nn_cd",
+    "FixedArrays.w_nn_mem",
+    "FixedArrays.w_nn_sto",
+    "FixedArrays.w_p_cd",
+    "FixedArrays.w_p_mem",
+    "FixedArrays.w_p_sto",
+    "FixedArrays.wi_ms",
+    "Mappings.w_mS",
+    "Mappings.w_mb_mem",
+    "Mappings.w_mby",
+    "SlotPointers.w_box_at",
+    "Structs.r_S",
+    "Structs.w_N_cd",
+    "Structs.w_N_mem",
+    "Structs.w_N_sto",
+    "Structs.w_S_cd",
+    "Structs.w_S_mem",
+    "Structs.w_S_sto",
+    "Structs.wf_N"
+   ],
+   "helperChanges": 125,
+   "behaviourChanges": []
+  },
+  {
+   "version": "0.8.2",
+   "classification": "refactoring",
+   "change": "`storage_set_to_zero` binds the zero value with `let`; push/pop convert the storage reference to a storage pointer first.",
+   "ops": [
+    "Bytes.d_b",
+    "Bytes.d_s",
+    "Bytes.di_b",
+    "Bytes.pop_b",
+    "Bytes.pop_s",
+    "Bytes.push0_b",
+    "Bytes.pushv_b",
+    "Bytes.w_b_cd",
+    "Bytes.w_b_froms",
+    "Bytes.w_b_lit",
+    "Bytes.w_b_litlong",
+    "Bytes.w_b_mem",
+    "Bytes.w_b_sto",
+    "Bytes.w_s_cd",
+    "Bytes.w_s_mem",
+    "Bytes.w_s_sto",
+    "DynArrays.d_bb",
+    "DynArrays.d_f",
+    "DynArrays.d_fa",
+    "DynArrays.d_ms",
+    "DynArrays.d_nn",
+    "DynArrays.d_p",
+    "DynArrays.di_p",
+    "DynArrays.pop_bb",
+    "DynArrays.pop_f",
+    "DynArrays.pop_fa",
+    "DynArrays.pop_ms",
+    "DynArrays.pop_nn",
+    "DynArrays.pop_p",
+    "DynArrays.push0_f",
+    "DynArrays.push0_ms",
+    "DynArrays.push0_nn",
+    "DynArrays.push0_p",
+    "DynArrays.pushv_bb",
+    "DynArrays.pushv_f",
+    "DynArrays.pushv_fa",
+    "DynArrays.pushv_ms",
+    "DynArrays.pushv_nn",
+    "DynArrays.pushv_p",
+    "DynArrays.w_bb_cd",
+    "DynArrays.w_bb_mem",
+    "DynArrays.w_bb_sto",
+    "DynArrays.w_f_cd",
+    "DynArrays.w_f_mem",
+    "DynArrays.w_f_sto",
+    "DynArrays.w_fa_cd",
+    "DynArrays.w_fa_mem",
+    "DynArrays.w_fa_sto",
+    "DynArrays.w_ms_cd",
+    "DynArrays.w_ms_mem",
+    "DynArrays.w_ms_sto",
+    "DynArrays.w_nn_cd",
+    "DynArrays.w_nn_mem",
+    "DynArrays.w_nn_sto",
+    "DynArrays.w_p_cd",
+    "DynArrays.w_p_mem",
+    "DynArrays.w_p_sto",
+    "FixedArrays.d_bb",
+    "FixedArrays.d_f",
+    "FixedArrays.d_ms",
+    "FixedArrays.d_nn",
+    "FixedArrays.d_p",
+    "FixedArrays.di_p",
+    "FixedArrays.w_bb_cd",
+    "FixedArrays.w_bb_mem",
+    "FixedArrays.w_bb_sto",
+    "FixedArrays.w_f_cd",
+    "FixedArrays.w_f_mem",
+    "FixedArrays.w_f_sto",
+    "FixedArrays.w_ms_cd",
+    "FixedArrays.w_ms_mem",
+    "FixedArrays.w_ms_sto",
+    "FixedArrays.w_nn_cd",
+    "FixedArrays.w_nn_mem",
+    "FixedArrays.w_nn_sto",
+    "FixedArrays.w_p_cd",
+    "FixedArrays.w_p_mem",
+    "FixedArrays.w_p_sto",
+    "Mappings.d_mS",
+    "Mappings.d_mby",
+    "Mappings.d_mda",
+    "Mappings.d_mu",
+    "Mappings.pushv_mda",
+    "Mappings.w_mby",
+    "SlotPointers.d_box_at",
+    "SlotPointers.d_pbox_at",
+    "SlotPointers.w_box_at",
+    "Structs.d_N",
+    "Structs.d_S",
+    "Structs.w_N_cd",
+    "Structs.w_N_mem",
+    "Structs.w_N_sto",
+    "ValueTypes.d_ad",
+    "ValueTypes.d_b32",
+    "ValueTypes.d_b7",
+    "ValueTypes.d_bo",
+    "ValueTypes.d_ct",
+    "ValueTypes.d_en",
+    "ValueTypes.d_fi",
+    "ValueTypes.d_i24",
+    "ValueTypes.d_i256",
+    "ValueTypes.d_i8",
+    "ValueTypes.d_u256",
+    "ValueTypes.d_u40",
+    "ValueTypes.d_u8"
+   ],
+   "helperChanges": 41,
+   "behaviourChanges": []
+  },
+  {
+   "version": "0.8.4",
+   "classification": "refactoring",
+   "change": "Index access into long bytes factored into `long_byte_array_index_access_no_checks`; same slot and offset.",
+   "ops": [
+    "Bytes.di_b",
+    "Bytes.pop_b",
+    "Bytes.pop_s",
+    "Bytes.push0_b",
+    "Bytes.pushv_b",
+    "Bytes.pushv_s",
+    "Bytes.ri_b",
+    "Bytes.wi_b"
+   ],
+   "helperChanges": 6,
+   "behaviourChanges": []
+  },
+  {
+   "version": "0.8.5",
+   "classification": "refactoring",
+   "change": "Tail clearing factored into `cleanup_storage_array_end` / `clean_up_bytearray_end_slots`; literals copied straight to storage.",
+   "ops": [
+    "Bytes.d_b",
+    "Bytes.d_s",
+    "Bytes.push0_b",
+    "Bytes.w_b_cd",
+    "Bytes.w_b_froms",
+    "Bytes.w_b_lit",
+    "Bytes.w_b_litlong",
+    "Bytes.w_b_mem",
+    "Bytes.w_b_sto",
+    "Bytes.w_s_cd",
+    "Bytes.w_s_mem",
+    "Bytes.w_s_sto",
+    "DynArrays.d_bb",
+    "DynArrays.d_f",
+    "DynArrays.d_fa",
+    "DynArrays.d_ms",
+    "DynArrays.d_nn",
+    "DynArrays.d_p",
+    "DynArrays.pop_bb",
+    "DynArrays.pop_nn",
+    "DynArrays.pushv_bb",
+    "DynArrays.pushv_fa",
+    "DynArrays.pushv_nn",
+    "DynArrays.w_bb_cd",
+    "DynArrays.w_bb_mem",
+    "DynArrays.w_bb_sto",
+    "DynArrays.w_f_cd",
+    "DynArrays.w_f_mem",
+    "DynArrays.w_f_sto",
+    "DynArrays.w_fa_cd",
+    "DynArrays.w_fa_mem",
+    "DynArrays.w_fa_sto",
+    "DynArrays.w_ms_cd",
+    "DynArrays.w_ms_mem",
+    "DynArrays.w_ms_sto",
+    "DynArrays.w_nn_cd",
+    "DynArrays.w_nn_mem",
+    "DynArrays.w_nn_sto",
+    "DynArrays.w_p_cd",
+    "DynArrays.w_p_mem",
+    "DynArrays.w_p_sto",
+    "FixedArrays.d_bb",
+    "FixedArrays.w_bb_cd",
+    "FixedArrays.w_bb_mem",
+    "FixedArrays.w_bb_sto",
+    "FixedArrays.w_f_cd",
+    "FixedArrays.w_f_mem",
+    "FixedArrays.w_f_sto",
+    "FixedArrays.w_ms_cd",
+    "FixedArrays.w_ms_mem",
+    "FixedArrays.w_ms_sto",
+    "FixedArrays.w_nn_cd",
+    "FixedArrays.w_nn_mem",
+    "FixedArrays.w_nn_sto",
+    "FixedArrays.w_p_cd",
+    "FixedArrays.w_p_mem",
+    "FixedArrays.w_p_sto",
+    "Mappings.d_mby",
+    "Mappings.d_mda",
+    "Mappings.w_mby",
+    "SlotPointers.w_box_at",
+    "Structs.d_N",
+    "Structs.w_N_cd",
+    "Structs.w_N_mem",
+    "Structs.w_N_sto",
+    "Structs.w_S_sto",
+    "ValueTypes.rmw_i24",
+    "ValueTypes.rmw_u8"
+   ],
+   "helperChanges": 93,
+   "behaviourChanges": []
+  },
+  {
+   "version": "0.8.7",
+   "classification": "representation",
+   "change": "Internal function pointers are stored as sequential dispatch ids instead of AST ids; contract-type conversions go through `uint160`.",
+   "ops": [
+    "ValueTypes.d_ct",
+    "ValueTypes.w_ct",
+    "ValueTypes.w_fi"
+   ],
+   "helperChanges": 1,
+   "behaviourChanges": [
+    "ValueTypes.fi"
+   ]
+  },
+  {
+   "version": "0.8.8",
+   "classification": "cosmetic",
+   "change": "Same-type conversions wrap the value in `identity`.",
+   "ops": [
+    "Bytes.d_b",
+    "Bytes.d_s",
+    "Bytes.w_b_cd",
+    "Bytes.w_b_froms",
+    "Bytes.w_b_lit",
+    "Bytes.w_b_litlong",
+    "Bytes.w_b_mem",
+    "Bytes.w_b_sto",
+    "Bytes.w_s_cd",
+    "Bytes.w_s_mem",
+    "Bytes.w_s_sto",
+    "DynArrays.d_bb",
+    "DynArrays.d_f",
+    "DynArrays.d_fa",
+    "DynArrays.d_ms",
+    "DynArrays.d_nn",
+    "DynArrays.d_p",
+    "DynArrays.di_p",
+    "DynArrays.pop_bb",
+    "DynArrays.pop_f",
+    "DynArrays.pop_fa",
+    "DynArrays.pop_ms",
+    "DynArrays.pop_nn",
+    "DynArrays.pop_p",
+    "DynArrays.pushv_bb",
+    "DynArrays.pushv_f",
+    "DynArrays.pushv_fa",
+    "DynArrays.pushv_ms",
+    "DynArrays.pushv_nn",
+    "DynArrays.pushv_p",
+    "DynArrays.w_bb_cd",
+    "DynArrays.w_bb_mem",
+    "DynArrays.w_bb_sto",
+    "DynArrays.w_f_cd",
+    "DynArrays.w_f_mem",
+    "DynArrays.w_f_sto",
+    "DynArrays.w_fa_cd",
+    "DynArrays.w_fa_mem",
+    "DynArrays.w_fa_sto",
+    "DynArrays.w_ms_cd",
+    "DynArrays.w_ms_mem",
+    "DynArrays.w_ms_sto",
+    "DynArrays.w_nn_cd",
+    "DynArrays.w_nn_mem",
+    "DynArrays.w_nn_sto",
+    "DynArrays.w_p_cd",
+    "DynArrays.w_p_mem",
+    "DynArrays.w_p_sto",
+    "DynArrays.wi_f",
+    "DynArrays.wi_ms",
+    "DynArrays.wi_nn",
+    "DynArrays.wi_p",
+    "FixedArrays.d_bb",
+    "FixedArrays.d_f",
+    "FixedArrays.d_ms",
+    "FixedArrays.d_nn",
+    "FixedArrays.d_p",
+    "FixedArrays.di_p",
+    "FixedArrays.w_bb_cd",
+    "FixedArrays.w_bb_mem",
+    "FixedArrays.w_bb_sto",
+    "FixedArrays.w_f_cd",
+    "FixedArrays.w_f_mem",
+    "FixedArrays.w_f_sto",
+    "FixedArrays.w_ms_cd",
+    "FixedArrays.w_ms_mem",
+    "FixedArrays.w_ms_sto",
+    "FixedArrays.w_nn_cd",
+    "FixedArrays.w_nn_mem",
+    "FixedArrays.w_nn_sto",
+    "FixedArrays.w_p_cd",
+    "FixedArrays.w_p_mem",
+    "FixedArrays.w_p_sto",
+    "FixedArrays.wi_f",
+    "FixedArrays.wi_ms",
+    "FixedArrays.wi_nn",
+    "FixedArrays.wi_p",
+    "Mappings.d_mS",
+    "Mappings.d_mby",
+    "Mappings.d_mda",
+    "Mappings.d_mu",
+    "Mappings.pushv_mda",
+    "Mappings.r_ma",
+    "Mappings.r_mi8",
+    "Mappings.r_mu",
+    "Mappings.w_mS",
+    "Mappings.w_ma",
+    "Mappings.w_mb4",
+    "Mappings.w_mb_cd",
+    "Mappings.w_mb_mem",
+    "Mappings.w_mbo",
+    "Mappings.w_mby",
+    "Mappings.w_mi8",
+    "Mappings.w_mm",
+    "Mappings.w_mst",
+    "Mappings.w_mu",
+    "SlotPointers.d_box_at",
+    "SlotPointers.d_pbox_at",
+    "SlotPointers.w_box_at",
+    "Structs.d_N",
+    "Structs.d_S",
+    "Structs.w_N_cd",
+    "Structs.w_N_mem",
+    "Structs.w_N_sto",
+    "Structs.w_S_cd",
+    "Structs.w_S_mem",
+    "Structs.w_S_sto",
+    "Structs.wf_M",
+    "Structs.wf_N",
+    "Structs.wf_S",
+    "ValueTypes.d_ad",
+    "ValueTypes.d_ct",
+    "ValueTypes.d_i24",
+    "ValueTypes.d_i256",
+    "ValueTypes.d_i8",
+    "ValueTypes.d_u256",
+    "ValueTypes.d_u40",
+    "ValueTypes.d_u8",
+    "ValueTypes.rmw_i24",
+    "ValueTypes.rmw_u8",
+    "ValueTypes.w_ad",
+    "ValueTypes.w_ct",
+    "ValueTypes.w_i24",
+    "ValueTypes.w_i256",
+    "ValueTypes.w_i8",
+    "ValueTypes.w_u256",
+    "ValueTypes.w_u40",
+    "ValueTypes.w_u8"
+   ],
+   "helperChanges": 12,
+   "behaviourChanges": []
+  },
+  {
+   "version": "0.8.15",
+   "classification": "memory-only",
+   "change": "Copying an empty short bytes value from storage to memory no longer allocates a 32-byte data word. Return data unchanged.",
+   "ops": [
+    "Bytes.r_b",
+    "Bytes.r_s",
+    "DynArrays.r_bb",
+    "FixedArrays.r_bb",
+    "Structs.r_N"
+   ],
+   "helperChanges": 2,
+   "behaviourChanges": []
+  },
+  {
+   "version": "0.8.16",
+   "classification": "semantic, non-canonical states only",
+   "change": "Packed arrays are copied into storage one whole slot at a time (bytes past the last element are zeroed) instead of element-by-element read-modify-write (those bytes were kept). Checked arithmetic restructured; memory copies clean up after themselves.",
+   "ops": [
+    "DynArrays.pushv_fa",
+    "DynArrays.pushv_nn",
+    "DynArrays.w_bb_cd",
+    "DynArrays.w_bb_mem",
+    "DynArrays.w_bb_sto",
+    "DynArrays.w_f_cd",
+    "DynArrays.w_f_mem",
+    "DynArrays.w_fa_cd",
+    "DynArrays.w_fa_mem",
+    "DynArrays.w_fa_sto",
+    "DynArrays.w_ms_cd",
+    "DynArrays.w_ms_mem",
+    "DynArrays.w_ms_sto",
+    "DynArrays.w_nn_cd",
+    "DynArrays.w_nn_mem",
+    "DynArrays.w_nn_sto",
+    "DynArrays.w_p_cd",
+    "DynArrays.w_p_mem",
+    "FixedArrays.w_bb_cd",
+    "FixedArrays.w_bb_mem",
+    "FixedArrays.w_bb_sto",
+    "FixedArrays.w_f_cd",
+    "FixedArrays.w_f_mem",
+    "FixedArrays.w_ms_cd",
+    "FixedArrays.w_ms_mem",
+    "FixedArrays.w_ms_sto",
+    "FixedArrays.w_nn_cd",
+    "FixedArrays.w_nn_mem",
+    "FixedArrays.w_nn_sto",
+    "FixedArrays.w_p_cd",
+    "FixedArrays.w_p_mem",
+    "Mappings.w_mb_mem",
+    "SlotPointers.w_box_at",
+    "Structs.w_N_cd",
+    "Structs.w_N_mem",
+    "ValueTypes.rmw_i24",
+    "ValueTypes.rmw_u8"
+   ],
+   "helperChanges": 50,
+   "behaviourChanges": [
+    "DynArrays.p.dirty.grow",
+    "FixedArrays.p.dirty",
+    "FixedArrays.p.dirty.write"
+   ]
+  },
+  {
+   "version": "0.8.17",
+   "classification": "refactoring",
+   "change": "`checked_mul` overflow test restructured (`div(product, x) == y`).",
+   "ops": [
+    "DynArrays.d_ms",
+    "DynArrays.w_ms_cd",
+    "DynArrays.w_ms_mem",
+    "DynArrays.w_ms_sto",
+    "FixedArrays.d_ms",
+    "FixedArrays.w_ms_cd",
+    "FixedArrays.w_ms_mem",
+    "FixedArrays.w_ms_sto"
+   ],
+   "helperChanges": 1,
+   "behaviourChanges": []
+  },
+  {
+   "version": "0.8.25",
+   "classification": "memory-only",
+   "change": "Memory-to-memory copies use `mcopy`.",
+   "ops": [
+    "Mappings.w_mb_mem"
+   ],
+   "helperChanges": 1,
+   "behaviourChanges": []
+  },
+  {
+   "version": "0.8.32",
+   "classification": "semantic (bug fix)",
+   "change": "Clearing loops count from zero instead of comparing absolute slots, so arrays straddling 2**256 are cleared (`LostStorageArrayWriteOnSlotOverflow`).",
+   "ops": [
+    "Bytes.d_b",
+    "Bytes.d_s",
+    "Bytes.w_b_cd",
+    "Bytes.w_b_froms",
+    "Bytes.w_b_lit",
+    "Bytes.w_b_litlong",
+    "Bytes.w_b_mem",
+    "Bytes.w_b_sto",
+    "Bytes.w_s_cd",
+    "Bytes.w_s_mem",
+    "Bytes.w_s_sto",
+    "DynArrays.d_bb",
+    "DynArrays.d_f",
+    "DynArrays.d_fa",
+    "DynArrays.d_ms",
+    "DynArrays.d_nn",
+    "DynArrays.d_p",
+    "DynArrays.pop_bb",
+    "DynArrays.pop_fa",
+    "DynArrays.pop_nn",
+    "DynArrays.pushv_bb",
+    "DynArrays.pushv_fa",
+    "DynArrays.pushv_nn",
+    "DynArrays.w_bb_cd",
+    "DynArrays.w_bb_mem",
+    "DynArrays.w_bb_sto",
+    "DynArrays.w_f_cd",
+    "DynArrays.w_f_mem",
+    "DynArrays.w_f_sto",
+    "DynArrays.w_fa_cd",
+    "DynArrays.w_fa_mem",
+    "DynArrays.w_fa_sto",
+    "DynArrays.w_ms_cd",
+    "DynArrays.w_ms_mem",
+    "DynArrays.w_ms_sto",
+    "DynArrays.w_nn_cd",
+    "DynArrays.w_nn_mem",
+    "DynArrays.w_nn_sto",
+    "DynArrays.w_p_cd",
+    "DynArrays.w_p_mem",
+    "DynArrays.w_p_sto",
+    "FixedArrays.d_bb",
+    "FixedArrays.d_f",
+    "FixedArrays.d_ms",
+    "FixedArrays.d_nn",
+    "FixedArrays.d_p",
+    "FixedArrays.w_bb_cd",
+    "FixedArrays.w_bb_mem",
+    "FixedArrays.w_bb_sto",
+    "FixedArrays.w_f_cd",
+    "FixedArrays.w_f_mem",
+    "FixedArrays.w_f_sto",
+    "FixedArrays.w_ms_cd",
+    "FixedArrays.w_ms_mem",
+    "FixedArrays.w_ms_sto",
+    "FixedArrays.w_nn_cd",
+    "FixedArrays.w_nn_mem",
+    "FixedArrays.w_nn_sto",
+    "FixedArrays.w_p_cd",
+    "FixedArrays.w_p_mem",
+    "FixedArrays.w_p_sto",
+    "LayoutAt.d_f",
+    "LayoutAt.w_c",
+    "Mappings.d_mby",
+    "Mappings.d_mda",
+    "Mappings.w_mby",
+    "SlotPointers.d_box_at",
+    "SlotPointers.d_pbox_at",
+    "SlotPointers.w_box_at",
+    "Structs.d_N",
+    "Structs.w_N_cd",
+    "Structs.w_N_mem",
+    "Structs.w_N_sto"
+   ],
+   "helperChanges": 33,
+   "behaviourChanges": [
+    "SlotPointers.box.wrap",
+    "SlotPointers.pbox.wrap"
+   ]
+  },
+  {
+   "version": "0.8.34",
+   "classification": "semantic (bug fix)",
+   "change": "Transient clearing gets its own helper. In 0.8.28-0.8.33 `delete` on a persistent variable could clear the transient variable of the same type instead (`TransientStorageClearingHelperCollision`).",
+   "ops": [
+    "TransientCollision.d_p"
+   ],
+   "helperChanges": 2,
+   "behaviourChanges": [
+    "TransientCollision.delete-persistent"
+   ]
+  }
+ ],
+ "features": {
+  "0.8.28": "transient storage (value types)",
+  "0.8.29": "`layout at` custom base slot"
+ },
+ "layoutClasses": {
+  "Bytes": [
+   [
+    "0.8.0",
+    "0.8.37"
+   ]
+  ],
+  "DynArrays": [
+   [
+    "0.8.0",
+    "0.8.37"
+   ]
+  ],
+  "FixedArrays": [
+   [
+    "0.8.0",
+    "0.8.37"
+   ]
+  ],
+  "LayoutAt": [
+   [
+    "0.8.0",
+    "0.8.28"
+   ],
+   [
+    "0.8.29",
+    "0.8.37"
+   ]
+  ],
+  "Mappings": [
+   [
+    "0.8.0",
+    "0.8.37"
+   ]
+  ],
+  "SlotPointers": [
+   [
+    "0.8.0",
+    "0.8.37"
+   ]
+  ],
+  "Structs": [
+   [
+    "0.8.0",
+    "0.8.37"
+   ]
+  ],
+  "Transient": [
+   [
+    "0.8.0",
+    "0.8.27"
+   ],
+   [
+    "0.8.28",
+    "0.8.37"
+   ]
+  ],
+  "TransientCollision": [
+   [
+    "0.8.0",
+    "0.8.27"
+   ],
+   [
+    "0.8.28",
+    "0.8.37"
+   ]
+  ],
+  "ValueTypes": [
+   [
+    "0.8.0",
+    "0.8.37"
+   ]
+  ]
+ },
+ "dynamicChangesWithoutStaticBoundary": [],
+ "unclassifiedBoundaries": [],
+ "scenarios": {
+  "ValueTypes.u8.clean": {
+   "ops": [
+    "d_u8",
+    "r_u8",
+    "w_u8"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "5d220664ba94"
+    ]
+   ]
+  },
+  "ValueTypes.u8.dirty": {
+   "ops": [
+    "d_u8",
+    "r_u8",
+    "w_u8"
+   ],
+   "note": "all slots 0xff..: neighbours must be preserved, reads clean up the stored bits",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "706164f2bc8f"
+    ]
+   ]
+  },
+  "ValueTypes.i8.clean": {
+   "ops": [
+    "d_i8",
+    "r_i8",
+    "w_i8"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "359281ab0fe7"
+    ]
+   ]
+  },
+  "ValueTypes.i8.dirty": {
+   "ops": [
+    "d_i8",
+    "r_i8",
+    "w_i8"
+   ],
+   "note": "all slots 0xff..: neighbours must be preserved, reads clean up the stored bits",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "4922556f296e"
+    ]
+   ]
+  },
+  "ValueTypes.bo.clean": {
+   "ops": [
+    "d_bo",
+    "r_bo",
+    "w_bo"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "7b2cd56b4fc5"
+    ]
+   ]
+  },
+  "ValueTypes.bo.dirty": {
+   "ops": [
+    "d_bo",
+    "r_bo",
+    "w_bo"
+   ],
+   "note": "all slots 0xff..: neighbours must be preserved, reads clean up the stored bits",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "35c89081451b"
+    ]
+   ]
+  },
+  "ValueTypes.ad.clean": {
+   "ops": [
+    "d_ad",
+    "r_ad",
+    "w_ad"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "3e9b18f87d97"
+    ]
+   ]
+  },
+  "ValueTypes.ad.dirty": {
+   "ops": [
+    "d_ad",
+    "r_ad",
+    "w_ad"
+   ],
+   "note": "all slots 0xff..: neighbours must be preserved, reads clean up the stored bits",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "ca1555e52921"
+    ]
+   ]
+  },
+  "ValueTypes.b7.clean": {
+   "ops": [
+    "d_b7",
+    "r_b7",
+    "w_b7"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "cd03e93162f8"
+    ]
+   ]
+  },
+  "ValueTypes.b7.dirty": {
+   "ops": [
+    "d_b7",
+    "r_b7",
+    "w_b7"
+   ],
+   "note": "all slots 0xff..: neighbours must be preserved, reads clean up the stored bits",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "30b14603567d"
+    ]
+   ]
+  },
+  "ValueTypes.en.clean": {
+   "ops": [
+    "d_en",
+    "r_en",
+    "w_en"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "c96707bb7e92"
+    ]
+   ]
+  },
+  "ValueTypes.en.dirty": {
+   "ops": [
+    "d_en",
+    "r_en",
+    "w_en"
+   ],
+   "note": "all slots 0xff..: neighbours must be preserved, reads clean up the stored bits",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "0bb1d8ed3648"
+    ]
+   ]
+  },
+  "ValueTypes.ct.clean": {
+   "ops": [
+    "d_ct",
+    "r_ct",
+    "w_ct"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "3e9b18f87d97"
+    ]
+   ]
+  },
+  "ValueTypes.ct.dirty": {
+   "ops": [
+    "d_ct",
+    "r_ct",
+    "w_ct"
+   ],
+   "note": "all slots 0xff..: neighbours must be preserved, reads clean up the stored bits",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "57e17bb33e68"
+    ]
+   ]
+  },
+  "ValueTypes.u40.clean": {
+   "ops": [
+    "d_u40",
+    "r_u40",
+    "w_u40"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "3379c3330218"
+    ]
+   ]
+  },
+  "ValueTypes.u40.dirty": {
+   "ops": [
+    "d_u40",
+    "r_u40",
+    "w_u40"
+   ],
+   "note": "all slots 0xff..: neighbours must be preserved, reads clean up the stored bits",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "f28d4da3f5ee"
+    ]
+   ]
+  },
+  "ValueTypes.i24.clean": {
+   "ops": [
+    "d_i24",
+    "r_i24",
+    "w_i24"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "eb8603bfa9f2"
+    ]
+   ]
+  },
+  "ValueTypes.i24.dirty": {
+   "ops": [
+    "d_i24",
+    "r_i24",
+    "w_i24"
+   ],
+   "note": "all slots 0xff..: neighbours must be preserved, reads clean up the stored bits",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "af01cc56e81e"
+    ]
+   ]
+  },
+  "ValueTypes.fx.clean": {
+   "ops": [
+    "d_fx",
+    "r_fx",
+    "w_fx"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.1",
+     null
+    ],
+    [
+     "0.8.2",
+     "0.8.37",
+     "0e2e8e4983a0"
+    ]
+   ]
+  },
+  "ValueTypes.fx.dirty": {
+   "ops": [
+    "d_fx",
+    "r_fx",
+    "w_fx"
+   ],
+   "note": "all slots 0xff..: neighbours must be preserved, reads clean up the stored bits",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.1",
+     null
+    ],
+    [
+     "0.8.2",
+     "0.8.37",
+     "47b03a8adf4d"
+    ]
+   ]
+  },
+  "ValueTypes.u256.clean": {
+   "ops": [
+    "d_u256",
+    "r_u256",
+    "w_u256"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "50eeb5a9a06e"
+    ]
+   ]
+  },
+  "ValueTypes.u256.dirty": {
+   "ops": [
+    "d_u256",
+    "r_u256",
+    "w_u256"
+   ],
+   "note": "all slots 0xff..: neighbours must be preserved, reads clean up the stored bits",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "b3760ea9cc4d"
+    ]
+   ]
+  },
+  "ValueTypes.i256.clean": {
+   "ops": [
+    "d_i256",
+    "r_i256",
+    "w_i256"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "50eeb5a9a06e"
+    ]
+   ]
+  },
+  "ValueTypes.i256.dirty": {
+   "ops": [
+    "d_i256",
+    "r_i256",
+    "w_i256"
+   ],
+   "note": "all slots 0xff..: neighbours must be preserved, reads clean up the stored bits",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "c70d64fffd51"
+    ]
+   ]
+  },
+  "ValueTypes.b32.clean": {
+   "ops": [
+    "d_b32",
+    "r_b32",
+    "w_b32"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "2d6422f5eceb"
+    ]
+   ]
+  },
+  "ValueTypes.b32.dirty": {
+   "ops": [
+    "d_b32",
+    "r_b32",
+    "w_b32"
+   ],
+   "note": "all slots 0xff..: neighbours must be preserved, reads clean up the stored bits",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "e66cacdc710e"
+    ]
+   ]
+  },
+  "ValueTypes.en.invalid": {
+   "ops": [
+    "r_en"
+   ],
+   "note": "enum value 5 stored at offset 30",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "86b6624dd331"
+    ]
+   ]
+  },
+  "ValueTypes.bo.nonboolean": {
+   "ops": [
+    "r_bo"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "c77adf0701c1"
+    ]
+   ]
+  },
+  "ValueTypes.fi": {
+   "ops": [
+    "d_fi",
+    "w_fi"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.6",
+     "584b5eadf8ac"
+    ],
+    [
+     "0.8.7",
+     "0.8.37",
+     "1858b30aabe7"
+    ]
+   ]
+  },
+  "ValueTypes.rmw": {
+   "ops": [
+    "rmw_i24",
+    "rmw_u8",
+    "w_i24",
+    "w_u8"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "674e447dd5c0"
+    ]
+   ]
+  },
+  "Structs.S": {
+   "ops": [
+    "d_S",
+    "r_S",
+    "rf_S",
+    "set_s2",
+    "w_S_cd",
+    "w_S_mem",
+    "w_S_sto",
+    "wf_S"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "f3e89bf0ba29"
+    ]
+   ]
+  },
+  "Structs.S.dirty": {
+   "ops": [
+    "d_S",
+    "r_S",
+    "w_S_cd"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "6da78c8305fd"
+    ]
+   ]
+  },
+  "Structs.N": {
+   "ops": [
+    "d_N",
+    "r_N",
+    "set_n2",
+    "w_N_cd",
+    "w_N_mem",
+    "w_N_sto",
+    "wf_N"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "85389227154a"
+    ]
+   ]
+  },
+  "Structs.M": {
+   "ops": [
+    "d_M",
+    "wf_M"
+   ],
+   "note": "delete skips the mapping member",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "a9fe44b7c5a0"
+    ]
+   ]
+  },
+  "FixedArrays.p": {
+   "ops": [
+    "d_p",
+    "r_p",
+    "set_p2",
+    "w_p_cd",
+    "w_p_mem",
+    "w_p_sto"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "cac079d359f5"
+    ]
+   ]
+  },
+  "FixedArrays.f": {
+   "ops": [
+    "d_f",
+    "r_f",
+    "set_f2",
+    "w_f_cd",
+    "w_f_mem",
+    "w_f_sto"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "30c7048316ce"
+    ]
+   ]
+  },
+  "FixedArrays.ms": {
+   "ops": [
+    "d_ms",
+    "r_ms",
+    "set_ms2",
+    "w_ms_cd",
+    "w_ms_mem",
+    "w_ms_sto"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "cfc2cb15f795"
+    ]
+   ]
+  },
+  "FixedArrays.nn": {
+   "ops": [
+    "d_nn",
+    "r_nn",
+    "set_nn2",
+    "w_nn_cd",
+    "w_nn_mem",
+    "w_nn_sto"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "9b65fae02954"
+    ]
+   ]
+  },
+  "FixedArrays.bb": {
+   "ops": [
+    "d_bb",
+    "r_bb",
+    "set_bb2",
+    "w_bb_cd",
+    "w_bb_mem",
+    "w_bb_sto"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "aef5b5763a5f"
+    ]
+   ]
+  },
+  "FixedArrays.p.index": {
+   "ops": [
+    "di_p",
+    "ri_p",
+    "wi_p"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "568a525e87b3"
+    ]
+   ]
+  },
+  "FixedArrays.f.index": {
+   "ops": [
+    "ri_f",
+    "wi_f"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "d01a7485e92f"
+    ]
+   ]
+  },
+  "FixedArrays.ms.index": {
+   "ops": [
+    "r_ms",
+    "wi_ms"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "3823a36c333e"
+    ]
+   ]
+  },
+  "FixedArrays.nn.index": {
+   "ops": [
+    "r_nn",
+    "wi_nn"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "099790a6411e"
+    ]
+   ]
+  },
+  "DynArrays.p.mem": {
+   "ops": [
+    "r_p",
+    "w_p_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "32ff128fcaee"
+    ]
+   ]
+  },
+  "DynArrays.p.cd": {
+   "ops": [
+    "w_p_cd"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "46396d98dca1"
+    ]
+   ]
+  },
+  "DynArrays.p.sto": {
+   "ops": [
+    "set_p2",
+    "w_p_mem",
+    "w_p_sto"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "1b6cbb68b6ce"
+    ]
+   ]
+  },
+  "DynArrays.p.delete": {
+   "ops": [
+    "d_p",
+    "w_p_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "8f61a343cb4d"
+    ]
+   ]
+  },
+  "DynArrays.p.pushpop": {
+   "ops": [
+    "pop_p",
+    "push0_p",
+    "pushv_p",
+    "w_p_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "2c060ab74f14"
+    ]
+   ]
+  },
+  "DynArrays.f.mem": {
+   "ops": [
+    "r_f",
+    "w_f_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "3356b4a78da4"
+    ]
+   ]
+  },
+  "DynArrays.f.cd": {
+   "ops": [
+    "w_f_cd"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "b871454615cf"
+    ]
+   ]
+  },
+  "DynArrays.f.sto": {
+   "ops": [
+    "set_f2",
+    "w_f_mem",
+    "w_f_sto"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "1b6cbb68b6ce"
+    ]
+   ]
+  },
+  "DynArrays.f.delete": {
+   "ops": [
+    "d_f",
+    "w_f_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "8f61a343cb4d"
+    ]
+   ]
+  },
+  "DynArrays.f.pushpop": {
+   "ops": [
+    "pop_f",
+    "push0_f",
+    "pushv_f",
+    "w_f_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "2c060ab74f14"
+    ]
+   ]
+  },
+  "DynArrays.ms.mem": {
+   "ops": [
+    "r_ms",
+    "w_ms_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "9078a813fb1e"
+    ]
+   ]
+  },
+  "DynArrays.ms.cd": {
+   "ops": [
+    "w_ms_cd"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "b54fe650f3ef"
+    ]
+   ]
+  },
+  "DynArrays.ms.sto": {
+   "ops": [
+    "set_ms2",
+    "w_ms_mem",
+    "w_ms_sto"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "1b6cbb68b6ce"
+    ]
+   ]
+  },
+  "DynArrays.ms.delete": {
+   "ops": [
+    "d_ms",
+    "w_ms_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "8f61a343cb4d"
+    ]
+   ]
+  },
+  "DynArrays.ms.pushpop": {
+   "ops": [
+    "pop_ms",
+    "push0_ms",
+    "pushv_ms",
+    "w_ms_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "335f123ba656"
+    ]
+   ]
+  },
+  "DynArrays.nn.mem": {
+   "ops": [
+    "r_nn",
+    "w_nn_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "9ca4be827037"
+    ]
+   ]
+  },
+  "DynArrays.nn.cd": {
+   "ops": [
+    "w_nn_cd"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "7bb049a97a14"
+    ]
+   ]
+  },
+  "DynArrays.nn.sto": {
+   "ops": [
+    "set_nn2",
+    "w_nn_mem",
+    "w_nn_sto"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "1b6cbb68b6ce"
+    ]
+   ]
+  },
+  "DynArrays.nn.delete": {
+   "ops": [
+    "d_nn",
+    "w_nn_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "8f61a343cb4d"
+    ]
+   ]
+  },
+  "DynArrays.nn.pushpop": {
+   "ops": [
+    "pop_nn",
+    "push0_nn",
+    "pushv_nn",
+    "w_nn_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "335f123ba656"
+    ]
+   ]
+  },
+  "DynArrays.bb.mem": {
+   "ops": [
+    "r_bb",
+    "w_bb_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "e65037b3d340"
+    ]
+   ]
+  },
+  "DynArrays.bb.cd": {
+   "ops": [
+    "w_bb_cd"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "14a5b3a87304"
+    ]
+   ]
+  },
+  "DynArrays.bb.sto": {
+   "ops": [
+    "set_bb2",
+    "w_bb_mem",
+    "w_bb_sto"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "1b6cbb68b6ce"
+    ]
+   ]
+  },
+  "DynArrays.bb.delete": {
+   "ops": [
+    "d_bb",
+    "w_bb_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "8f61a343cb4d"
+    ]
+   ]
+  },
+  "DynArrays.bb.pushpop": {
+   "ops": [
+    "pop_bb",
+    "pushv_bb",
+    "w_bb_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "a22e90e1cc47"
+    ]
+   ]
+  },
+  "DynArrays.fa.mem": {
+   "ops": [
+    "d_fa",
+    "w_fa_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "8cb9a15768eb"
+    ]
+   ]
+  },
+  "DynArrays.fa.cd": {
+   "ops": [
+    "w_fa_cd"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "baf28d53f29c"
+    ]
+   ]
+  },
+  "DynArrays.fa.sto": {
+   "ops": [
+    "set_fa2",
+    "w_fa_mem",
+    "w_fa_sto"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "1b6cbb68b6ce"
+    ]
+   ]
+  },
+  "DynArrays.fa.delete": {
+   "ops": [
+    "d_fa",
+    "w_fa_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "8f61a343cb4d"
+    ]
+   ]
+  },
+  "DynArrays.fa.pushpop": {
+   "ops": [
+    "pop_fa",
+    "pushv_fa",
+    "w_fa_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "a22e90e1cc47"
+    ]
+   ]
+  },
+  "DynArrays.p.pushpop.boundary": {
+   "ops": [
+    "len_p",
+    "pop_p",
+    "push0_p",
+    "pushv_p",
+    "w_p_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "df376e43b5a3"
+    ]
+   ]
+  },
+  "DynArrays.p.index": {
+   "ops": [
+    "di_p",
+    "r_p",
+    "ri_p",
+    "w_p_mem",
+    "wi_p"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "eb8a7ebd05fc"
+    ]
+   ]
+  },
+  "DynArrays.f.index": {
+   "ops": [
+    "ri_f",
+    "w_f_mem",
+    "wi_f"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "e30637886500"
+    ]
+   ]
+  },
+  "DynArrays.ms.index": {
+   "ops": [
+    "r_ms",
+    "w_ms_mem",
+    "wi_ms"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "f8e86d0a40a7"
+    ]
+   ]
+  },
+  "DynArrays.nn.index": {
+   "ops": [
+    "r_nn",
+    "w_nn_mem",
+    "wi_nn"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "86504e164e87"
+    ]
+   ]
+  },
+  "Bytes.b.mem.transitions": {
+   "ops": [
+    "len_b",
+    "r_b",
+    "w_b_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "8fb19ff2536b"
+    ]
+   ]
+  },
+  "Bytes.b.cd.transitions": {
+   "ops": [
+    "r_b",
+    "w_b_cd"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "89be4e9362de"
+    ]
+   ]
+  },
+  "Bytes.b.sto.transitions": {
+   "ops": [
+    "r_b",
+    "set_b2",
+    "w_b_sto"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "2364d44027af"
+    ]
+   ]
+  },
+  "Bytes.s.transitions": {
+   "ops": [
+    "d_s",
+    "len_s",
+    "r_s",
+    "set_s2",
+    "w_s_cd",
+    "w_s_mem",
+    "w_s_sto"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "3e7b23f18141"
+    ]
+   ]
+  },
+  "Bytes.b.literals": {
+   "ops": [
+    "r_b",
+    "set_s2",
+    "w_b_froms",
+    "w_b_lit",
+    "w_b_litlong",
+    "w_s_sto"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "dbc5212ba952"
+    ]
+   ]
+  },
+  "Bytes.b.delete": {
+   "ops": [
+    "d_b",
+    "r_b",
+    "w_b_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "7ca3de9dec89"
+    ]
+   ]
+  },
+  "Bytes.b.pushpop.boundary": {
+   "ops": [
+    "len_b",
+    "pop_b",
+    "push0_b",
+    "pushv_b",
+    "r_b",
+    "w_b_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "f221980db58d"
+    ]
+   ]
+  },
+  "Bytes.s.pushpop": {
+   "ops": [
+    "pop_s",
+    "pushv_s",
+    "r_s",
+    "w_s_mem"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "cf7b4b34700c"
+    ]
+   ]
+  },
+  "Bytes.b.index": {
+   "ops": [
+    "di_b",
+    "r_b",
+    "ri_b",
+    "w_b_mem",
+    "wi_b"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "814bfb650181"
+    ]
+   ]
+  },
+  "Mappings.values": {
+   "ops": [
+    "d_mu",
+    "r_ma",
+    "r_mi8",
+    "r_mu",
+    "w_ma",
+    "w_mb4",
+    "w_mbo",
+    "w_mi8",
+    "w_mm",
+    "w_mu"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "c394d2508fe5"
+    ]
+   ]
+  },
+  "Mappings.dynamic-keys": {
+   "ops": [
+    "r_mb",
+    "w_mb_cd",
+    "w_mb_mem",
+    "w_mst"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.1",
+     null
+    ],
+    [
+     "0.8.2",
+     "0.8.37",
+     "21fb6af2ac33"
+    ]
+   ]
+  },
+  "Mappings.aggregates": {
+   "ops": [
+    "d_mS",
+    "d_mby",
+    "d_mda",
+    "pushv_mda",
+    "w_mS",
+    "w_mby"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "61d17b46a898"
+    ]
+   ]
+  },
+  "SlotPointers.box.wrap": {
+   "ops": [
+    "d_box_at"
+   ],
+   "note": "uint256[4] at 2**256-2: occupies slots 2**256-2, 2**256-1, 0, 1",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.31",
+     "790945f2ac4f"
+    ],
+    [
+     "0.8.32",
+     "0.8.37",
+     "247c5e328a48"
+    ]
+   ]
+  },
+  "SlotPointers.box.wrap.write": {
+   "ops": [
+    "w_box_at"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "e99f665affa7"
+    ]
+   ]
+  },
+  "SlotPointers.box.nowrap": {
+   "ops": [
+    "d_box_at"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "82ffb130c337"
+    ]
+   ]
+  },
+  "SlotPointers.pbox.wrap": {
+   "ops": [
+    "d_pbox_at"
+   ],
+   "note": "uint8[40] at 2**256-1: occupies slots 2**256-1 and 0",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.31",
+     "c954f3996ad0"
+    ],
+    [
+     "0.8.32",
+     "0.8.37",
+     "66c5f75639df"
+    ]
+   ]
+  },
+  "Transient.all": {
+   "ops": [
+    "d_t",
+    "d_t8",
+    "d_ta",
+    "r_t",
+    "r_t8",
+    "r_ti8",
+    "w_t",
+    "w_t8",
+    "w_ta",
+    "w_tb",
+    "w_ti8"
+   ],
+   "note": "persistent slot 0 is dirty and must stay untouched",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.27",
+     null
+    ],
+    [
+     "0.8.28",
+     "0.8.37",
+     "eede5019f3e4"
+    ]
+   ]
+  },
+  "TransientCollision.delete-persistent": {
+   "ops": [
+    "d_p",
+    "r_both",
+    "w_both"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.27",
+     null
+    ],
+    [
+     "0.8.28",
+     "0.8.33",
+     "d2f0f68c80bf"
+    ],
+    [
+     "0.8.34",
+     "0.8.37",
+     "96abf581b48c"
+    ]
+   ]
+  },
+  "TransientCollision.delete-transient": {
+   "ops": [
+    "d_t",
+    "r_both",
+    "w_both"
+   ],
+   "note": "",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.27",
+     null
+    ],
+    [
+     "0.8.28",
+     "0.8.37",
+     "d2f0f68c80bf"
+    ]
+   ]
+  },
+  "FixedArrays.p.dirty": {
+   "ops": [
+    "d_p",
+    "r_p",
+    "w_nn_mem",
+    "w_p_mem"
+   ],
+   "note": "bits beyond the elements in each slot are dirty",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.15",
+     "2b2a6e1d6263"
+    ],
+    [
+     "0.8.16",
+     "0.8.37",
+     "ea34c1521aa5"
+    ]
+   ]
+  },
+  "FixedArrays.p.dirty.write": {
+   "ops": [
+    "r_p",
+    "w_p_cd"
+   ],
+   "note": "uint8[5] written over a slot whose bytes 5..31 are dirty",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.15",
+     "c4da2a896750"
+    ],
+    [
+     "0.8.16",
+     "0.8.37",
+     "d2db95f8923c"
+    ]
+   ]
+  },
+  "DynArrays.p.dirty": {
+   "ops": [
+    "pop_p",
+    "push0_p",
+    "pushv_p",
+    "r_p",
+    "w_p_mem"
+   ],
+   "note": "length 3, data slots 0xff..: dirty bytes beyond the length",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "3a6271ea6247"
+    ]
+   ]
+  },
+  "DynArrays.p.dirty.grow": {
+   "ops": [
+    "r_p",
+    "w_p_mem"
+   ],
+   "note": "length 3 grown to 5 over dirty bytes; no later shrink cleans the slot",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.15",
+     "42e1362c76f2"
+    ],
+    [
+     "0.8.16",
+     "0.8.37",
+     "d321995ea5bf"
+    ]
+   ]
+  },
+  "DynArrays.f.dirty": {
+   "ops": [
+    "d_f",
+    "pop_f",
+    "push0_f",
+    "r_f",
+    "w_f_mem"
+   ],
+   "note": "length 2, two dirty slots past the end",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "ddaee438de89"
+    ]
+   ]
+  },
+  "DynArrays.ms.dirty": {
+   "ops": [
+    "pop_ms",
+    "push0_ms",
+    "r_ms"
+   ],
+   "note": "length 1, struct slots and the following element dirty",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "0ae17f7ff9a5"
+    ]
+   ]
+  },
+  "Bytes.b.invalid.long-flag-short-length": {
+   "ops": [
+    "len_b",
+    "pop_b",
+    "push0_b",
+    "r_b",
+    "ri_b",
+    "w_b_mem"
+   ],
+   "note": "header 0x03: long flag with length 1",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "a019a509ecd5"
+    ]
+   ]
+  },
+  "Bytes.b.invalid.short-flag-long-length": {
+   "ops": [
+    "d_b",
+    "len_b",
+    "r_b"
+   ],
+   "note": "header 0x40: short flag with length 32",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "900bd4ad3cad"
+    ]
+   ]
+  },
+  "Bytes.b.dirty.long": {
+   "ops": [
+    "pop_b",
+    "push0_b",
+    "r_b",
+    "w_b_mem"
+   ],
+   "note": "length 33, data slots 0xff..: dirty beyond the length",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "ff80b42d8382"
+    ]
+   ]
+  },
+  "Bytes.b.dirty.short": {
+   "ops": [
+    "pop_b",
+    "push0_b",
+    "pushv_b",
+    "r_b",
+    "w_b_mem"
+   ],
+   "note": "short length 5 with dirty bytes after it",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.0",
+     null
+    ],
+    [
+     "0.8.1",
+     "0.8.37",
+     "0039fba7fc11"
+    ]
+   ]
+  },
+  "LayoutAt.all": {
+   "ops": [
+    "d_f",
+    "pushv_d",
+    "w_a",
+    "w_b",
+    "w_c",
+    "w_m"
+   ],
+   "note": "layout at 0x1234; f prefilled",
+   "classes": [
+    [
+     "0.8.0",
+     "0.8.28",
+     null
+    ],
+    [
+     "0.8.29",
+     "0.8.37",
+     "0b68b623ca1c"
+    ]
+   ]
+  }
+ }
+}
