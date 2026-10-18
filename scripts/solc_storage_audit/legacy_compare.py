@@ -14,14 +14,12 @@ import scenarios
 from pathlib import Path
 
 VERSIONS = ["0.8.4", "0.8.13", "0.8.23", "0.8.37"]
-orig = run_matrix.standard_json
-run_matrix.standard_json = lambda name, src, via_ir=True: orig(name, src, via_ir=False)
 
 def legacy_runtime(version, probe):
     src = (run_matrix.PROBES / f"{probe}.sol").read_text()
     if run_matrix.version_key(version) < run_matrix.version_key(run_matrix.probe_directives(src)["min"]):
         return None
-    contracts, errors = run_matrix.compile_source(version, f"{probe}.sol", src)
+    contracts, errors = run_matrix.compile_source(version, f"{probe}.sol", src, via_ir=False)
     return None if errors else "0x" + contracts[probe]["runtime"]
 
 via = json.loads((Path(dynamic.OUT) / "dynamic.json").read_text())

@@ -81,10 +81,10 @@ def standard_json(source_name, source, via_ir=True):
     })
 
 
-def compile_source(version, source_name, source):
+def compile_source(version, source_name, source, via_ir=True):
     """{contract: {ir, storageLayout, runtime}} and the list of error messages."""
     proc = subprocess.run([str(solc_path(version)), "--standard-json"],
-                          input=standard_json(source_name, source),
+                          input=standard_json(source_name, source, via_ir),
                           capture_output=True, text=True, timeout=600)
     try:
         result = json.loads(proc.stdout)
@@ -99,7 +99,7 @@ def compile_source(version, source_name, source):
             "storageLayout": c.get("storageLayout"),
             "runtime": c.get("evm", {}).get("deployedBytecode", {}).get("object", ""),
         }
-    if contracts and not errors and not any(c["runtime"] for c in contracts.values()):
+    if via_ir and contracts and not errors and not any(c["runtime"] for c in contracts.values()):
         # Early releases ignore `settings.viaIR`; the CLI flag still produces via-IR bytecode.
         for name, runtime in cli_via_ir_runtime(version, source_name, source).items():
             if name in contracts:
