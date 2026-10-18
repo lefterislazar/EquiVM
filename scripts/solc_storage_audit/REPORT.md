@@ -14,8 +14,9 @@ two compiler bug fixes:
 
 One further change, in **0.8.16**, only shows on non-canonical storage: bytes past a packed array's
 last element are now zeroed. The storage layout is identical across all versions.
-**Recommendation: keep the algorithms fixed and the layout parametric (option B).** Absorb
-non-canonical storage with a `StorageWF` precondition instead of adding a version parameter.
+**Recommendation: keep the algorithms fixed and the layout parametric (option B).** On
+non-canonical storage the behaviour also depends on the pipeline (see "The legacy pipeline"), so
+either assume canonical storage with a `StorageWF` precondition or fix one pipeline per semantics.
 
 Generated tables are in [`MATRIX.md`](MATRIX.md) and machine-readable results in
 [`summary.json`](summary.json).
@@ -159,22 +160,50 @@ arrays up to 0.8.31.
 | straddling arrays | layout slot arithmetic is `UInt256` addition and wraps | matches ≥0.8.32 |
 | transient `delete` | separate transient backend | matches ≥0.8.34 |
 
-**Non-canonical storage: four divergences.** All need storage that compiled Solidity code does not
-produce (assembly, a delegatecall into another layout, or legacy-pipeline bugs):
+**Non-canonical storage: six divergences.** All need storage that compiled Solidity code does not
+produce (assembly, a delegatecall into another layout, or another compiler). Items 1, 3 and 4 were
+missed in the first version of this report and found while implementing the via-IR algorithms,
+by reading the closures in `out/closures/0.8.37.json`:
 
-1. **Assigning a packed array over a dirty slot tail.** Lean clears and writes per element, so the
-   tail survives. This matches ≤0.8.15 but not 0.8.16+.
-2. **`delete` of a packed array.** Lean zeroes per element and keeps a dirty tail. Every version of
-   solc clears whole slots.
-3. **`push()` on dirty `bytes`.** Lean rewrites the value with a zero byte. solc only increases the
+1. **`delete` of a struct.** via-IR's `clear_struct_storage` writes `sstore(slot, 0)` for every
+   slot holding value-type members; Lean clears each member in place, keeping the slot's padding.
+2. **`delete` of a packed array**, and clearing the tail of a dynamic array. solc zeroes whole
+   slots; Lean zeroes each element and keeps a dirty tail.
+3. **Assigning a packed array over a dirty slot tail.** Lean clears and writes per element, so the
+   tail survives. This matches ≤0.8.15 but not 0.8.16+, which writes whole slots.
+4. **`push(v)` and `pop()` on dirty `bytes`.** solc changes the header and the one byte in place
+   (`array_push_from_t_bytes1`, `byte_array_pop`); Lean rewrites the whole value, which zeroes the
+   bytes past the new length.
+5. **`push()` on dirty `bytes`.** Lean rewrites the value with a zero byte. solc only increases the
    length, exposing the dirty byte (`Bytes.b.dirty.short`, `Bytes.b.dirty.long`).
-4. **Enum value out of range.** solc reads panic 0x21. Solm has no enums, and a `uint8`
+6. **Enum value out of range.** solc reads panic 0x21. Solm has no enums, and a `uint8`
    desugaring returns the raw value.
 
 The refinement relation already has the hook to make these irrelevant:
 `runtimeRefinementWithWF (wf : StorageWF)` (`Solm/Refine.lean`). Note that DiffTest's random
 pre-states (`Solm/DiffTest/Gen.lean`, `randomStorage`) are written *through* the backend, so they
-are canonical and cannot expose these four cases.
+are canonical and cannot expose these cases.
+
+## The legacy pipeline
+
+The analysis above covers via-IR only. Most benchmarks EquiVM has proved are compiled with the
+legacy code generator (WETH9 with 0.5.16, Dss with 0.6.12, Auction with 0.8.23), so
+`legacy_compare.py` runs every scenario on legacy bytecode of 0.8.4, 0.8.13, 0.8.23 and 0.8.37
+and compares it with the via-IR bytecode of the same release:
+
+| scenario | legacy vs via-IR |
+|---|---|
+| `Structs.S.dirty` | **differs in every release**: legacy `delete` of a struct masks out each member and keeps the padding; via-IR zeroes whole slots |
+| `SlotPointers.box.wrap`, `pbox.wrap` | differ up to 0.8.31; both pipelines fixed in 0.8.32 |
+| `ValueTypes.fi` | internal function pointer encoding (not modelled) |
+| all other 103 scenarios | identical, including the packed-array writes, packed-array `delete` and `bytes` push/pop on dirty storage |
+
+Releases before 0.8 were not run (the probes use 0.8 syntax). The Flipper proof
+(`Benchmarks/Dss/Flipper/BidDelete.lean`) shows the per-member struct `delete` of 0.6.12.
+
+So on non-canonical storage the struct `delete` of the current Lean backend matches legacy
+bytecode and not via-IR. Changing `Solm.solidityStorageBackend` to via-IR behaviour would make the
+proved legacy benchmarks false on dirty storage.
 
 ## Recommendation
 
@@ -183,22 +212,25 @@ are canonical and cannot expose these four cases.
 - **Layout:** the base slot (`layout at`, 0.8.29+) and the location (persistent or transient), as
   `solidityStorage!` / `solidityTransientStorage!` already do. Nothing else in the layout varies
   across 0.8.x.
-- **Algorithms:** none. The current Lean algorithms already implement the bug-fixed semantics
-  (≥0.8.34) on canonical storage.
-- **Version scope:** state it as **solc ≥ 0.8.34 via-IR**. Older versions are also covered, with
-  two exceptions:
+- **Algorithms:** none on canonical storage. The current Lean algorithms implement the bug-fixed
+  semantics (≥0.8.34) there.
+- **Version scope:** state it as **solc ≥ 0.8.34**. Older versions are also covered, with two
+  exceptions:
   - 0.8.28–0.8.33, for contracts that `delete` both a transient and a persistent variable of the
     same type
   - ≤0.8.31, for arrays straddling 2²⁵⁶
+- **Non-canonical storage:** the behaviours depend on the pipeline (struct `delete`) and on the
+  release (packed-array writes before 0.8.16), so a single algorithm cannot match every compiler.
+  Either assume canonical storage (`StorageWF`), or fix one pipeline per semantics.
 
-  If those versions matter, model them as two boolean quirks on the backend
-  (`transientClearCollision`, `slotOverflowClearSkipped`) rather than as a parametric algorithm.
-  Each changes exactly one helper.
-- **Non-canonical storage:** add a canonical-storage `StorageWF` (no dirty bytes beyond a value's
-  extent; valid `bytes` headers). Under it all four divergences disappear, and the 0.8.16 boundary
-  disappears with them. Alternatively, align Lean with ≥0.8.16 by zeroing whole trailing slots on
-  packed-array assignment and `delete`, and by using the length-only `push()` for `bytes`. That
-  removes divergences 1–3 without a precondition.
+### Outcome
+
+- `Solm.solidityStorageBackend` is unchanged, so the legacy benchmarks keep their behaviour.
+- The Solidity semantics (`Solidity/`, branch `solidity-storage-implementation`) no longer goes through
+  a configurable `StorageBackend`. Its config carries only the layout (`Config.storageLayout`); the
+  algorithms are fixed in `Solidity/Storage.lean` and follow via-IR ≥0.8.34 on all storage,
+  removing divergences 1–5 there. A differential scenario (`Solidity/Test/Scenarios/ViaIRStorage.lean`)
+  checks them against `solc 0.8.35 --via-ir` bytecode on seeded dirty storage.
 
 ## Reproducing
 
@@ -209,6 +241,7 @@ python3 yul_extract.py                      # out/closures/<version>.json
 python3 analyze.py                          # out/analysis.json, out/diffs/, out/layouts.json
 python3 dynamic.py                          # out/dynamic.json (needs anvil and cast; ≈1 min)
 python3 report.py                           # summary.json, MATRIX.md
+python3 legacy_compare.py                   # legacy vs via-IR on every scenario (≈2 min)
 ```
 
 Adding a probe operation means adding a function named `<op>_<target>`
