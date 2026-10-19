@@ -1176,10 +1176,10 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr1 m1 x (.ok v fr2 m2) → pushedByte fc.types m2.heap v = some b → bytesPush cfg m2 er b = some (.error p) →
       EvalExpr fr m (.call (.member recv "push") [] (.positional [x])) (.reverted p.data)
   | pushBytes0 : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er .bytes) fr1 m1) →
-      bytesPush cfg m1 er 0 = some (.ok m2) →
+      bytesPushEmpty cfg m1 er = some (.ok m2) →
       EvalExpr fr m (.call (.member recv "push") [] (.positional [])) (.ok .unit fr1 m2)
   | pushBytes0Panic : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er .bytes) fr1 m1) →
-      bytesPush cfg m1 er 0 = some (.error p) →
+      bytesPushEmpty cfg m1 er = some (.error p) →
       EvalExpr fr m (.call (.member recv "push") [] (.positional [])) (.reverted p.data)
   | popBytes : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er .bytes) fr1 m1) →
       bytesPop cfg m1 er = some (.ok m2) →

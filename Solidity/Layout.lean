@@ -10,8 +10,8 @@ not fit; structs and arrays start on a slot boundary and the following item star
 mappings at `keccak256(h(k) . p)`; dynamic-array data at `keccak256(p)`; `bytes`/`string` in the
 short/long form).  The result is a `Solm.StorageLayout`: a state-independent locator from
 `Solm.EvaledStorageRef` paths to `Solm.StorageAddr` (a leaf location, the header slot of a
-dynamically-sized value, or the symbolic byte of a `bytes`/`string`), which `Solm.solidityStorageBackend`
-turns into the storage operations the semantics uses.  Slot tables are keccak-free and can be
+dynamically-sized value, or the symbolic byte of a `bytes`/`string`), over which the storage
+algorithms of `Solidity.Storage` operate.  Slot tables are keccak-free and can be
 checked with `#guard`.
 -/
 
@@ -192,9 +192,6 @@ def layout (t : LayoutTable) (ref : Solm.EvaledStorageRef) : Option Solm.Storage
 /-- The locator of a layout table, as the `Solm.StorageLayout` a backend is built from. -/
 def storageLayout (t : LayoutTable) : Solm.StorageLayout := layout t
 
-/-- The Solidity storage backend of a layout table. -/
-def storageBackend (t : LayoutTable) : Solm.StorageBackend :=
-  Solm.solidityStorageBackend (storageLayout t)
 
 /-! ### Storage-pointer types -/
 

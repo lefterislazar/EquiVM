@@ -24,6 +24,7 @@ import Solidity.Test.Specs.Features
 import Solidity.Test.Specs.Consts
 import Solidity.Test.Specs.Arith
 import Solidity.Test.Specs.Data
+import Solidity.Test.Specs.ViaIRStorage
 import Solidity.Test.Specs.Flow
 import Solidity.Test.Specs.Calls
 import Solidity.Test.Specs.Recv

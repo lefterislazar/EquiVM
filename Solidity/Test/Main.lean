@@ -35,6 +35,7 @@ import Solidity.Test.Scenarios.Lazy
 import Solidity.Test.Scenarios.BaseCall
 import Solidity.Test.Scenarios.Ecrecover
 import Solidity.Test.Scenarios.Fixes
+import Solidity.Test.Scenarios.ViaIRStorage
 
 /-!
 # `solidity-diff`
@@ -237,7 +238,7 @@ def scenarios : List Scenario :=
     ERC6909.scenarioSolc, Factory.scenario, HexLit.scenario, TryCatch.scenario, BaseCall.scenario, Ecrecover.scenario,
     Fixes.evalOrder, Fixes.blockScope, Fixes.modifierArgs, Fixes.superMod, Features.scenario, Consts.scenario,
     Arith.scenario, Arith.scenarioBoundaries, Arith.scenarioCond,
-    Data.scenario, Data.scenarioBoundaries, Data.scenarioAlloc,
+    Data.scenario, Data.scenarioBoundaries, Data.scenarioAlloc, ViaIRStorage.scenario,
     Flow.scenario, Flow.scenarioBoundaries, Calls.scenario, Calls.scenarioBoundaries,
     Inherit.scenario, Inherit.scenarioBoundaries, Libs.scenario, Libs.scenarioBoundaries,
     Libs.scenarioQual, Scopes.scenario, Scopes.scenarioBoundaries, Scopes.scenarioTop,

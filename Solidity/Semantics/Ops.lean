@@ -7,7 +7,7 @@ import Solm.Semantics.ValueOps
 Every rule premise that is not a sub-derivation is an equation on one of these functions, so the
 interpreter is the rules read as a program.  `Op α` (`= Option (Except Panic α)`) is the common
 result shape: `none` means the program is ill-formed (no rule applies), `throw p` a `Panic`.
-Storage goes through the Sol⁻ storage backend (`Config.storageBackend`).
+Storage is read and written by `Solidity.Storage` over the configured layout (`Config.storageLayout`).
 -/
 
 namespace Solidity
@@ -716,10 +716,10 @@ def ofAbiParams (env : TypeEnv) (cd : ByteArray) (ps : List Param) (svs : List S
 
 /-! ## Storage: types, scalars and lengths
 
-Storage is read and written through the Sol⁻ storage backend (`cfg.storageBackend`), whose
-operations are driven by Sol⁻ storage types: `storageTypeOf` translates a Solidity type (an enum
+Storage is read and written by the algorithms of `Solidity.Storage` over `cfg.storageLayout`,
+driven by Sol⁻ storage types: `storageTypeOf` translates a Solidity type (an enum
 is a `uint8`, a contract an `address`, a value type its underlying type, a struct its field list).
-A backend `.revert` is a corrupt `bytes`/`string` encoding (`Panic(0x22)`); a backend `.error` is
+A storage `.revert` is a corrupt `bytes`/`string` encoding (`Panic(0x22)`); a storage `.error` is
 an ill-formed program. -/
 
 def storageTypeOfFuel (env : TypeEnv) : Nat → Ty → Option Solm.StorageType
@@ -752,7 +752,7 @@ def storageTyOf : Ty → Option Solm.StorageType
   | .string => some .string
   | _ => none
 
-/-- A backend result as an `Op`. -/
+/-- A storage result as an `Op`. -/
 def liftStorage {α} : Solm.EvalResult α → Op α
   | .ok a => pure a
   | .revert => Op.panic .storageBytes
@@ -761,7 +761,7 @@ def liftStorage {α} : Solm.EvalResult α → Op α
 def readScalar (cfg : Config) (env : TypeEnv) (evm : EVM.State) (er : Solm.EvaledStorageRef) (ty : Ty) :
     Option Value := do
   let st ← storageTypeOf env ty
-  match cfg.storageBackend.read er st evm with
+  match Storage.read cfg.storageLayout er st evm with
   | .ok sv => scalarOfAbi env ty sv
   | _ => none
 
@@ -769,19 +769,19 @@ def writeScalar (cfg : Config) (env : TypeEnv) (evm : EVM.State) (er : Solm.Eval
     (v : Value) : Option EVM.State := do
   let st ← storageTypeOf env ty
   let sv ← scalarToAbi v
-  match cfg.storageBackend.write er st sv evm with
+  match Storage.write cfg.storageLayout er st sv evm with
   | .ok evm' => some evm'
   | _ => none
 
 def readBytesStorage (cfg : Config) (evm : EVM.State) (er : Solm.EvaledStorageRef) (st : Solm.StorageType) :
     Op ByteArray := do
-  match ← liftStorage (cfg.storageBackend.read er st evm) with
+  match ← liftStorage (Storage.read cfg.storageLayout er st evm) with
   | .bytes b => pure b
   | _ => Op.stuck
 
 def writeBytesStorage (cfg : Config) (evm : EVM.State) (er : Solm.EvaledStorageRef)
     (st : Solm.StorageType) (data : ByteArray) : Op EVM.State :=
-  liftStorage (cfg.storageBackend.write er st (.bytes data) evm)
+  liftStorage (Storage.write cfg.storageLayout er st (.bytes data) evm)
 
 /-- The bytes of a `bytes` / `string` argument of `keccak256`, `sha256`, `ripemd160` or `concat`: a
     literal, a memory object, or a storage value (solc copies it to memory). -/
@@ -821,7 +821,7 @@ def keyRef (er : Solm.EvaledStorageRef) (k : Solm.KeyValue) : Solm.EvaledStorage
 def storageLength (cfg : Config) (env : TypeEnv) (evm : EVM.State) (er : Solm.EvaledStorageRef) (ty : Ty) :
     Op Nat := do
   let some st := storageTypeOf env ty | Op.stuck
-  liftStorage (cfg.storageBackend.length er st evm)
+  liftStorage (Storage.length cfg.storageLayout er st evm)
 
 /-- Length of the dynamic storage array of element type `e` at `er`. -/
 def dynArrayLength (cfg : Config) (env : TypeEnv) (evm : EVM.State) (er : Solm.EvaledStorageRef) (e : Ty) :
@@ -839,14 +839,14 @@ def readStorageDeep (cfg : Config) (env : TypeEnv) (fuel : Nat) (evm : EVM.State
     Op.ofOpt ((readScalar cfg env evm er ty).map (·, h))
   else
     let some st := storageTypeOf env ty | Op.stuck
-    let sv ← liftStorage (cfg.storageBackend.read er st evm)
+    let sv ← liftStorage (Storage.read cfg.storageLayout er st evm)
     Op.ofOpt (ofAbi env fuel ty sv h)
 
 /-- `delete` / zeroing of a storage value of type `ty` (mappings are skipped). -/
 def clearStorage (cfg : Config) (env : TypeEnv) (evm : EVM.State) (er : Solm.EvaledStorageRef) (ty : Ty) :
     Op EVM.State := do
   let some st := storageTypeOf env ty | Op.stuck
-  liftStorage (cfg.storageBackend.clear er st evm)
+  liftStorage (Storage.clear cfg.storageLayout er st evm)
 
 /-- The storage value of a memory object, literal or scalar `v` for a slot of type `ty`: memory
     structs become `Solm.Value.struct` by field name, arrays and `bytes` are copied, scalars are
@@ -906,7 +906,7 @@ def writeStorageDeep (cfg : Config) (env : TypeEnv) (fuel : Nat) (evm : EVM.Stat
     (er : Solm.EvaledStorageRef) (ty : Ty) (v : Value) : Op EVM.State := do
   let some st := storageTypeOf env ty | Op.stuck
   let sv ← storageValueOf cfg env fuel evm h ty v
-  liftStorage (cfg.storageBackend.write er st sv evm)
+  liftStorage (Storage.write cfg.storageLayout er st sv evm)
 
 /-! ## Indexing and members -/
 
@@ -1265,14 +1265,16 @@ def declare (cfg : Config) (env : TypeEnv) (fr : Frame) (m : Machine) (ty : Ty) 
     let some (v, h') := zeroObj env fuelDefault ty 0 m.heap | Op.stuck
     pure (fr.bind name ty loc v, { m with heap := h' })
 
-/-- Storage array `push`. -/
+/-- Storage array `push` (`Panic 0x41` once the array has `2^64` elements). -/
 def storagePush (cfg : Config) (env : TypeEnv) (m : Machine) (er : Solm.EvaledStorageRef) (e : Ty)
     (v : Option Value) : Op Machine := do
   let some st := storageTypeOf env (.dynArray e) | Op.stuck
+  let n ← storageLength cfg env m.evm er (.dynArray e)
+  if 2 ^ 64 ≤ n then Op.panic .allocTooLarge
   let sv ← match v with
     | some v => some <$> storageValueOf cfg env fuelDefault m.evm m.heap e v
     | none => pure none
-  let evm' ← liftStorage (cfg.storageBackend.push er st sv m.evm)
+  let evm' ← liftStorage (Storage.push cfg.storageLayout er st sv m.evm)
   pure { m with evm := evm' }
 
 /-- Storage array `pop` (`Panic 0x31` on empty). -/
@@ -1281,7 +1283,7 @@ def storagePop (cfg : Config) (env : TypeEnv) (m : Machine) (er : Solm.EvaledSto
   let n ← storageLength cfg env m.evm er (.dynArray e)
   if n = 0 then Op.panic .popEmpty
   let some st := storageTypeOf env (.dynArray e) | Op.stuck
-  let evm' ← liftStorage (cfg.storageBackend.pop er st m.evm)
+  let evm' ← liftStorage (Storage.pop cfg.storageLayout er st m.evm)
   pure { m with evm := evm' }
 
 /-- The byte pushed by `b.push(x)` on storage `bytes`: `x` as a `bytes1`. -/
@@ -1290,16 +1292,26 @@ def pushedByte (env : TypeEnv) (h : Heap) (v : Value) : Option UInt8 :=
   | some (.fixedBytes _ [b], _) => some b
   | _ => none
 
-/-- `b.push(x)` / `b.push()` on storage `bytes`. -/
+/-- `b.push(x)` on storage `bytes` (`Panic 0x41` once it has `2^64` bytes). -/
 def bytesPush (cfg : Config) (m : Machine) (er : Solm.EvaledStorageRef) (b : UInt8) : Op Machine := do
-  let evm' ← liftStorage (cfg.storageBackend.push er .bytes (some (.fixedBytes ⟨0, by decide⟩ [b])) m.evm)
+  let n ← liftStorage (Storage.length cfg.storageLayout er .bytes m.evm)
+  if 2 ^ 64 ≤ n then Op.panic .allocTooLarge
+  let evm' ← liftStorage (Storage.push cfg.storageLayout er .bytes (some (.fixedBytes ⟨0, by decide⟩ [b])) m.evm)
+  pure { m with evm := evm' }
+
+/-- `b.push()` on storage `bytes`: only the length grows, so the new byte is what the storage holds
+    there (zero, unless something other than Solidity code wrote the slot). -/
+def bytesPushEmpty (cfg : Config) (m : Machine) (er : Solm.EvaledStorageRef) : Op Machine := do
+  let n ← liftStorage (Storage.length cfg.storageLayout er .bytes m.evm)
+  if 2 ^ 64 ≤ n then Op.panic .allocTooLarge
+  let evm' ← liftStorage (Storage.push cfg.storageLayout er .bytes none m.evm)
   pure { m with evm := evm' }
 
 /-- `b.pop()` on storage `bytes` (`Panic 0x31` on empty). -/
 def bytesPop (cfg : Config) (m : Machine) (er : Solm.EvaledStorageRef) : Op Machine := do
-  let n ← liftStorage (cfg.storageBackend.length er .bytes m.evm)
+  let n ← liftStorage (Storage.length cfg.storageLayout er .bytes m.evm)
   if n = 0 then Op.panic .popEmpty
-  let evm' ← liftStorage (cfg.storageBackend.pop er .bytes m.evm)
+  let evm' ← liftStorage (Storage.pop cfg.storageLayout er .bytes m.evm)
   pure { m with evm := evm' }
 
 /-! ## ABI helpers -/

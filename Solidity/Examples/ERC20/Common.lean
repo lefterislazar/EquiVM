@@ -52,7 +52,7 @@ def erc20Table : LayoutTable :=
     (varTotalSupply, 2, 0, .leaf uint256Elem 32) ]
 
 def erc20Cfg : Config :=
-  { storageBackend := storageBackend erc20Table, selfDeployment := solcDeployment erc20Flat }
+  { storageLayout := storageLayout erc20Table, selfDeployment := solcDeployment erc20Flat }
 
 theorem erc20Cfg_eq : defaultConfig erc20Flat = some erc20Cfg := rfl
 

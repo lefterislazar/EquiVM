@@ -144,13 +144,13 @@ theorem scalarOfAbi_u256_nat (env : TypeEnv) (n : Nat) (hn : n < UInt256.size) :
     implicitConv env h (.bool b) .bool = some (.bool b, h) := by
   simp [implicitConv]
 
-/-! ## Storage through the backend
+/-! ## Storage
 
-The semantics reads and writes storage through `cfg.storageBackend`.  `Config.Leaf cfg er loc`
-(`Theory/Backend.lean`) says the backend treats `er` as the scalar at `loc`; a config built from a
-layout table satisfies it at every leaf of the layout (`Config.leaf_of_table`).  The scalar lemmas
-below are stated on it; dynamically-sized values take the backend's results (`length`, `push`,
-`pop`, `clear`) as hypotheses. -/
+The semantics reads and writes storage with `Solidity.Storage` over `cfg.storageLayout`.
+`Config.Leaf cfg er loc` (`Theory/Backend.lean`) says it treats `er` as the scalar at `loc`; a
+config built from a layout table satisfies it at every leaf of the layout (`Config.leaf_of_table`).
+The scalar lemmas below are stated on it; dynamically-sized values take the results of
+`Storage.length`, `push`, `pop` and `clear` as hypotheses. -/
 
 theorem readScalar_of_leaf {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {ty : Ty}
     {e : ABI.ElemType} {loc : Solm.StorageLoc} {v : Value} (hst : storageTypeOf env ty = some (.elem e))
@@ -186,11 +186,11 @@ theorem writeScalar_of_leaf {cfg : Config} {env : TypeEnv} {evm evm' : EVM.State
 theorem writeScalar_write {cfg : Config} {env : TypeEnv} {evm evm' : EVM.State} {er : Solm.EvaledStorageRef} {ty : Ty}
     {st : Solm.StorageType} {v : Value} {sv : Solm.Value} (hst : storageTypeOf env ty = some st)
     (hsv : scalarToAbi v = some sv) (hw : writeScalar cfg env evm er ty v = some evm') :
-    cfg.storageBackend.write er st sv evm = .ok evm' := by
+    Storage.write cfg.storageLayout er st sv evm = .ok evm' := by
   unfold writeScalar at hw
   rw [hst, Opt.some_bind, hsv, Opt.some_bind] at hw
   revert hw
-  cases cfg.storageBackend.write er st sv evm <;> simp
+  cases Storage.write cfg.storageLayout er st sv evm <;> simp
 
 theorem readLValue_storage_of {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machine} {er : Solm.EvaledStorageRef}
     {ty : Ty} {v : Value} (hload : loadIfScalar cfg env m.evm er ty = some v) :
@@ -218,7 +218,7 @@ theorem storageValueOf_direct {cfg : Config} {env : TypeEnv} {evm : EVM.State} {
 theorem writeStorageDeep_of_value {cfg : Config} {env : TypeEnv} {evm evm' : EVM.State} {h : Heap}
     {er : Solm.EvaledStorageRef} {ty : Ty} {st : Solm.StorageType} {v : Value} {sv : Solm.Value} {fuel : Nat}
     (hst : storageTypeOf env ty = some st) (hv : storageValueOf cfg env fuel evm h ty v = some (.ok sv))
-    (hw : cfg.storageBackend.write er st sv evm = .ok evm') :
+    (hw : Storage.write cfg.storageLayout er st sv evm = .ok evm') :
     writeStorageDeep cfg env fuel evm h er ty v = some (.ok evm') := by
   simp only [writeStorageDeep, hst, hv, Op.bind_ok, hw, liftStorage, Op.pure_eq]
 
@@ -336,12 +336,12 @@ theorem writeScalar_bytes32 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er
 
 theorem storageLength_of_backend {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {ty : Ty}
     {st : Solm.StorageType} {n : ℕ} (hst : storageTypeOf env ty = some st)
-    (hlen : cfg.storageBackend.length er st evm = .ok n) : storageLength cfg env evm er ty = some (.ok n) := by
+    (hlen : Storage.length cfg.storageLayout er st evm = .ok n) : storageLength cfg env evm er ty = some (.ok n) := by
   simp only [storageLength, hst, hlen, liftStorage, Op.pure_eq]
 
 theorem dynArrayLength_of_backend {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {e : Ty}
     {st : Solm.StorageType} {n : ℕ} (hst : storageTypeOf env (.dynArray e) = some st)
-    (hlen : cfg.storageBackend.length er st evm = .ok n) : dynArrayLength cfg env evm er e = some n := by
+    (hlen : Storage.length cfg.storageLayout er st evm = .ok n) : dynArrayLength cfg env evm er e = some n := by
   simp only [dynArrayLength, storageLength_of_backend hst hlen]
 
 /-- `arr.length` of a dynamic array whose length is known. -/
@@ -352,7 +352,7 @@ theorem storageLength_dynArray {cfg : Config} {env : TypeEnv} {evm : EVM.State} 
 
 theorem storageLength_array {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {e : Ty}
     {st : Solm.StorageType} {n : ℕ} (hst : storageTypeOf env (.array e n) = some (.array st n))
-    (hlen : cfg.storageBackend.length er (.array st n) evm = .ok n) :
+    (hlen : Storage.length cfg.storageLayout er (.array st n) evm = .ok n) :
     storageLength cfg env evm er (.array e n) = some (.ok n) :=
   storageLength_of_backend hst hlen
 
@@ -393,21 +393,25 @@ theorem readScalar_address_offset1 {cfg : Config} {env : TypeEnv} {evm : EVM.Sta
           solcAddrMask).toNat)) :=
   readScalar_of_leaf (storageTypeOf_address env false) hl (by rw [storageLocLoad_address_offset1]; rfl)
 
-/-- `a.push(v)`: the backend's `push` of the value's storage value. -/
+/-- `a.push(v)` on an array shorter than `2^64`: the storage `push` of the value's storage value. -/
 theorem storagePush_some {cfg : Config} {env : TypeEnv} {m : Machine} {er : Solm.EvaledStorageRef} {e : Ty}
-    {st : Solm.StorageType} {v : Value} {sv : Solm.Value} {evm' : EVM.State}
+    {st : Solm.StorageType} {v : Value} {sv : Solm.Value} {evm' : EVM.State} {n : ℕ}
     (hst : storageTypeOf env (.dynArray e) = some st)
+    (hlen : dynArrayLength cfg env m.evm er e = some n) (hsmall : n < 2 ^ 64)
     (hv : storageValueOf cfg env fuelDefault m.evm m.heap e v = some (.ok sv))
-    (hpush : cfg.storageBackend.push er st (some sv) m.evm = .ok evm') :
+    (hpush : Storage.push cfg.storageLayout er st (some sv) m.evm = .ok evm') :
     storagePush cfg env m er e (some v) = some (.ok { m with evm := evm' }) := by
-  simp [storagePush, hst, hv, hpush, liftStorage]
+  simp [storagePush, hst, storageLength_dynArray hlen, hv, hpush, liftStorage]
+  exact fun h => absurd h (Nat.not_le.mpr hsmall)
 
-/-- `a.push()`: the backend's valueless `push`. -/
+/-- `a.push()` on an array shorter than `2^64`: the storage valueless `push`. -/
 theorem storagePush_none {cfg : Config} {env : TypeEnv} {m : Machine} {er : Solm.EvaledStorageRef} {e : Ty}
-    {st : Solm.StorageType} {evm' : EVM.State} (hst : storageTypeOf env (.dynArray e) = some st)
-    (hpush : cfg.storageBackend.push er st none m.evm = .ok evm') :
+    {st : Solm.StorageType} {evm' : EVM.State} {n : ℕ} (hst : storageTypeOf env (.dynArray e) = some st)
+    (hlen : dynArrayLength cfg env m.evm er e = some n) (hsmall : n < 2 ^ 64)
+    (hpush : Storage.push cfg.storageLayout er st none m.evm = .ok evm') :
     storagePush cfg env m er e none = some (.ok { m with evm := evm' }) := by
-  simp [storagePush, hst, hpush, liftStorage]
+  simp [storagePush, hst, storageLength_dynArray hlen, hpush, liftStorage]
+  exact fun h => absurd h (Nat.not_le.mpr hsmall)
 
 theorem storagePop_empty {cfg : Config} {env : TypeEnv} {m : Machine} {er : Solm.EvaledStorageRef} {e : Ty}
     (hlen : dynArrayLength cfg env m.evm er e = some 0) : storagePop cfg env m er e = some (.error .popEmpty) := by
@@ -417,20 +421,20 @@ theorem storagePop_empty {cfg : Config} {env : TypeEnv} {m : Machine} {er : Solm
 theorem storagePop_succ {cfg : Config} {env : TypeEnv} {m : Machine} {er : Solm.EvaledStorageRef} {e : Ty}
     {st : Solm.StorageType} {n : ℕ} {evm' : EVM.State}
     (hlen : dynArrayLength cfg env m.evm er e = some (n + 1)) (hst : storageTypeOf env (.dynArray e) = some st)
-    (hpop : cfg.storageBackend.pop er st m.evm = .ok evm') :
+    (hpop : Storage.pop cfg.storageLayout er st m.evm = .ok evm') :
     storagePop cfg env m er e = some (.ok { m with evm := evm' }) := by
   simp [storagePop, storageLength_dynArray hlen, hst, hpop, liftStorage]
 
 /-- `delete x` through the backend. -/
 theorem clearStorage_of_backend {cfg : Config} {env : TypeEnv} {evm evm' : EVM.State} {er : Solm.EvaledStorageRef} {ty : Ty}
     {st : Solm.StorageType} (hst : storageTypeOf env ty = some st)
-    (hclear : cfg.storageBackend.clear er st evm = .ok evm') : clearStorage cfg env evm er ty = some (.ok evm') := by
+    (hclear : Storage.clear cfg.storageLayout er st evm = .ok evm') : clearStorage cfg env evm er ty = some (.ok evm') := by
   simp only [clearStorage, hst, hclear, liftStorage, Op.pure_eq]
 
 /-- `delete` is the backend's `clear`. -/
 theorem clearStorage_eq {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {ty : Ty}
     {st : Solm.StorageType} (hst : storageTypeOf env ty = some st) :
-    clearStorage cfg env evm er ty = liftStorage (cfg.storageBackend.clear er st evm) := by
+    clearStorage cfg env evm er ty = liftStorage (Storage.clear cfg.storageLayout er st evm) := by
   simp only [clearStorage, hst]
 
 /-- `delete x` for a `uint256` slot. -/
@@ -1914,7 +1918,7 @@ theorem toStorage_array {env : TypeEnv} {fuel : ℕ} {h : Heap} {e ety : Ty} {id
 theorem writeStorageDeep_eq {cfg : Config} {env : TypeEnv} {fuel : ℕ} {evm : EVM.State} {h : Heap} {er : Solm.EvaledStorageRef}
     {ty : Ty} {v : Value} {st : Solm.StorageType} (hst : storageTypeOf env ty = some st) :
     writeStorageDeep cfg env fuel evm h er ty v =
-      (storageValueOf cfg env fuel evm h ty v >>= fun sv => liftStorage (cfg.storageBackend.write er st sv evm)) := by
+      (storageValueOf cfg env fuel evm h ty v >>= fun sv => liftStorage (Storage.write cfg.storageLayout er st sv evm)) := by
   simp only [writeStorageDeep, hst]
 
 /-! ## `abi.decode` facts -/
@@ -2565,7 +2569,7 @@ theorem readScalar_valueType {cfg : Config} {env : TypeEnv} {evm : EVM.State} {e
   rw [h1, Opt.some_bind]
   rw [h2, Opt.some_bind] at hu
   revert hu
-  cases cfg.storageBackend.read er (.elem e) evm with
+  cases Storage.read cfg.storageLayout er (.elem e) evm with
   | ok sv =>
     intro hu
     change scalarOfAbi env t.underlying sv = some u at hu

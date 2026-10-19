@@ -1,5 +1,6 @@
 import Solidity.Elab
 import Solidity.Layout
+import Solidity.Storage
 import Solidity.Value
 import Solidity.Errors
 import Solidity.Events
@@ -9,8 +10,8 @@ import ABI.Decode
 # Semantic state
 
 The spec executes directly on the EVM state (`EVM.State`, as Sol⁻ does), so account maps, logs
-and the environment are shared with the bytecode side; storage is read and written through the
-Sol⁻ storage backend (`Config.storageBackend`).  Memory is an abstract heap; locals live
+and the environment are shared with the bytecode side; storage is read and written by the
+algorithms of `Solidity.Storage` over the configured layout (`Config.storageLayout`).  Memory is an abstract heap; locals live
 in a per-call `Frame`.  Nondeterminism (`gasleft()`, gas and non-log substate handed to sub-calls)
 is drawn from an explicit `Oracle` through the machine's `tick`, so every rule is deterministic
 given the oracle.
@@ -19,8 +20,9 @@ given the oracle.
 namespace Solidity
 
 structure Config where
-  /-- Storage operations (`storageBackend` of the derived layout table by default). -/
-  storageBackend : Solm.StorageBackend
+  /-- Where each storage reference lives (`storageLayout` of the derived layout table by default).
+      The storage algorithms are fixed (`Solidity.Storage`); only the layout is configurable. -/
+  storageLayout : Solm.StorageLayout
   abiDecodeMode : ABI.DecodeMode := .modern
   /-- Init code (creation bytecode ++ encoded constructor arguments) for `new C(args)`. -/
   creationCode : Ident → List Solm.Value → Option EVM.Bytes := fun _ _ => none

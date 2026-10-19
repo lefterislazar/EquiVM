@@ -672,7 +672,7 @@ def evalMemberCall : Nat → Frame → Machine → Expr → Ident → List CallO
           let m3 ← liftOp (bytesPush cfg m2 er b)
           pure (.unit, fr2, m3)
         | .positional [] =>
-          let m2 ← liftOp (bytesPush cfg m1 er 0)
+          let m2 ← liftOp (bytesPushEmpty cfg m1 er)
           pure (.unit, fr1, m2)
         | _ => failure
       | .storageRef er .bytes, "pop" =>

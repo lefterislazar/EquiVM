@@ -3,41 +3,36 @@ import Reasoning.Storage
 import Solidity.Theory.Slots
 
 /-!
-# Storage facts through the backend
+# Storage facts
 
-The semantics reads and writes storage through `cfg.storageBackend` (`Solm.StorageBackend`).
-`Config.Leaf cfg er loc` says the backend treats `er` as the scalar at location `loc`: what the
-Solidity backend does when its locator maps `er` to `.leaf loc` (`Config.leaf_of_locate`).  The
-scalar lemmas of `Body.lean` are stated on it, so they hold for any backend with this behaviour.
-For dynamically-sized values the lemmas take the backend's own results (`length`, `push`, `pop`,
-`clear`) as hypotheses; the facts of the Solidity backend for a header slot (`.anchor`) are below.
+The semantics reads and writes storage with the algorithms of `Solidity.Storage` over
+`cfg.storageLayout`.  `Config.Leaf cfg er loc` says they treat `er` as the scalar at location
+`loc`, which holds whenever the layout maps `er` to `.leaf loc` (`Config.leaf_of_locate`).  The
+scalar lemmas of `Body.lean` are stated on it.  For dynamically-sized values the lemmas take the
+results of `Storage.length`, `push`, `pop` and `clear` as hypotheses; their values at a header
+slot (`.anchor`) are below.
 -/
 
 namespace Solidity
 
 open Ethereum Reasoning.Theory
 
-/-- The backend reads and writes the scalar `er` at `loc`. -/
+/-- Storage reads and writes the scalar `er` at `loc`. -/
 structure Config.Leaf (cfg : Config) (er : Solm.EvaledStorageRef) (loc : Solm.StorageLoc) : Prop where
   read : ∀ (e : ABI.ElemType) (evm : EVM.State),
-    cfg.storageBackend.read er (.elem e) evm = .ok (Solm.storageLocLoad evm loc)
+    Storage.read cfg.storageLayout er (.elem e) evm = .ok (Solm.storageLocLoad evm loc)
   write : ∀ (e : ABI.ElemType) (v : Solm.Value) (evm evm' : EVM.State),
-    Solm.storageLocStore evm loc v = some evm' → cfg.storageBackend.write er (.elem e) v evm = .ok evm'
+    Solm.storageLocStore evm loc v = some evm' → Storage.write cfg.storageLayout er (.elem e) v evm = .ok evm'
   /-- `delete` of a scalar writes the integer zero at its location. -/
   clear : ∀ (e : ABI.ElemType) (evm evm' : EVM.State),
-    Solm.storageLocStore evm loc (.int 0) = some evm' → cfg.storageBackend.clear er (.elem e) evm = .ok evm'
+    Solm.storageLocStore evm loc (.int 0) = some evm' → Storage.clear cfg.storageLayout er (.elem e) evm = .ok evm'
 
-/-- The Solidity backend of a locator that maps `er` to the leaf `loc`. -/
+/-- A layout that maps `er` to the leaf `loc`. -/
 theorem Config.leaf_of_locate {cfg : Config} {L : Solm.StorageLayout} {er : Solm.EvaledStorageRef}
-    {loc : Solm.StorageLoc} (hL : cfg.storageBackend = Solm.solidityStorageBackend L)
-    (hl : L er = some (.leaf loc)) : cfg.Leaf er loc :=
-  ⟨fun e evm => by rw [hL]; exact Solm.solidityStorageBackend_read_elem L er e evm loc hl,
-   fun e v evm evm' hst => by rw [hL]; exact Solm.solidityStorageBackend_write_elem L er e v evm evm' loc hl hst,
-   fun e evm evm' hst => by
-     rw [hL]
-     show Solm.solidityClearStorage? L evm er (.elem e) = .ok evm'
-     simp [Solm.solidityClearStorage?, Solm.solidityLeafLoc?_of_leaf hl, hst, Solm.EvalResult.ofOption,
-       Solm.EvalResult.bind, bind]⟩
+    {loc : Solm.StorageLoc} (hL : cfg.storageLayout = L) (hl : L er = some (.leaf loc)) : cfg.Leaf er loc :=
+  ⟨fun e evm => by rw [hL]; exact Storage.read_elem hl e evm,
+   fun e _ _ _ hst => by rw [hL]; exact Storage.write_elem hl e hst,
+   fun e _ _ hst => by rw [hL]; exact Storage.clear_elem hl e hst⟩
 
 /-- Storing the integer zero at a location is storing `false` or the zero address there (all are
     the zero word). -/
@@ -53,7 +48,7 @@ theorem storageLocStore_int_zero_eq_address_zero (evm : EVM.State) (loc : Solm.S
 
 /-- A leaf of a config built from a layout table (`defaultConfig`). -/
 theorem Config.leaf_of_table {cfg : Config} {t : LayoutTable} {er : Solm.EvaledStorageRef} {loc : Solm.StorageLoc}
-    (hb : cfg.storageBackend = Solidity.storageBackend t) (hl : layout t er = some (.leaf loc)) : cfg.Leaf er loc :=
+    (hb : cfg.storageLayout = Solidity.storageLayout t) (hl : layout t er = some (.leaf loc)) : cfg.Leaf er loc :=
   Config.leaf_of_locate hb hl
 
 /-! ## Storage types of the value types -/
@@ -70,12 +65,12 @@ theorem Config.leaf_of_table {cfg : Config} {t : LayoutTable} {er : Solm.EvaledS
 @[simp] theorem storageTypeOf_bytes (env : TypeEnv) : storageTypeOf env .bytes = some .bytes := rfl
 @[simp] theorem storageTypeOf_string (env : TypeEnv) : storageTypeOf env .string = some .string := rfl
 
-/-! ## The Solidity backend at a header slot -/
+/-! ## Lengths and pushes at a header slot -/
 
 /-- The length of a dynamic array whose header is at `slot`: the slot word. -/
 theorem solidity_length_dynArray {L : Solm.StorageLayout} {er : Solm.EvaledStorageRef} {slot : UInt256}
     (hl : L er = some (.anchor slot)) (st : Solm.StorageType) (evm : EVM.State) :
-    (Solm.solidityStorageBackend L).length er (.dynamicArray st) evm =
+    Storage.length L er (.dynamicArray st) evm =
       .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat := by
   show Solm.solidityStorageLength? L er (.dynamicArray st) evm = _
   simp only [Solm.solidityStorageLength?, Solm.solidityDynamicLength?, Solm.solidityLengthLoc?,
@@ -85,14 +80,15 @@ theorem solidity_length_dynArray {L : Solm.StorageLayout} {er : Solm.EvaledStora
 
 /-- A static array's length is its declared length. -/
 theorem solidity_length_array (L : Solm.StorageLayout) (er : Solm.EvaledStorageRef) (st : Solm.StorageType) (n : Nat)
-    (evm : EVM.State) : (Solm.solidityStorageBackend L).length er (.array st n) evm = .ok n := rfl
+    (evm : EVM.State) : Storage.length L er (.array st n) evm = .ok n := rfl
 
 /-- `push()` on a dynamic array whose header is at `slot`: the length word is incremented. -/
 theorem solidity_push_none {L : Solm.StorageLayout} {er : Solm.EvaledStorageRef} {slot : UInt256}
     (hl : L er = some (.anchor slot)) (st : Solm.StorageType) (evm : EVM.State) :
-    (Solm.solidityStorageBackend L).push er (.dynamicArray st) none evm =
+    Storage.push L er (.dynamicArray st) none evm =
       .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
         (EVM.wordOfInt ((Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat + 1))) := by
+  rw [Storage.push_dynArray_none_eq_solm]
   show Solm.solidityPushStorage? L er (.dynamicArray st) none evm = _
   simp only [Solm.solidityPushStorage?, Solm.solidityDynamicLength?, Solm.solidityLengthLoc?,
     Solm.solidityAnchor?_of_anchor hl, Option.map_some, Solm.EvalResult.ofOption, bind, Solm.EvalResult.bind]

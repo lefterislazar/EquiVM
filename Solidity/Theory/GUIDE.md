@@ -12,10 +12,10 @@ recipe (six functions, constructor, dispatcher, capstone `erc20Correct`).
 
 | Input | Where it comes from | Form |
 |---|---|---|
-| Spec | `solidity% …` program, `elabProgram program target` | `fc : FlatContract`, `cfg : Config` (`defaultConfig fc`: the solc storage backend of the layout table) |
+| Spec | `solidity% …` program, `elabProgram program target` | `fc : FlatContract`, `cfg : Config` (`defaultConfig fc`: the solc storage layout of the layout table) |
 | Runtime bytecode | `solc` output, pinned in `Bytecode.lean` | `code : ByteArray` with `@[valid_jumps]` |
 | Selectors | keccak of the canonical signatures | per-contract facts `selectorOf sig = …` (keccak is not evaluable in the elaborator: state them once, check with the harness) |
-| Storage leaves | the storage backend | facts `cfg.Leaf er (uint256Loc slot)` (or `boolOffset0Loc`, `addressOffset0Loc`, `bytes32Loc`, `int256Loc`, a packed `{ slot, offset, size, … }`) for every scalar reference the body touches, each `Config.leaf_of_table rfl rfl` on a `defaultConfig`; `string`/`bytes` and dynamic arrays name the anchor slot (`layout er = some (.anchor slot)`) instead |
+| Storage leaves | the storage layout | facts `cfg.Leaf er (uint256Loc slot)` (or `boolOffset0Loc`, `addressOffset0Loc`, `bytes32Loc`, `int256Loc`, a packed `{ slot, offset, size, … }`) for every scalar reference the body touches, each `Config.leaf_of_table rfl rfl` on a `defaultConfig`; `string`/`bytes` and dynamic arrays name the anchor slot (`layout er = some (.anchor slot)`) instead |
 | Mapping slots | keccak of `key ++ slot` | facts `solcSlotWord …` ↔ `keyRef …` (per contract) |
 
 Never derive these by unfolding: `decodeArgs_eq`, `readScalar_of_leaf`, `writeScalar_of_leaf` and

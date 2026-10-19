@@ -2245,30 +2245,36 @@ theorem EvalExpr.newArrayPlain {fr fr1 : Frame} {m m1 : Machine} {ty : Ty} {n : 
 The backend performs the push/pop (`hpush`/`hpop`: its result on the spec machine); on the solc
 layout `Solidity.Theory.Backend` gives these results in terms of the length slot. -/
 
-/-- `arr.push()`: the backend's push, then the new element read back (`hlen`, `hv`). -/
+/-- `arr.push()` on an array shorter than `2^64` (`hlen0`, `hsmall`): the storage push, then the
+    new element read back (`hlen`, `hv`). -/
 theorem EvalExpr.pushEmpty {fr fr1 : Frame} {m m1 : Machine} {recv : Expr} {er : Solm.EvaledStorageRef} {e : Ty}
-    {st : Solm.StorageType} {n : ℕ} {evm' : EVM.State} {v : Value} (hdm : memberCallDirect fc fr recv = false)
+    {st : Solm.StorageType} {n n0 : ℕ} {evm' : EVM.State} {v : Value} (hdm : memberCallDirect fc fr recv = false)
     (he : EvalExpr cfg o fc fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1))
     (hst : storageTypeOf fc.types (.dynArray e) = some st)
-    (hpush : cfg.storageBackend.push er st none m1.evm = .ok evm')
+    (hlen0 : dynArrayLength cfg fc.types m1.evm er e = some n0) (hsmall : n0 < 2 ^ 64)
+    (hpush : Storage.push cfg.storageLayout er st none m1.evm = .ok evm')
     (hlen : dynArrayLength cfg fc.types evm' er e = some n)
     (hv : loadIfScalar cfg fc.types evm' (elemRef er (n - 1)) e = some v) :
     EvalExpr cfg o fc fr m (.call (.member recv "push") [] (.positional [])) (.ok v fr1 { m1 with evm := evm' }) :=
-  EvalExpr.push0 hdm he (storagePush_none hst hpush) hlen hv
+  EvalExpr.push0 hdm he (storagePush_none hst hlen0 hsmall hpush) hlen hv
 
-/-- `arr.push()` on the solc layout: the length word at `slot` (the reference's anchor) is incremented. -/
+/-- `arr.push()` on the solc layout: the length word at `slot` (the reference's anchor), below
+    `2^64`, is incremented. -/
 theorem EvalExpr.pushEmptySolc {L : Solm.StorageLayout} {fr fr1 : Frame} {m m1 : Machine} {recv : Expr}
     {er : Solm.EvaledStorageRef} {e : Ty} {st : Solm.StorageType} {slot : UInt256} {n : ℕ} {v : Value}
-    (hcfg : cfg.storageBackend = Solm.solidityStorageBackend L) (hdm : memberCallDirect fc fr recv = false)
+    (hcfg : cfg.storageLayout = L) (hdm : memberCallDirect fc fr recv = false)
     (he : EvalExpr cfg o fc fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1))
     (hst : storageTypeOf fc.types (.dynArray e) = some (.dynamicArray st)) (hl : L er = some (.anchor slot))
+    (hsmall : (loadU256 m1 slot).toNat < 2 ^ 64)
     (hlen : dynArrayLength cfg fc.types (storeU256 m1 slot (EVM.wordOfInt ((loadU256 m1 slot).toNat + 1))).evm er e =
       some n)
     (hv : loadIfScalar cfg fc.types (storeU256 m1 slot (EVM.wordOfInt ((loadU256 m1 slot).toNat + 1))).evm
       (elemRef er (n - 1)) e = some v) :
     EvalExpr cfg o fc fr m (.call (.member recv "push") [] (.positional []))
       (.ok v fr1 (storeU256 m1 slot (EVM.wordOfInt ((loadU256 m1 slot).toNat + 1)))) :=
-  EvalExpr.pushEmpty hdm he hst (by rw [hcfg]; exact solidity_push_none hl st m1.evm) hlen hv
+  EvalExpr.pushEmpty hdm he hst
+    (dynArrayLength_of_backend hst (by rw [hcfg]; exact solidity_length_dynArray hl st m1.evm)) hsmall
+    (by rw [hcfg]; exact solidity_push_none hl st m1.evm) hlen hv
 
 /-- `arr.pop()` on a non-empty array: the backend's pop. -/
 theorem EvalExpr.popLast {fr fr1 : Frame} {m m1 : Machine} {recv : Expr} {er : Solm.EvaledStorageRef} {e : Ty}
@@ -2276,7 +2282,7 @@ theorem EvalExpr.popLast {fr fr1 : Frame} {m m1 : Machine} {recv : Expr} {er : S
     (he : EvalExpr cfg o fc fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1))
     (hlen : dynArrayLength cfg fc.types m1.evm er e = some (n + 1))
     (hst : storageTypeOf fc.types (.dynArray e) = some st)
-    (hpop : cfg.storageBackend.pop er st m1.evm = .ok evm') :
+    (hpop : Storage.pop cfg.storageLayout er st m1.evm = .ok evm') :
     EvalExpr cfg o fc fr m (.call (.member recv "pop") [] (.positional [])) (.ok .unit fr1 { m1 with evm := evm' }) :=
   EvalExpr.pop hdm he (storagePop_succ hlen hst hpop)
 

@@ -33,7 +33,7 @@ def creationFor (fc : FlatContract) (codes : List (Ident × EVM.Bytes)) (name : 
 
 def defaultConfig (fc : FlatContract) : Option Config := do
   let table ← fc.layoutTable?
-  pure { storageBackend := storageBackend table, selfDeployment := solcDeployment fc }
+  pure { storageLayout := storageLayout table, selfDeployment := solcDeployment fc }
 
 /-- The immutables store of a deployed contract from the values of its immutables by name
     (`imm_<name>` locals of the declared types). -/

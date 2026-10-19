@@ -304,7 +304,7 @@ def yulIdent (fc : FlatContract) (st : YulState) (x : Ident) : Option YulVal :=
       | none => none
 
 def slotOff (cfg : Config) (er : Solm.EvaledStorageRef) : Option (Nat × Nat) :=
-  match cfg.storageBackend.locate? er with
+  match cfg.storageLayout er with
   | some (.leaf loc) => some (loc.slot.toNat, loc.offset.val)
   | some (.anchor s) => some (s.toNat, 0)
   | _ => none
