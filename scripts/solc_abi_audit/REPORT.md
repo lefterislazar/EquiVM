@@ -109,6 +109,12 @@ memory or re-encoded.
 - **via-IR only:** the dirty-element re-encoding row above. The semantics masks the element, as
   legacy does.
 
+The Solidity semantics now decodes with `Solidity/Semantics/Abi.lean` (branch `solidity-faithful`
+of the `solidity` remote), which adds the memory offset bound; all legacy scenarios agree. It
+models the legacy code generator, so `gen_solidity_tests.py` marks the cases where the two code
+generators differ at 0.8.37 (the 8 dirty-element re-encodings) as known deviations of the via-IR
+scenarios.
+
 ## Reproducing
 
 ```
