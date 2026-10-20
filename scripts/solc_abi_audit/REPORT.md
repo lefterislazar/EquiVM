@@ -109,11 +109,13 @@ memory or re-encoded.
 - **via-IR only:** the dirty-element re-encoding row above. The semantics masks the element, as
   legacy does.
 
-The Solidity semantics now decodes with `Solidity/Semantics/Abi.lean` (branch `solidity-faithful`
-of the `solidity` remote), which adds the memory offset bound; all legacy scenarios agree. It
-models the legacy code generator, so `gen_solidity_tests.py` marks the cases where the two code
-generators differ at 0.8.37 (the 8 dirty-element re-encodings) as known deviations of the via-IR
-scenarios.
+On `main` of the `solidity` remote the decoder is selected by `Config.abiDecodeMode`. The existing
+`ABI.DecodeMode.solc08Calldata []` (every argument materialized; the semantics passes calldata
+references to the decoder as their offset word) matches solc 0.8.37 on all cases of both code
+generators, so no new mode is needed; the default `modern` accepts the two nested offsets above.
+The `Abi/*` scenarios on branch `solidity-backends` run with it. The semantics models the legacy
+code generator, so `gen_solidity_tests.py` marks the cases where the two code generators differ at
+0.8.37 (the 8 dirty-element re-encodings) as known deviations of the via-IR scenarios.
 
 ## Reproducing
 
