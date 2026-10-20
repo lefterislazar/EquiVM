@@ -324,3 +324,47 @@ def _materialize():
 
 
 _materialize()
+
+
+# --- struct elements and length bounds (legacy vs via-IR) -------------------------------------
+
+def _dirty_ms_dyn(length):
+    lay = layout("DynArrays")
+    d = keccak_word(lay["ms"])
+    return {lay["ms"]: length, **{d + i: FULL for i in range(6)}}
+
+
+def _dirty_ms_fixed():
+    s = layout("FixedArrays")["ms"]
+    return {s + i: FULL for i in range(4)}
+
+
+def _dirty_n():
+    s = layout("Structs")["n"]
+    return {s + i: FULL for i in range(4)}  # n.s (3 slots), n.x; y and z are left empty
+
+
+def _length(probe, var, n):
+    return {layout(probe)[var]: n}
+
+
+_more = [
+    lambda: scenario("DynArrays", "ms.pop.dirty", [("pop_ms()",)], storage=_dirty_ms_dyn(2),
+                     note="S[] of length 2 over 0xff.. slots: popping clears the last struct"),
+    lambda: scenario("DynArrays", "ms.shrink.dirty", [("w_ms_mem((uint8,uint128,uint256)[])", "[(1,2,3)]")],
+                     storage=_dirty_ms_dyn(2), note="assigning one element clears the second"),
+    lambda: scenario("DynArrays", "ms.delete.dirty", [("d_ms()",)], storage=_dirty_ms_dyn(2)),
+    lambda: scenario("FixedArrays", "ms.delete.dirty", [("d_ms()",)], storage=_dirty_ms_fixed()),
+    lambda: scenario("Structs", "N.delete.dirty", [("d_N()",)], storage=_dirty_n(),
+                     note="a struct with a nested struct, over 0xff.. slots"),
+    lambda: scenario("DynArrays", "p.push.2^64", [("pushv_p(uint8)", "7")], storage=_length("DynArrays", "p", 2 ** 64)),
+    lambda: scenario("DynArrays", "p.push0.2^64", [("push0_p()",)], storage=_length("DynArrays", "p", 2 ** 64)),
+    lambda: scenario("DynArrays", "f.push.2^64-1", [("pushv_f(uint256)", "7")],
+                     storage=_length("DynArrays", "f", 2 ** 64 - 1)),
+    lambda: scenario("DynArrays", "ms.push0.2^64", [("push0_ms()",)], storage=_length("DynArrays", "ms", 2 ** 64)),
+    lambda: scenario("Bytes", "b.push.2^64", [("pushv_b(bytes1)", "0x41")],
+                     storage=_length("Bytes", "b", 2 * 2 ** 64 + 1), note="long header of length 2^64"),
+    lambda: scenario("Bytes", "b.push0.2^64", [("push0_b()",)], storage=_length("Bytes", "b", 2 * 2 ** 64 + 1)),
+]
+for make in _more:
+    make()
