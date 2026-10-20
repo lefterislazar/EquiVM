@@ -187,23 +187,31 @@ are canonical and cannot expose these cases.
 ## The legacy pipeline
 
 The analysis above covers via-IR only. Most benchmarks EquiVM has proved are compiled with the
-legacy code generator (WETH9 with 0.5.16, Dss with 0.6.12, Auction with 0.8.23), so
-`legacy_compare.py` runs every scenario on legacy bytecode of 0.8.4, 0.8.13, 0.8.23 and 0.8.37
-and compares it with the via-IR bytecode of the same release:
+legacy code generator (WETH9 with 0.5.16, Dss with 0.6.12, Auction with 0.8.23), and so are the
+Solidity semantics' test fixtures. `legacy_compare.py` runs every scenario on legacy bytecode of
+0.8.4, 0.8.13, 0.8.23 and 0.8.37 and compares it with the via-IR bytecode of the same release.
 
-| scenario | legacy vs via-IR |
+The legacy code generator cannot copy memory or calldata arrays of structs into storage, so the
+`FixedArrays` and `DynArrays` probes do not compile for it as a whole. The script then compiles a
+contract with just the scenario's functions. (A first version treated those probes as missing,
+which silently left every array scenario untested; the results below replace that version's.)
+
+At 0.8.37, of the 119 scenarios:
+
+| outcome | scenarios |
 |---|---|
-| `Structs.S.dirty` | **differs in every release**: legacy `delete` of a struct masks out each member and keeps the padding; via-IR zeroes whole slots |
-| `SlotPointers.box.wrap`, `pbox.wrap` | differ up to 0.8.31; both pipelines fixed in 0.8.32 |
-| `ValueTypes.fi` | internal function pointer encoding (not modelled) |
-| all other 103 scenarios | identical, including the packed-array writes, packed-array `delete` and `bytes` push/pop on dirty storage |
+| identical in both code generators | 88, including packed-array writes and `delete` on dirty slots, dynamic-array resizing, `bytes` push/pop in place, invalid headers, mappings, wrap-around clearing |
+| not compilable for legacy | 19 (they copy memory or calldata arrays of structs into storage) |
+| **struct clearing** | `Structs.S.dirty`, `Structs.N.delete.dirty`, `DynArrays.ms.dirty`, `ms.pop.dirty`, `ms.delete.dirty`, `FixedArrays.ms.delete.dirty`: legacy clears each member in place and keeps a slot's padding; via-IR zeroes the whole slots |
+| **push at 2^64 elements** | `DynArrays.p.push.2^64`, `p.push0.2^64`, `ms.push0.2^64`, `Bytes.b.push.2^64`, `b.push0.2^64`: legacy pushes; via-IR reverts with `Panic(0x41)` |
+| internal function pointer encoding | `ValueTypes.fi` (not modelled) |
 
-Releases before 0.8 were not run (the probes use 0.8 syntax). The Flipper proof
-(`Benchmarks/Dss/Flipper/BidDelete.lean`) shows the per-member struct `delete` of 0.6.12.
+Across releases, legacy also changes the packed-array write on dirty slots: at 0.8.4 and 0.8.13 it
+keeps the bytes after the last element, from 0.8.23 (at the latest) it zeroes them, as via-IR does
+from 0.8.16. Releases before 0.8 were not run (the probes use 0.8 syntax).
 
-So on non-canonical storage the struct `delete` of the current Lean backend matches legacy
-bytecode and not via-IR. Changing `Solm.solidityStorageBackend` to via-IR behaviour would make the
-proved legacy benchmarks false on dirty storage.
+So on non-canonical storage the code generators differ only in struct clearing and the push bound.
+A model of one code generator cannot match the other there.
 
 ## Recommendation
 
@@ -225,12 +233,15 @@ proved legacy benchmarks false on dirty storage.
 
 ### Outcome
 
-- `Solm.solidityStorageBackend` is unchanged, so the legacy benchmarks keep their behaviour.
-- The Solidity semantics (`Solidity/`, branch `solidity-storage-implementation`) no longer goes through
-  a configurable `StorageBackend`. Its config carries only the layout (`Config.storageLayout`); the
-  algorithms are fixed in `Solidity/Storage.lean` and follow via-IR ≥0.8.34 on all storage,
-  removing divergences 1–5 there. A differential scenario (`Solidity/Test/Scenarios/ViaIRStorage.lean`)
-  checks them against `solc 0.8.35 --via-ir` bytecode on seeded dirty storage.
+- `Stele.solidityStorageBackend` (formerly `Solm`) is unchanged, so the legacy benchmarks keep
+  their behaviour.
+- The Solidity semantics no longer goes through a configurable `StorageBackend`. Its config
+  carries only the layout (`Config.storageLayout`), and the algorithms are fixed in
+  `Solidity/Semantics/Storage.lean`. They follow solc 0.8.37's legacy code generator, which the
+  rest of the semantics models: arrays of primitives are cleared and written whole slots at a time,
+  structs member by member, `bytes` push/pop in place, and `push` has no bound. The
+  `StorageDirty` differential scenario checks them on seeded dirty storage against legacy
+  bytecode; `StorageDirty/viaIR` records the two via-IR differences as known deviations.
 
 ## Reproducing
 
