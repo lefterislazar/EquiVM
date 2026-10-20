@@ -368,3 +368,23 @@ _more = [
 ]
 for make in _more:
     make()
+
+
+# --- single-step bytes push/pop on dirty storage (nothing overwrites the result) ---------------
+
+def _bytes_long_dirty(n):
+    b = layout("Bytes")["b"]
+    d = keccak_word(b)
+    return {b: 2 * n + 1, **{d + i: FULL for i in range(n // 32 + 2)}}
+
+
+def _bytes_short_dirty(n):
+    return {layout("Bytes")["b"]: (FULL >> 8 << 8) | (2 * n)}
+
+
+for _tag, _storage in [("short5", lambda: _bytes_short_dirty(5)), ("short30", lambda: _bytes_short_dirty(30)),
+                       ("short31", lambda: _bytes_short_dirty(31)), ("long32", lambda: _bytes_long_dirty(32)),
+                       ("long33", lambda: _bytes_long_dirty(33)), ("long64", lambda: _bytes_long_dirty(64))]:
+    for _op, _steps in [("push0", [("push0_b()",)]), ("pushv", [("pushv_b(bytes1)", "0x41")]), ("pop", [("pop_b()",)])]:
+        scenario("Bytes", f"b.{_op}.dirty.{_tag}", _steps, storage=_storage(),
+                 note="one step on dirty storage: the final storage shows every byte written")

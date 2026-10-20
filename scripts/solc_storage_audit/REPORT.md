@@ -196,21 +196,24 @@ The legacy code generator cannot copy memory or calldata arrays of structs into 
 contract with just the scenario's functions. (A first version treated those probes as missing,
 which silently left every array scenario untested; the results below replace that version's.)
 
-At 0.8.37, of the 119 scenarios:
+At 0.8.37, of the 137 scenarios:
 
 | outcome | scenarios |
 |---|---|
-| identical in both code generators | 88, including packed-array writes and `delete` on dirty slots, dynamic-array resizing, `bytes` push/pop in place, invalid headers, mappings, wrap-around clearing |
+| identical in both code generators | 104, including packed-array writes and `delete` on dirty slots, dynamic-array resizing, `bytes` `push(b)` and most `push()`/`pop()` in place, invalid headers, mappings, wrap-around clearing |
 | not compilable for legacy | 19 (they copy memory or calldata arrays of structs into storage) |
 | **struct clearing** | `Structs.S.dirty`, `Structs.N.delete.dirty`, `DynArrays.ms.dirty`, `ms.pop.dirty`, `ms.delete.dirty`, `FixedArrays.ms.delete.dirty`: legacy clears each member in place and keeps a slot's padding; via-IR zeroes the whole slots |
 | **push at 2^64 elements** | `DynArrays.p.push.2^64`, `p.push0.2^64`, `ms.push0.2^64`, `Bytes.b.push.2^64`, `b.push0.2^64`: legacy pushes; via-IR reverts with `Panic(0x41)` |
+| **`bytes` `push()` and `pop()` on dirty storage** | `Bytes.b.push0.dirty.short5`: legacy's `push()` adds 2 to the header and keeps a short value's bytes after the new length, via-IR zeroes them; `Bytes.b.pop.dirty.long33`: when `pop()` empties a data word, legacy clears the word, via-IR zeroes only the byte |
 | internal function pointer encoding | `ValueTypes.fi` (not modelled) |
 
 Across releases, legacy also changes the packed-array write on dirty slots: at 0.8.4 and 0.8.13 it
 keeps the bytes after the last element, from 0.8.23 (at the latest) it zeroes them, as via-IR does
 from 0.8.16. Releases before 0.8 were not run (the probes use 0.8 syntax).
 
-So on non-canonical storage the code generators differ only in struct clearing and the push bound.
+So on non-canonical storage the code generators differ in struct clearing, `bytes` `push()`/`pop()`
+next to leftover bytes, and the push bound. Single-step scenarios (`Bytes.b.{push0,pushv,pop}.dirty.*`)
+were added after an earlier multi-step scenario hid the `bytes` difference behind a later write.
 A model of one code generator cannot match the other there.
 
 ## Recommendation
@@ -239,9 +242,10 @@ A model of one code generator cannot match the other there.
   carries only the layout (`Config.storageLayout`), and the algorithms are fixed in
   `Solidity/Semantics/Storage.lean`. They follow solc 0.8.37's legacy code generator, which the
   rest of the semantics models: arrays of primitives are cleared and written whole slots at a time,
-  structs member by member, `bytes` push/pop in place, and `push` has no bound. The
+  structs member by member, `bytes` push/pop in place as legacy does them, and `push` has no
+  bound. The
   `StorageDirty` differential scenario checks them on seeded dirty storage against legacy
-  bytecode; `StorageDirty/viaIR` records the two via-IR differences as known deviations.
+  bytecode; `StorageDirty/viaIR` records the via-IR differences as known deviations.
 
 ## Reproducing
 
